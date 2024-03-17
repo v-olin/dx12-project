@@ -11,15 +11,13 @@ namespace pathtracex {
 	class StringUtil {
 	public:
 		static inline std::wstring bstows(const std::string& bstr) noexcept {
-			return conv.from_bytes(bstr);
+			std::wstring wstr(bstr.begin(), bstr.end());
+			return wstr;
 		}
 
 		static inline std::string wstobs(const std::wstring& wstr) noexcept {
-			return conv.to_bytes(wstr);
+			std::string str(wstr.begin(), wstr.end());
+			return str;
 		}
-
-	private:
-		static inline std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> conv;
 	};
-
 }

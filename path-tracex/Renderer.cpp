@@ -4,6 +4,7 @@
 
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
+#include <dxgi1_3.h>
 
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"D3DCompiler.lib") // shader compiler
@@ -27,6 +28,31 @@ namespace pathtracex {
 	void Renderer::onInit() {
 		loadPipeline();
 		loadShaders();
+	}
+
+	void Renderer::onUpdate() {
+
+	}
+
+	void Renderer::onRender() {
+		// record all commands for gpu into command list
+		populateCommandList();
+
+		// exec command list
+		ID3D12CommandList* ppCommandLists[] = { cmdList.Get() };
+		cmdQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+		// present next frame
+		HRESULT hr;
+		THROW_IF_FAILED(pSwap->Present(1, 0));
+		waitForPreviousFrame();
+	}
+
+	void Renderer::onDestroy() {
+		// wait for gpu to be finished using cpu resources
+		waitForPreviousFrame();
+
+		CloseHandle(fenceEvent);
 	}
 
 	void Renderer::loadPipeline() {
@@ -124,13 +150,7 @@ namespace pathtracex {
 	void Renderer::loadShaders() {
 		HRESULT hr;
 		{
-			D3D12_ROOT_SIGNATURE_DESC rootSignDesc{};
-			rootSignDesc.NumParameters = 0;
-			rootSignDesc.pParameters = nullptr;
-			rootSignDesc.NumStaticSamplers = 0;
-			rootSignDesc.pStaticSamplers = nullptr;
-			rootSignDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
+			D3D12_ROOT_SIGNATURE_DESC rootSignDesc = getRootSignatureDesc();
 			wrl::ComPtr<ID3DBlob> signature;
 			wrl::ComPtr<ID3DBlob> error;
 			THROW_IF_FAILED(D3D12SerializeRootSignature(&rootSignDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
@@ -149,68 +169,16 @@ namespace pathtracex {
 			THROW_IF_FAILED(D3DCompileFromFile(L"shader.hlsl", nullptr, nullptr, "PSMain", "vs_5_0", compileFlags, 0, &pShader, nullptr));
 
 			D3D12_INPUT_ELEMENT_DESC ied[] = {
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 			};
 
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC psd{};
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psd = getPreparedPipeStateDesc();
 			psd.InputLayout = { ied, std::size(ied) };
 			psd.pRootSignature = rootSignature.Get();
 			psd.VS = { vShader.Get()->GetBufferPointer(), vShader.Get()->GetBufferSize() };
 			psd.PS = { pShader.Get()->GetBufferPointer(), pShader.Get()->GetBufferSize() };
-			/*
-			typedef struct D3D12_RASTERIZER_DESC
-			{
-			D3D12_FILL_MODE FillMode;
-			D3D12_CULL_MODE CullMode;
-			BOOL FrontCounterClockwise;
-			INT DepthBias;
-			FLOAT DepthBiasClamp;
-			FLOAT SlopeScaledDepthBias;
-			BOOL DepthClipEnable;
-			BOOL MultisampleEnable;
-			BOOL AntialiasedLineEnable;
-			UINT ForcedSampleCount;
-			D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
-			} 	D3D12_RASTERIZER_DESC;
-			*/
-			psd.RasterizerState = {
-				D3D12_FILL_MODE_SOLID,
-				D3D12_CULL_MODE_BACK,
-				FALSE,
-				D3D12_DEFAULT_DEPTH_BIAS,
-				D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
-				D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
-				TRUE, FALSE, FALSE,
-				0, D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF
-			};
-			/*
-			typedef struct D3D12_BLEND_DESC
-			{
-			BOOL AlphaToCoverageEnable;
-			BOOL IndependentBlendEnable;
-			D3D12_RENDER_TARGET_BLEND_DESC RenderTarget[ 8 ];
-			}
-			*/
-			D3D12_RENDER_TARGET_BLEND_DESC drtbd = {
-				FALSE, FALSE,
-				D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
-				D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
-				D3D12_LOGIC_OP_NOOP,
-				D3D12_COLOR_WRITE_ENABLE_ALL,
-			};
-			D3D12_BLEND_DESC blendd = { FALSE, FALSE, drtbd };
-			for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i) {
-				blendd.RenderTarget[i] = drtbd;
-			}
-			psd.BlendState = blendd;
-			psd.DepthStencilState.DepthEnable = FALSE;
-			psd.DepthStencilState.StencilEnable = FALSE;
-			psd.SampleMask = UINT_MAX;
-			psd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			psd.NumRenderTargets = 1;
-			psd.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-			psd.SampleDesc.Count = 1;
+			
 			THROW_IF_FAILED(pDevice->CreateGraphicsPipelineState(&psd, IID_PPV_ARGS(&pipelineState)));
 		}
 
@@ -225,6 +193,7 @@ namespace pathtracex {
 				dx::XMFLOAT4 color;
 			};
 
+			/* 3D TEST
 			struct ConstantBuffer {
 				dx::XMMATRIX transform;
 			};
@@ -241,28 +210,19 @@ namespace pathtracex {
 				{ {-1.0f, 1.0f, 1.0f },		{ 255, 0, 0, 0 } },
 				{ {1.0f, 1.0f, 1.0f },		{ 0, 255, 0, 0 } }
 			};
+			
+			*/
+
+			Vertex vertices[] = {
+				{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+				{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+				{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+			};
 			const UINT vertexBufferSize = sizeof(vertices);
 
+			D3D12_HEAP_PROPERTIES hprops = getDefaultHeapProperties();
+			D3D12_RESOURCE_DESC rdesc = getResourceDescriptionFromSize(vertexBufferSize);
 
-			D3D12_HEAP_PROPERTIES hprops{};
-			hprops.Type = D3D12_HEAP_TYPE_UPLOAD;
-			hprops.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			hprops.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			hprops.CreationNodeMask = 1u;
-			hprops.VisibleNodeMask = 1u;
-
-			D3D12_RESOURCE_DESC rdesc{};
-			rdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			rdesc.Alignment = 0ui64;
-			rdesc.Width = vertexBufferSize;
-			rdesc.Height = 1u;
-			rdesc.DepthOrArraySize = 1u;
-			rdesc.MipLevels = 1u;
-			rdesc.Format = DXGI_FORMAT_UNKNOWN;
-			rdesc.SampleDesc.Count = 1u;
-			rdesc.SampleDesc.Quality = 0u;
-			rdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			rdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 			// Note: using upload heaps to transfer static data like vert buffers is not 
 			// recommended. Every time the GPU needs it, the upload heap will be marshalled 
 			// over. Please read up on Default Heap usage. An upload heap is used here for 
@@ -320,14 +280,7 @@ namespace pathtracex {
 		cmdList->RSSetViewports(1, &viewport);
 		cmdList->RSSetScissorRects(1, &scissorRect);
 
-		D3D12_RESOURCE_BARRIER rbarr{};
-		ZeroMemory(&rbarr, sizeof(rbarr));
-		rbarr.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		rbarr.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		rbarr.Transition.pResource = renderTargets[frameIdx].Get();
-		rbarr.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-		rbarr.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		rbarr.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		D3D12_RESOURCE_BARRIER rbarr = transitionBarrierFromRenderTarget(renderTargets[frameIdx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		// indicate back buffer will be used as render target
 		cmdList->ResourceBarrier(1, &rbarr);
 
@@ -344,9 +297,36 @@ namespace pathtracex {
 			cmdList->IASetVertexBuffers(0, 1, &vertexBufferView);
 			cmdList->DrawInstanced(3, 1, 0, 0);
 		}
-		else {
-
+		else { // if raytracing
+			const float clearColor[] = { 0.4f, 0.2f, 0.0f, 1.0f };
+			cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		}
+
+		// after render indicate that back buffer will be presented
+		rbarr = transitionBarrierFromRenderTarget(renderTargets[frameIdx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		cmdList->ResourceBarrier(1, &rbarr);
+
+		THROW_IF_FAILED(cmdList->Close());
+	}
+
+	void Renderer::waitForPreviousFrame() {
+		HRESULT hr;
+		// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
+		// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
+		// sample illustrates how to use fences for efficient resource usage and to
+		// maximize GPU utilization.
+
+		// Signal and increment the fence value.
+		const UINT64 oldFence = fenceValue;
+		THROW_IF_FAILED(cmdQueue->Signal(fence.Get(), oldFence));
+		fenceValue++;
+
+		if (fence->GetCompletedValue() < oldFence) {
+			THROW_IF_FAILED(fence->SetEventOnCompletion(oldFence, fenceEvent));
+			WaitForSingleObject(fenceEvent, INFINITE);
+		}
+
+		frameIdx = pSwap->GetCurrentBackBufferIndex();
 	}
 
 	void Renderer::getHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter) {

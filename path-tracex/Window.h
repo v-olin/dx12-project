@@ -2,7 +2,10 @@
 
 #include "PathWin.h"
 #include "Keyboard.h"
+#include "Mouse.h"
+#include "Renderer.h"
 
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -18,6 +21,9 @@ namespace pathtracex {
 		static std::optional<int> processMessages();
 
 		Keyboard kbd;
+		Mouse mouse;
+		// defer construction of renderer since it needs the window handle
+		std::unique_ptr<Renderer> pRenderer;
 
 	private:
 		int width, height;

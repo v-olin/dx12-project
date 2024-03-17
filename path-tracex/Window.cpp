@@ -12,6 +12,7 @@ namespace pathtracex {
 		, title(title)
 		, _hInstance(GetModuleHandle(nullptr))
 		, windowHandle(nullptr)
+		
 	{
 		registerClass();
 		configureWindow();
@@ -107,10 +108,11 @@ namespace pathtracex {
 		if (windowHandle == nullptr) {
 			throw std::runtime_error("unluko");
 		}
+		
+		pRenderer = std::make_unique<Renderer>(windowHandle, width, height);
+		pRenderer->onInit();
 
 		ShowWindow(windowHandle, SW_SHOWDEFAULT);
-
-		// TODO add graphics?
 	}
 
 	LRESULT WINAPI Window::handleMessageSetup(HWND winHandle, UINT message, WPARAM wparam, LPARAM lparam) noexcept {
@@ -145,6 +147,11 @@ namespace pathtracex {
 			/* If window unfocused, clear keyboard */
 		case WM_KILLFOCUS:
 			kbd.clearState();
+			break;
+			/* Render messages */
+		case WM_PAINT: // this message is cursed, annoying and idiot
+			pRenderer->onUpdate();
+			pRenderer->onRender();
 			break;
 			/* Keyboard messages */
 		case WM_KEYDOWN:
