@@ -4,10 +4,7 @@
 
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
-#include <dxgi1_3.h>
-
-#pragma comment(lib,"d3d12.lib")
-#pragma comment(lib,"D3DCompiler.lib") // shader compiler
+#include <dxgi1_2.h>
 
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
@@ -22,7 +19,8 @@ namespace pathtracex {
 		frameIdx(0),
 		viewport({ 0.0f, 0.0f, (float)(width), (float)(height), 0.0f, 1.0f }),
 		scissorRect({ 0, 0, (LONG)(width), (LONG)(height) }),
-		rtvDescriptorSize(0)
+		rtvDescriptorSize(0),
+		aspectRatio(static_cast<float>(width) / static_cast<float>(height))
 	{ }
 
 	void Renderer::onInit() {
@@ -106,9 +104,11 @@ namespace pathtracex {
 		swapChainDesc.Height = height;
 		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
 
 		wrl::ComPtr<IDXGISwapChain1> swapChain;
+		// this is fcked
 		THROW_IF_FAILED(factory->CreateSwapChainForHwnd(
 			cmdQueue.Get(),
 			windowHandle,
@@ -165,8 +165,8 @@ namespace pathtracex {
 #ifdef _DEBUG
 			compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-			THROW_IF_FAILED(D3DCompileFromFile(L"shader.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vShader, nullptr));
-			THROW_IF_FAILED(D3DCompileFromFile(L"shader.hlsl", nullptr, nullptr, "PSMain", "vs_5_0", compileFlags, 0, &pShader, nullptr));
+			THROW_IF_FAILED(D3DCompileFromFile(L"VertexShader.hlsl", nullptr, nullptr, "main", "vs_5_0", compileFlags, 0, &vShader, nullptr));
+			THROW_IF_FAILED(D3DCompileFromFile(L"PixelShader.hlsl", nullptr, nullptr, "main", "ps_5_0", compileFlags, 0, &pShader, nullptr));
 
 			D3D12_INPUT_ELEMENT_DESC ied[] = {
 				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
