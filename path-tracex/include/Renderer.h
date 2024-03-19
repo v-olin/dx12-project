@@ -26,6 +26,8 @@ namespace pathtracex {
 		void onRender();
 		void onDestroy();
 
+		ID3D12GraphicsCommandList* const borrowCommandListPointer() const noexcept;
+
 	private:
 		UINT width, height;
 		float aspectRatio;

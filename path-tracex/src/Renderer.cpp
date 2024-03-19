@@ -5,6 +5,7 @@
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include <dxgi1_2.h>
+#include "backends/imgui_impl_dx12.h"
 
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
@@ -26,6 +27,18 @@ namespace pathtracex {
 	void Renderer::onInit() {
 		loadPipeline();
 		loadShaders();
+
+		// dis do be correct i think?
+		ImGui_ImplDX12_Init(pDevice.Get(), FRAME_COUNT,
+			DXGI_FORMAT_R8G8B8A8_UNORM, rtvHeap.Get(),
+			rtvHeap.Get()->GetCPUDescriptorHandleForHeapStart(),
+			rtvHeap.Get()->GetGPUDescriptorHandleForHeapStart());
+		/*
+		ImGui_ImplDX12_Init(pDevice.Get(), FRAME_COUNT,
+			DXGI_FORMAT_R8G8B8A8_UNORM, rtvHeap.Get(),
+			rtvHeap->GetCPUDescriptorHandleForHeapStart(),
+			rtvHeap->GetGPUDescriptorHandleForHeapStart());
+		*/
 	}
 
 	void Renderer::onUpdate() {
@@ -49,8 +62,11 @@ namespace pathtracex {
 	void Renderer::onDestroy() {
 		// wait for gpu to be finished using cpu resources
 		waitForPreviousFrame();
-
 		CloseHandle(fenceEvent);
+	}
+
+	ID3D12GraphicsCommandList* const Renderer::borrowCommandListPointer() const noexcept {
+		return cmdList.Get();
 	}
 
 	void Renderer::loadPipeline() {
@@ -165,8 +181,8 @@ namespace pathtracex {
 #ifdef _DEBUG
 			compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-			THROW_IF_FAILED(D3DCompileFromFile(L"VertexShader.hlsl", nullptr, nullptr, "main", "vs_5_0", compileFlags, 0, &vShader, nullptr));
-			THROW_IF_FAILED(D3DCompileFromFile(L"PixelShader.hlsl", nullptr, nullptr, "main", "ps_5_0", compileFlags, 0, &pShader, nullptr));
+			THROW_IF_FAILED(D3DCompileFromFile(L"shaders/VertexShader.hlsl", nullptr, nullptr, "main", "vs_5_0", compileFlags, 0, &vShader, nullptr));
+			THROW_IF_FAILED(D3DCompileFromFile(L"shaders/PixelShader.hlsl", nullptr, nullptr, "main", "ps_5_0", compileFlags, 0, &pShader, nullptr));
 
 			D3D12_INPUT_ELEMENT_DESC ied[] = {
 				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
