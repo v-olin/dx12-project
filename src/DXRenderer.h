@@ -51,6 +51,9 @@ namespace pathtracex {
 			DirectX::XMFLOAT4 color;
 		};
 		
+		Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+		UINT dxgiFactoryFlags = 0u;
+
 		// gpu pipeline objects
 		D3D12_VIEWPORT viewport;
 		D3D12_RECT scissorRect;
@@ -77,12 +80,27 @@ namespace pathtracex {
 
 		bool renderRasterized = true;
 
-		void loadPipeline();
+		// Shaders
+		Microsoft::WRL::ComPtr<ID3DBlob> vShader;
+		Microsoft::WRL::ComPtr<ID3DBlob> pShader;
+
 		void loadShaders();
 		void populateCommandList();
 		void waitForPreviousFrame();
 		void toggleRenderMode();
 		void getHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter);
+
+		void createFactory();
+		void createDebugController();
+		void createDevice();
+		void createCommandQueue();
+		void createSwapChain();
+		void createDescriptorHeaps();
+		void createCommandAllocators();
+		void createRootSignature();
+		void createShaders();
+		void createPipeline();
+		void createCommandList();
 	};
 
 }

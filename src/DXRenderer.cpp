@@ -27,18 +27,32 @@ namespace pathtracex {
 	void Renderer::onInit() {
 		// https://www.braynzarsoft.net/viewtutorial/q16390-03-initializing-directx-12
 		// TODO: maybe structure the init like this
-		// Create device
+		// Create factory
+		createFactory();
+#ifdef _DEBUG
+		createDebugController();
+#endif
+		createDevice();
+
 		// Create a command queue
+		createCommandQueue();
 		// Create swap chain
+		createSwapChain();
 		// Create descriptor heap
-		// Create command allocator
+		createDescriptorHeaps();
+		// Create command allocators
+		createCommandAllocators();
 		// Create root signature
+		createRootSignature();
 		// Create vertex and pixel shaders
+		createShaders();
 		// Create pipeline state object
+		createPipeline();
 		// Create command list
+		createCommandList();
 		// Create a fence & event handle
 
-		loadPipeline();
+
 		loadShaders();
 
 		// dis do be correct i think?
@@ -112,139 +126,10 @@ namespace pathtracex {
 		// TODO
 	}
 
-	void Renderer::loadPipeline() {
-		HRESULT hr;
-		UINT dxgiFactoryFlags = 0u;
 
-#ifdef _DEBUG
-		{
-			wrl::ComPtr<ID3D12Debug> debugController;
-			if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
-				debugController->EnableDebugLayer();
-
-				dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-			}
-		}
-#endif
-
-		wrl::ComPtr<IDXGIFactory4> factory;
-		THROW_IF_FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
-
-		if (useWarpDevice) {
-			wrl::ComPtr<IDXGIAdapter> warpAdapter;
-			THROW_IF_FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
-
-			THROW_IF_FAILED(D3D12CreateDevice(
-				warpAdapter.Get(),
-				D3D_FEATURE_LEVEL_12_1,
-				IID_PPV_ARGS(&pDevice)
-			));
-		}
-		else {
-			wrl::ComPtr<IDXGIAdapter1> hardwareAdapter;
-			getHardwareAdapter(factory.Get(), &hardwareAdapter);
-
-			THROW_IF_FAILED(D3D12CreateDevice(
-				hardwareAdapter.Get(),
-				D3D_FEATURE_LEVEL_12_1,
-				IID_PPV_ARGS(&pDevice)
-			));
-		}
-
-		D3D12_COMMAND_QUEUE_DESC queueDesc{};
-		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-		THROW_IF_FAILED(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue)));
-
-		DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-		swapChainDesc.BufferCount = FRAME_COUNT;
-		swapChainDesc.Width = width;
-		swapChainDesc.Height = height;
-		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.SampleDesc.Count = 1;
-
-		wrl::ComPtr<IDXGISwapChain1> swapChain;
-		// this is fcked
-		THROW_IF_FAILED(factory->CreateSwapChainForHwnd(
-			cmdQueue.Get(),
-			windowHandle,
-			&swapChainDesc,
-			nullptr,
-			nullptr,
-			&swapChain
-		));
-
-		THROW_IF_FAILED(factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER));
-
-		THROW_IF_FAILED(swapChain.As(&pSwap));
-		frameIdx = pSwap->GetCurrentBackBufferIndex();
-
-		{
-			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-			rtvHeapDesc.NumDescriptors = FRAME_COUNT;
-			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			
-			THROW_IF_FAILED(pDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)));
-
-			rtvDescriptorSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		}
-
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
-
-			for (UINT i = 0; i < FRAME_COUNT; i++) {
-				THROW_IF_FAILED(pSwap->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
-				pDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
-				rtvHandle.ptr += 1 * rtvDescriptorSize;
-			}
-		}
-
-		THROW_IF_FAILED(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAllocator)));
-	}
 
 	void Renderer::loadShaders() {
 		HRESULT hr;
-		{
-			D3D12_ROOT_SIGNATURE_DESC rootSignDesc = getRootSignatureDesc();
-			wrl::ComPtr<ID3DBlob> signature;
-			wrl::ComPtr<ID3DBlob> error;
-			THROW_IF_FAILED(D3D12SerializeRootSignature(&rootSignDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-			THROW_IF_FAILED(pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature)));
-		}
-
-		{
-			wrl::ComPtr<ID3DBlob> vShader;
-			wrl::ComPtr<ID3DBlob> pShader;
-
-			UINT compileFlags = 0u;
-#ifdef _DEBUG
-			compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#endif
-			THROW_IF_FAILED(D3DCompileFromFile(L"../../shaders/VertexShader.hlsl", nullptr, nullptr, "main", "vs_5_0", compileFlags, 0, &vShader, nullptr));
-			THROW_IF_FAILED(D3DCompileFromFile(L"../../shaders/PixelShader.hlsl", nullptr, nullptr, "main", "ps_5_0", compileFlags, 0, &pShader, nullptr));
-
-			D3D12_INPUT_ELEMENT_DESC ied[] = {
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-			};
-
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC psd = getPreparedPipeStateDesc();
-			psd.InputLayout = { ied, std::size(ied) };
-			psd.pRootSignature = rootSignature.Get();
-			psd.VS = { vShader.Get()->GetBufferPointer(), vShader.Get()->GetBufferSize() };
-			psd.PS = { pShader.Get()->GetBufferPointer(), pShader.Get()->GetBufferSize() };
-			
-			THROW_IF_FAILED(pDevice->CreateGraphicsPipelineState(&psd, IID_PPV_ARGS(&pipelineState)));
-		}
-
-		THROW_IF_FAILED(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator.Get(), pipelineState.Get(), IID_PPV_ARGS(&cmdList)));
-		// Command lists are created in the recording state, but there is nothing
-		// to record yet. The main loop expects it to be closed, so close it now.
-		THROW_IF_FAILED(cmdList->Close());
 		
 		{
 			struct Vertex {
@@ -406,5 +291,161 @@ namespace pathtracex {
 		}
 
 		*ppAdapter = adapter.Detach();
+	}
+
+	void Renderer::createFactory()
+	{
+		HRESULT hr;
+		THROW_IF_FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
+	}
+
+	void Renderer::createDebugController()
+	{
+		wrl::ComPtr<ID3D12Debug> debugController;
+		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
+			debugController->EnableDebugLayer();
+
+			dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+		}
+	}
+
+	void Renderer::createDevice()
+	{
+		HRESULT hr;
+		if (useWarpDevice) {
+			wrl::ComPtr<IDXGIAdapter> warpAdapter;
+			THROW_IF_FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
+
+			THROW_IF_FAILED(D3D12CreateDevice(
+				warpAdapter.Get(),
+				D3D_FEATURE_LEVEL_12_1,
+				IID_PPV_ARGS(&pDevice)
+			));
+		}
+		else {
+			wrl::ComPtr<IDXGIAdapter1> hardwareAdapter;
+			getHardwareAdapter(factory.Get(), &hardwareAdapter);
+
+			THROW_IF_FAILED(D3D12CreateDevice(
+				hardwareAdapter.Get(),
+				D3D_FEATURE_LEVEL_12_1,
+				IID_PPV_ARGS(&pDevice)
+			));
+		}
+	}
+
+	void Renderer::createCommandQueue()
+	{
+		HRESULT hr;
+		D3D12_COMMAND_QUEUE_DESC queueDesc{};
+		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+
+		THROW_IF_FAILED(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue)));
+	}
+	void Renderer::createSwapChain()
+	{
+		HRESULT hr;
+		DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
+		swapChainDesc.BufferCount = FRAME_COUNT;
+		swapChainDesc.Width = width;
+		swapChainDesc.Height = height;
+		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		swapChainDesc.SampleDesc.Count = 1;
+
+		wrl::ComPtr<IDXGISwapChain1> swapChain;
+		// this is fcked
+		THROW_IF_FAILED(factory->CreateSwapChainForHwnd(
+			cmdQueue.Get(),
+			windowHandle,
+			&swapChainDesc,
+			nullptr,
+			nullptr,
+			&swapChain
+		));
+
+		THROW_IF_FAILED(factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER));
+
+		THROW_IF_FAILED(swapChain.As(&pSwap));
+		frameIdx = pSwap->GetCurrentBackBufferIndex();
+	}
+	void Renderer::createDescriptorHeaps()
+	{
+		HRESULT hr;
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
+			rtvHeapDesc.NumDescriptors = FRAME_COUNT;
+			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+			THROW_IF_FAILED(pDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)));
+
+			rtvDescriptorSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		}
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+			for (UINT i = 0; i < FRAME_COUNT; i++) {
+				THROW_IF_FAILED(pSwap->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
+				pDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
+				rtvHandle.ptr += 1 * rtvDescriptorSize;
+			}
+		}
+	}
+
+	void Renderer::createCommandAllocators()
+	{
+		HRESULT hr;
+		THROW_IF_FAILED(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAllocator)));
+	}
+
+	void Renderer::createRootSignature()
+	{
+		HRESULT hr;
+		{
+			D3D12_ROOT_SIGNATURE_DESC rootSignDesc = getRootSignatureDesc();
+			wrl::ComPtr<ID3DBlob> signature;
+			wrl::ComPtr<ID3DBlob> error;
+			THROW_IF_FAILED(D3D12SerializeRootSignature(&rootSignDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
+			THROW_IF_FAILED(pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature)));
+		}
+	}
+
+	void Renderer::createShaders()
+	{
+		HRESULT hr;
+
+		UINT compileFlags = 0u;
+#ifdef _DEBUG
+		compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+		THROW_IF_FAILED(D3DCompileFromFile(L"../../shaders/VertexShader.hlsl", nullptr, nullptr, "main", "vs_5_0", compileFlags, 0, &vShader, nullptr));
+		THROW_IF_FAILED(D3DCompileFromFile(L"../../shaders/PixelShader.hlsl", nullptr, nullptr, "main", "ps_5_0", compileFlags, 0, &pShader, nullptr));
+	}
+
+	void Renderer::createPipeline() {
+		HRESULT hr;
+		D3D12_INPUT_ELEMENT_DESC ied[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		};
+
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psd = getPreparedPipeStateDesc();
+		psd.InputLayout = { ied, std::size(ied) };
+		psd.pRootSignature = rootSignature.Get();
+		psd.VS = { vShader.Get()->GetBufferPointer(), vShader.Get()->GetBufferSize() };
+		psd.PS = { pShader.Get()->GetBufferPointer(), pShader.Get()->GetBufferSize() };
+
+		THROW_IF_FAILED(pDevice->CreateGraphicsPipelineState(&psd, IID_PPV_ARGS(&pipelineState)));
+	}
+	void Renderer::createCommandList()
+	{
+		HRESULT hr;
+		THROW_IF_FAILED(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator.Get(), pipelineState.Get(), IID_PPV_ARGS(&cmdList)));
+		// Command lists are created in the recording state, but there is nothing
+		// to record yet. The main loop expects it to be closed, so close it now.
+		THROW_IF_FAILED(cmdList->Close());
 	}
 }
