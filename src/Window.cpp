@@ -164,10 +164,12 @@ namespace pathtracex {
 			kbd.clearState();
 			break;
 			/* Render messages */
+			/*
 		case WM_PAINT: // this message is cursed, annoying and idiot
 			pRenderer->onUpdate();
 			pRenderer->onRender();
 			break;
+			*/
 			/* Keyboard messages */
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN:

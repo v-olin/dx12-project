@@ -25,10 +25,10 @@ namespace pathtracex {
 	{ }
 
 	void DXRenderer::onInit() {
-		createFactory();
 #ifdef _DEBUG
 		createDebugController();
 #endif
+		createFactory();
 		createDevice();
 		createCommandQueue();
 		createSwapChain();
@@ -42,15 +42,9 @@ namespace pathtracex {
 
 		// dis do be correct i think?
 		ImGui_ImplDX12_Init(pDevice.Get(), FRAME_COUNT,
-			DXGI_FORMAT_R8G8B8A8_UNORM, rtvHeap.Get(),
-			rtvHeap.Get()->GetCPUDescriptorHandleForHeapStart(),
-			rtvHeap.Get()->GetGPUDescriptorHandleForHeapStart());
-		/*
-		ImGui_ImplDX12_Init(pDevice.Get(), FRAME_COUNT,
-			DXGI_FORMAT_R8G8B8A8_UNORM, rtvHeap.Get(),
-			rtvHeap->GetCPUDescriptorHandleForHeapStart(),
-			rtvHeap->GetGPUDescriptorHandleForHeapStart());
-		*/
+			DXGI_FORMAT_R8G8B8A8_UNORM, srvHeap.Get(),
+			srvHeap.Get()->GetCPUDescriptorHandleForHeapStart(),
+			srvHeap.Get()->GetGPUDescriptorHandleForHeapStart());
 	}
 
 	void DXRenderer::onUpdate() {
@@ -67,10 +61,8 @@ namespace pathtracex {
 
 		// present next frame
 		HRESULT hr;
-		THROW_IF_FAILED(pSwap->Present(1, currentFrame));
+		THROW_IF_FAILED(pSwap->Present(1, 0)); // with vsync
 		waitForPreviousFrame();
-
-		currentFrame = (currentFrame + 1) % FRAME_COUNT;
 	}
 
 	void DXRenderer::onDestroy() {
@@ -112,8 +104,6 @@ namespace pathtracex {
 	{
 		// TODO
 	}
-
-
 
 	void DXRenderer::createTestModel() {
 		HRESULT hr;
@@ -218,6 +208,9 @@ namespace pathtracex {
 			const float clearColor[] = { 0.4f, 0.2f, 0.0f, 1.0f };
 			cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		}
+		
+		cmdList->SetDescriptorHeaps(1, srvHeap.GetAddressOf());
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList.Get());
 
 		// after render indicate that back buffer will be presented
 		rbarr = transitionBarrierFromRenderTarget(renderTargets[frameIdx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -225,6 +218,31 @@ namespace pathtracex {
 
 		THROW_IF_FAILED(cmdList->Close());
 	}
+
+	/*
+	void DXRenderer::waitForPreviousFrame()
+	{
+	    HRESULT hr;
+	
+	    // swap the current rtv buffer index so we draw on the correct buffer
+	    frameIdx = pSwap->GetCurrentBackBufferIndex();
+	
+	    // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
+	    // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
+	    if (fences[frameIdx]->GetCompletedValue() < fenceValues[frameIdx])
+	    {
+	        // we have the fence create an event which is signaled once the fence's current value is "fenceValue"
+	        hr = fences[frameIdx]->SetEventOnCompletion(fenceValues[frameIdx], fenceEvent);
+	
+	        // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
+	        // has reached "fenceValue", we know the command queue has finished executing
+	        WaitForSingleObject(fenceEvent, INFINITE);
+	    }
+	
+	    // increment fenceValue for next frame
+	    fenceValues[frameIdx]++;
+	}
+*/
 
 	void DXRenderer::waitForPreviousFrame() {
 		HRESULT hr;
@@ -234,12 +252,12 @@ namespace pathtracex {
 		// maximize GPU utilization.
 
 		// Signal and increment the fence value.
-		const UINT64 oldFence = fenceValues[currentFrame];
-		THROW_IF_FAILED(cmdQueue->Signal(fences[currentFrame].Get(), oldFence));
-		fenceValues[currentFrame]++;
+		const UINT64 oldFence = fenceValue;
+		THROW_IF_FAILED(cmdQueue->Signal(fence.Get(), oldFence));
+		fenceValue++;
 
-		if (fences[currentFrame]->GetCompletedValue() < oldFence) {
-			THROW_IF_FAILED(fences[currentFrame]->SetEventOnCompletion(oldFence, fenceEvent));
+		if (fence->GetCompletedValue() < oldFence) {
+			THROW_IF_FAILED(fence->SetEventOnCompletion(oldFence, fenceEvent));
 			WaitForSingleObject(fenceEvent, INFINITE);
 		}
 
@@ -258,7 +276,8 @@ namespace pathtracex {
 				continue;
 			}
 
-			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), nullptr))) {
+			//if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device), nullptr))) {
+			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr))) {
 				break;
 			}
 		}
@@ -291,7 +310,8 @@ namespace pathtracex {
 
 			THROW_IF_FAILED(D3D12CreateDevice(
 				warpAdapter.Get(),
-				D3D_FEATURE_LEVEL_12_1,
+				//D3D_FEATURE_LEVEL_12_1,
+				D3D_FEATURE_LEVEL_11_0,
 				IID_PPV_ARGS(&pDevice)
 			));
 		}
@@ -301,7 +321,8 @@ namespace pathtracex {
 
 			THROW_IF_FAILED(D3D12CreateDevice(
 				hardwareAdapter.Get(),
-				D3D_FEATURE_LEVEL_12_1,
+				//D3D_FEATURE_LEVEL_12_1,
+				D3D_FEATURE_LEVEL_11_0,
 				IID_PPV_ARGS(&pDevice)
 			));
 		}
@@ -316,17 +337,24 @@ namespace pathtracex {
 
 		THROW_IF_FAILED(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue)));
 	}
+
 	void DXRenderer::createSwapChain()
 	{
 		HRESULT hr;
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
+		ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
 		swapChainDesc.BufferCount = FRAME_COUNT;
 		swapChainDesc.Width = width;
 		swapChainDesc.Height = height;
 		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
+		swapChainDesc.SampleDesc.Quality = 0;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+		swapChainDesc.Stereo = FALSE;
 
 		wrl::ComPtr<IDXGISwapChain1> swapChain;
 		// this is fcked
@@ -342,7 +370,7 @@ namespace pathtracex {
 		THROW_IF_FAILED(factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER));
 
 		THROW_IF_FAILED(swapChain.As(&pSwap));
-		frameIdx = pSwap->GetCurrentBackBufferIndex();
+		//frameIdx = pSwap->GetCurrentBackBufferIndex();
 	}
 	void DXRenderer::createDescriptorHeaps()
 	{
@@ -352,25 +380,37 @@ namespace pathtracex {
 			rtvHeapDesc.NumDescriptors = FRAME_COUNT;
 			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			rtvHeapDesc.NodeMask = 1u;
 
 			THROW_IF_FAILED(pDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)));
 
 			rtvDescriptorSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		}
+
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 			for (UINT i = 0; i < FRAME_COUNT; i++) {
 				THROW_IF_FAILED(pSwap->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
 				pDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
-				rtvHandle.ptr += 1 * rtvDescriptorSize;
+				rtvHandle.ptr += rtvDescriptorSize;
 			}
+		}
+
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
+			srvHeapDesc.NumDescriptors = 1;
+			srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+			THROW_IF_FAILED(pDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap)));
 		}
 	}
 
 	void DXRenderer::createCommandAllocators()
 	{
 		HRESULT hr;
+
 		THROW_IF_FAILED(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAllocator)));
 	}
 
@@ -425,20 +465,8 @@ namespace pathtracex {
 	{
 		HRESULT hr;
 		// create fence and wait for gpu upload
-		
-		THROW_IF_FAILED(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fences[0])));
-		fenceValues[0] = 1ui64;
-
-		fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-		if (fenceEvent == nullptr) {
-			THROW_IF_FAILED(HRESULT_FROM_WIN32(GetLastError()));
-		}
-
-		for (int i = 0; i < FRAME_COUNT; i++)
-		{
-			THROW_IF_FAILED(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fences[0])));
-			fenceValues[i] = 0; // set the initial fence value to 0
-		}
+		THROW_IF_FAILED(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+		fenceValue = 1; // set the initial fence value to 1
 
 		fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		if (fenceEvent == nullptr) {
@@ -447,6 +475,5 @@ namespace pathtracex {
 
 		// wait for commandlist to execute
 		waitForPreviousFrame();
-		
 	}
 }

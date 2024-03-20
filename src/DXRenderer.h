@@ -16,6 +16,13 @@
 
 namespace pathtracex {
 
+	/*
+	struct FrameContext {
+		ID3D12CommandAllocator* cmdAllocator;
+		UINT64 fenceValue;
+	};
+	*/
+
 	class DXRenderer : GraphicsAPI {
 	public:
 		DXRenderer(HWND windowHandle, UINT width, UINT height);
@@ -45,8 +52,6 @@ namespace pathtracex {
 		bool useWarpDevice; // ???
 
 	private:
-		int currentFrame = 0;
-
 		struct Vertex {
 			DirectX::XMFLOAT3 pos;
 			DirectX::XMFLOAT4 color;
@@ -65,6 +70,7 @@ namespace pathtracex {
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue> cmdQueue;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdList;
 		UINT rtvDescriptorSize;
@@ -76,9 +82,8 @@ namespace pathtracex {
 		// synch objects
 		UINT frameIdx;
 		HANDLE fenceEvent;
-
-		Microsoft::WRL::ComPtr<ID3D12Fence> fences[FRAME_COUNT];
-		UINT64 fenceValues[FRAME_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
+		UINT64 fenceValue;
 
 		bool renderRasterized = true;
 

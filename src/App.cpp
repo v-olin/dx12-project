@@ -21,7 +21,9 @@ namespace pathtracex {
 	}
 
 	void App::everyFrame() {
-		//drawGui();
+		drawGui();
+		window.pRenderer->onUpdate();
+		window.pRenderer->onRender();
 	}
 
 	void App::drawGui() {
@@ -34,6 +36,5 @@ namespace pathtracex {
 		ImGui::ShowDemoWindow(&showGui);
 
 		ImGui::Render();
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), window.pRenderer->borrowCommandListPointer());
 	}
 }
