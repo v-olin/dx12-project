@@ -3,7 +3,7 @@
 #include "PathWin.h"
 #include "Keyboard.h"
 #include "Mouse.h"
-#include "Renderer.h"
+#include "DXRenderer.h"
 #include "ImguiManager.h"
 
 #include <memory>

@@ -9,8 +9,6 @@ target_sources(PathTracerX PRIVATE
 	ImguiManager.cpp
 	Mouse.h
 	Mouse.cpp
-	Renderer.h
-	Renderer.cpp
 	Window.h
 	Window.cpp
 	WinMain.cpp
@@ -19,10 +17,25 @@ target_sources(PathTracerX PRIVATE
 	Keyboard.cpp
 	Keyboard.h
 	Helper.h
+	Renderer.h
+	Renderer.cpp
+	Scene.h
+	Material.h
+	Texture.h
+	GraphicsAPI.h
+	DXRenderer.h
+	DXRenderer.cpp
 )
 
-source_group("GUI" FILES
+source_group("DX" FILES
+	DXRenderer.h
+	DXRenderer.cpp
+)
 
+source_group("Renderer" FILES
+	GraphicsAPI.h
+	Renderer.h
+	Renderer.cpp
 )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
