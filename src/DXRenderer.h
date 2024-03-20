@@ -17,8 +17,8 @@
 namespace pathtracex {
 
 	struct Vertex {
-		float3 pos;
-		float4 color;
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT4 color;
 	};
 
 	class Renderer : GraphicsAPI {

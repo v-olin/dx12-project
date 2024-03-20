@@ -1,15 +1,15 @@
 // Model.h - Description
 #pragma once
-#include "Transform.h"
-#include <string>
+#include "Helper.h"
 #include "Selectable.h"
+#include "Transform.h"
 
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <memory>
-#include "Transform.h"
-#include "Helper.h"
+#include "../../vendor/SimpleMath/SimpleMath.h"
+#include <DirectXPackedVector.h>
 
 namespace pathtracex {
 
