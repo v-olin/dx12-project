@@ -275,10 +275,6 @@ namespace pathtracex {
 				{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
 				{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
 				{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-				{ { 0.5f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-				{ { 0.75f, -0.25f * aspectRatio, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-				{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }
-
 			};
 			const UINT vertexBufferSize = sizeof(vertices);
 
@@ -361,7 +357,7 @@ namespace pathtracex {
 			cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 			cmdList->IASetVertexBuffers(0, 1, &vertexBufferView);
-			cmdList->DrawInstanced(6, 1, 0, 0);
+			cmdList->DrawInstanced(3, 1, 0, 0);
 		}
 		else { // if raytracing
 			const float clearColor[] = { 0.4f, 0.2f, 0.0f, 1.0f };
