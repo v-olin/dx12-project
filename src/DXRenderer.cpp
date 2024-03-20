@@ -51,9 +51,9 @@ namespace pathtracex {
 		// Create command list
 		createCommandList();
 		// Create a fence & event handle
+		createFencesAndEvents();
 
-
-		loadShaders();
+		createTestModel();
 
 		// dis do be correct i think?
 		ImGui_ImplDX12_Init(pDevice.Get(), FRAME_COUNT,
@@ -128,7 +128,7 @@ namespace pathtracex {
 
 
 
-	void Renderer::loadShaders() {
+	void Renderer::createTestModel() {
 		HRESULT hr;
 		
 		{
@@ -190,20 +190,6 @@ namespace pathtracex {
 			vertexBufferView.StrideInBytes = sizeof(Vertex);
 			vertexBufferView.SizeInBytes = vertexBufferSize;
 		}
-
-		// create fence and wait for gpu upload
-		{
-			THROW_IF_FAILED(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
-			fenceValue = 1ui64;
-			
-			fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-			if (fenceEvent == nullptr) {
-				THROW_IF_FAILED(HRESULT_FROM_WIN32(GetLastError()));
-			}
-
-			// wait for commandlist to execute
-			waitForPreviousFrame();
-		}
 	}
 
 	void Renderer::populateCommandList() {
@@ -261,12 +247,12 @@ namespace pathtracex {
 		// maximize GPU utilization.
 
 		// Signal and increment the fence value.
-		const UINT64 oldFence = fenceValue;
-		THROW_IF_FAILED(cmdQueue->Signal(fence.Get(), oldFence));
-		fenceValue++;
+		const UINT64 oldFence = fenceValues[0];
+		THROW_IF_FAILED(cmdQueue->Signal(fences[0].Get(), oldFence));
+		fenceValues[0]++;
 
-		if (fence->GetCompletedValue() < oldFence) {
-			THROW_IF_FAILED(fence->SetEventOnCompletion(oldFence, fenceEvent));
+		if (fences[0]->GetCompletedValue() < oldFence) {
+			THROW_IF_FAILED(fences[0]->SetEventOnCompletion(oldFence, fenceEvent));
 			WaitForSingleObject(fenceEvent, INFINITE);
 		}
 
@@ -440,6 +426,7 @@ namespace pathtracex {
 
 		THROW_IF_FAILED(pDevice->CreateGraphicsPipelineState(&psd, IID_PPV_ARGS(&pipelineState)));
 	}
+	
 	void Renderer::createCommandList()
 	{
 		HRESULT hr;
@@ -447,5 +434,34 @@ namespace pathtracex {
 		// Command lists are created in the recording state, but there is nothing
 		// to record yet. The main loop expects it to be closed, so close it now.
 		THROW_IF_FAILED(cmdList->Close());
+	}
+
+	void Renderer::createFencesAndEvents()
+	{
+		HRESULT hr;
+		// create fence and wait for gpu upload
+		
+		THROW_IF_FAILED(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fences[0])));
+		fenceValues[0] = 1ui64;
+
+		fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+		if (fenceEvent == nullptr) {
+			THROW_IF_FAILED(HRESULT_FROM_WIN32(GetLastError()));
+		}
+
+		for (int i = 0; i < FRAME_COUNT; i++)
+		{
+			THROW_IF_FAILED(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fences[0])));
+			fenceValues[i] = 0; // set the initial fence value to 0
+		}
+
+		fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+		if (fenceEvent == nullptr) {
+			THROW_IF_FAILED(HRESULT_FROM_WIN32(GetLastError()));
+		}
+
+		// wait for commandlist to execute
+		waitForPreviousFrame();
+		
 	}
 }

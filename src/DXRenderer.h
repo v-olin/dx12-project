@@ -75,8 +75,9 @@ namespace pathtracex {
 		// synch objects
 		UINT frameIdx;
 		HANDLE fenceEvent;
-		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-		UINT64 fenceValue;
+
+		Microsoft::WRL::ComPtr<ID3D12Fence> fences[FRAME_COUNT];
+		UINT64 fenceValues[FRAME_COUNT];
 
 		bool renderRasterized = true;
 
@@ -84,7 +85,7 @@ namespace pathtracex {
 		Microsoft::WRL::ComPtr<ID3DBlob> vShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pShader;
 
-		void loadShaders();
+		void createTestModel();
 		void populateCommandList();
 		void waitForPreviousFrame();
 		void toggleRenderMode();
@@ -101,6 +102,7 @@ namespace pathtracex {
 		void createShaders();
 		void createPipeline();
 		void createCommandList();
+		void createFencesAndEvents();
 	};
 
 }
