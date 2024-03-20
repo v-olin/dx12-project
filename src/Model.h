@@ -7,14 +7,10 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "../../vendor/SimpleMath/SimpleMath.h"
-#include <DirectXPackedVector.h>
 #include <memory>
+#include "Transform.h"
+#include "Helper.h"
 
-using float2 = DirectX::SimpleMath::Vector2;
-using float3 = DirectX::SimpleMath::Vector3;
-using float4 = DirectX::SimpleMath::Vector4;
-using float4x4 = DirectX::SimpleMath::Matrix;
 namespace pathtracex {
 
 	struct Texture {
@@ -28,18 +24,18 @@ namespace pathtracex {
 		uint8_t n_components = 4;
 
 		bool load(const std::string& directory, const std::string& filename, int nof_component);
-		DirectX::SimpleMath::Vector4 sample(DirectX::SimpleMath::Vector2 uv) const;
+		float4 sample(float3 uv) const;
 		void free();
 
 	};
 
 	struct Material {
 		std::string m_name;
-		DirectX::SimpleMath::Vector3 m_color;
+		float3 m_color;
 		float m_shininess;
 		float m_metalness;
 		float m_fresnel;
-		DirectX::SimpleMath::Vector3 m_emission;
+		float3 m_emission;
 		float m_transparency;
 		float m_ior;
 		Texture m_color_texture;
@@ -60,7 +56,7 @@ namespace pathtracex {
 	class Model {
 	public:
 		Model(std::string path);
-		Model(std::shared_ptr<Model> src);
+		//Model(std::shared_ptr<Model> src);
 		~Model();
 		void Draw();
 		// Buffers on CPU
@@ -72,6 +68,7 @@ namespace pathtracex {
 		*/
 
 
+		Transform trans;
 
 		// The name of the whole model
 		std::string m_name;

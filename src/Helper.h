@@ -9,6 +9,14 @@
 #pragma comment(lib, "d3d12.lib")
 
 
+
+#include "../../vendor/SimpleMath/SimpleMath.h"
+
+using float2 = DirectX::SimpleMath::Vector2;
+using float3 = DirectX::SimpleMath::Vector3;
+using float4 = DirectX::SimpleMath::Vector4;
+using float4x4 = DirectX::SimpleMath::Matrix;
+
 namespace pathtracex {
 
 	inline D3D12_RESOURCE_BARRIER transitionBarrierFromRenderTarget(ID3D12Resource* pResource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) noexcept {
