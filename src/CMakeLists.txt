@@ -25,6 +25,8 @@ target_sources(PathTracerX PRIVATE
 	GraphicsAPI.h
 	DXRenderer.h
 	DXRenderer.cpp
+	DXPipeline.h
+	DXDevice.h
 )
 
 source_group("DX" FILES
