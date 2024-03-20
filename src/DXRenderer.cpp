@@ -136,7 +136,7 @@ namespace pathtracex {
 				dx::XMFLOAT4 color;
 			};
 
-			/* 3D TEST
+			/* 3D Test
 			struct ConstantBuffer {
 				dx::XMMATRIX transform;
 			};
@@ -153,13 +153,16 @@ namespace pathtracex {
 				{ {-1.0f, 1.0f, 1.0f },		{ 255, 0, 0, 0 } },
 				{ {1.0f, 1.0f, 1.0f },		{ 0, 255, 0, 0 } }
 			};
-			
 			*/
 
 			Vertex vertices[] = {
 				{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
 				{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-				{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+				{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+				{ { 0.5f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
+				{ { 0.75f, -0.25f * aspectRatio, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
+				{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }
+
 			};
 			const UINT vertexBufferSize = sizeof(vertices);
 
@@ -183,6 +186,10 @@ namespace pathtracex {
 			THROW_IF_FAILED(vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
 			memcpy(pVertexDataBegin, vertices, sizeof(vertices));
 			vertexBuffer->Unmap(0, nullptr);
+
+
+
+
 
 			// initialize buffer view
 			vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
@@ -224,7 +231,7 @@ namespace pathtracex {
 			cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 			cmdList->IASetVertexBuffers(0, 1, &vertexBufferView);
-			cmdList->DrawInstanced(3, 1, 0, 0);
+			cmdList->DrawInstanced(6, 1, 0, 0);
 		}
 		else { // if raytracing
 			const float clearColor[] = { 0.4f, 0.2f, 0.0f, 1.0f };

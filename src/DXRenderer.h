@@ -16,14 +16,12 @@
 
 namespace pathtracex {
 
-	/*
-	struct FrameContext {
-		ID3D12CommandAllocator* cmdAllocator;
-		UINT64 fenceValue;
+	struct Vertex {
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT4 color;
 	};
-	*/
 
-	class DXRenderer : GraphicsAPI {
+	class Renderer : GraphicsAPI {
 	public:
 		DXRenderer(HWND windowHandle, UINT width, UINT height);
 		~DXRenderer() = default;
@@ -52,10 +50,6 @@ namespace pathtracex {
 		bool useWarpDevice; // ???
 
 	private:
-		struct Vertex {
-			DirectX::XMFLOAT3 pos;
-			DirectX::XMFLOAT4 color;
-		};
 		
 		Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
 		UINT dxgiFactoryFlags = 0u;
