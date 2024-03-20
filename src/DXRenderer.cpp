@@ -12,7 +12,7 @@ namespace dx = DirectX;
 
 namespace pathtracex {
 
-	Renderer::Renderer(HWND windowHandle, UINT width, UINT height) :
+	DXRenderer::DXRenderer(HWND windowHandle, UINT width, UINT height) :
 		windowHandle(windowHandle),
 		width(width),
 		height(height),
@@ -24,7 +24,7 @@ namespace pathtracex {
 		aspectRatio(static_cast<float>(width) / static_cast<float>(height))
 	{ }
 
-	void Renderer::onInit() {
+	void DXRenderer::onInit() {
 		createFactory();
 #ifdef _DEBUG
 		createDebugController();
@@ -54,11 +54,11 @@ namespace pathtracex {
 		*/
 	}
 
-	void Renderer::onUpdate() {
+	void DXRenderer::onUpdate() {
 
 	}
 
-	void Renderer::onRender() {
+	void DXRenderer::onRender() {
 		// record all commands for gpu into command list
 		populateCommandList();
 
@@ -68,53 +68,55 @@ namespace pathtracex {
 
 		// present next frame
 		HRESULT hr;
-		THROW_IF_FAILED(pSwap->Present(1, 0));
+		THROW_IF_FAILED(pSwap->Present(1, currentFrame));
 		waitForPreviousFrame();
+
+		currentFrame = (currentFrame + 1) % FRAME_COUNT;
 	}
 
-	void Renderer::onDestroy() {
+	void DXRenderer::onDestroy() {
 		// wait for gpu to be finished using cpu resources
 		waitForPreviousFrame();
 		CloseHandle(fenceEvent);
 	}
 
-	ID3D12GraphicsCommandList* const Renderer::borrowCommandListPointer() const noexcept {
+	ID3D12GraphicsCommandList* const DXRenderer::borrowCommandListPointer() const noexcept {
 		return cmdList.Get();
 	}
 
-	void Renderer::initGraphicsAPI()
+	void DXRenderer::initGraphicsAPI()
 	{
 		// TODO
 	}
 
-	void Renderer::setClearColor(const dx::XMFLOAT3& color)
+	void DXRenderer::setClearColor(const dx::XMFLOAT3& color)
 	{
 		// TODO
 	}
 
-	void Renderer::setCullFace(bool enabled)
+	void DXRenderer::setCullFace(bool enabled)
 	{
 		// TODO
 	}
 
-	void Renderer::setDepthTest(bool enabled)
+	void DXRenderer::setDepthTest(bool enabled)
 	{
 		// TODO
 	}
 
-	void Renderer::setDrawTriangleOutline(bool enabled)
+	void DXRenderer::setDrawTriangleOutline(bool enabled)
 	{
 		// TODO
 	}
 
-	void Renderer::setViewport(int x, int y, int width, int height)
+	void DXRenderer::setViewport(int x, int y, int width, int height)
 	{
 		// TODO
 	}
 
 
 
-	void Renderer::createTestModel() {
+	void DXRenderer::createTestModel() {
 		HRESULT hr;
 		
 		{
@@ -178,7 +180,7 @@ namespace pathtracex {
 		}
 	}
 
-	void Renderer::populateCommandList() {
+	void DXRenderer::populateCommandList() {
 		HRESULT hr;
 
 		// Command list allocators can only be reset when the associated 
@@ -225,7 +227,7 @@ namespace pathtracex {
 		THROW_IF_FAILED(cmdList->Close());
 	}
 
-	void Renderer::waitForPreviousFrame() {
+	void DXRenderer::waitForPreviousFrame() {
 		HRESULT hr;
 		// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
 		// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
@@ -233,19 +235,19 @@ namespace pathtracex {
 		// maximize GPU utilization.
 
 		// Signal and increment the fence value.
-		const UINT64 oldFence = fenceValues[0];
-		THROW_IF_FAILED(cmdQueue->Signal(fences[0].Get(), oldFence));
-		fenceValues[0]++;
+		const UINT64 oldFence = fenceValues[currentFrame];
+		THROW_IF_FAILED(cmdQueue->Signal(fences[currentFrame].Get(), oldFence));
+		fenceValues[currentFrame]++;
 
-		if (fences[0]->GetCompletedValue() < oldFence) {
-			THROW_IF_FAILED(fences[0]->SetEventOnCompletion(oldFence, fenceEvent));
+		if (fences[currentFrame]->GetCompletedValue() < oldFence) {
+			THROW_IF_FAILED(fences[currentFrame]->SetEventOnCompletion(oldFence, fenceEvent));
 			WaitForSingleObject(fenceEvent, INFINITE);
 		}
 
 		frameIdx = pSwap->GetCurrentBackBufferIndex();
 	}
 
-	void Renderer::getHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter) {
+	void DXRenderer::getHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter) {
 		wrl::ComPtr<IDXGIAdapter1> adapter;
 		*ppAdapter = nullptr;
 
@@ -265,13 +267,13 @@ namespace pathtracex {
 		*ppAdapter = adapter.Detach();
 	}
 
-	void Renderer::createFactory()
+	void DXRenderer::createFactory()
 	{
 		HRESULT hr;
 		THROW_IF_FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
 	}
 
-	void Renderer::createDebugController()
+	void DXRenderer::createDebugController()
 	{
 		wrl::ComPtr<ID3D12Debug> debugController;
 		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
@@ -281,7 +283,7 @@ namespace pathtracex {
 		}
 	}
 
-	void Renderer::createDevice()
+	void DXRenderer::createDevice()
 	{
 		HRESULT hr;
 		if (useWarpDevice) {
@@ -306,7 +308,7 @@ namespace pathtracex {
 		}
 	}
 
-	void Renderer::createCommandQueue()
+	void DXRenderer::createCommandQueue()
 	{
 		HRESULT hr;
 		D3D12_COMMAND_QUEUE_DESC queueDesc{};
@@ -315,7 +317,7 @@ namespace pathtracex {
 
 		THROW_IF_FAILED(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue)));
 	}
-	void Renderer::createSwapChain()
+	void DXRenderer::createSwapChain()
 	{
 		HRESULT hr;
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
@@ -343,7 +345,7 @@ namespace pathtracex {
 		THROW_IF_FAILED(swapChain.As(&pSwap));
 		frameIdx = pSwap->GetCurrentBackBufferIndex();
 	}
-	void Renderer::createDescriptorHeaps()
+	void DXRenderer::createDescriptorHeaps()
 	{
 		HRESULT hr;
 		{
@@ -367,13 +369,13 @@ namespace pathtracex {
 		}
 	}
 
-	void Renderer::createCommandAllocators()
+	void DXRenderer::createCommandAllocators()
 	{
 		HRESULT hr;
 		THROW_IF_FAILED(pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAllocator)));
 	}
 
-	void Renderer::createRootSignature()
+	void DXRenderer::createRootSignature()
 	{
 		HRESULT hr;
 		{
@@ -385,7 +387,7 @@ namespace pathtracex {
 		}
 	}
 
-	void Renderer::createShaders()
+	void DXRenderer::createShaders()
 	{
 		HRESULT hr;
 
@@ -397,7 +399,7 @@ namespace pathtracex {
 		THROW_IF_FAILED(D3DCompileFromFile(L"../../shaders/PixelShader.hlsl", nullptr, nullptr, "main", "ps_5_0", compileFlags, 0, &pShader, nullptr));
 	}
 
-	void Renderer::createPipeline() {
+	void DXRenderer::createPipeline() {
 		HRESULT hr;
 		D3D12_INPUT_ELEMENT_DESC ied[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -413,7 +415,7 @@ namespace pathtracex {
 		THROW_IF_FAILED(pDevice->CreateGraphicsPipelineState(&psd, IID_PPV_ARGS(&pipelineState)));
 	}
 	
-	void Renderer::createCommandList()
+	void DXRenderer::createCommandList()
 	{
 		HRESULT hr;
 		THROW_IF_FAILED(pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator.Get(), pipelineState.Get(), IID_PPV_ARGS(&cmdList)));
@@ -422,7 +424,7 @@ namespace pathtracex {
 		THROW_IF_FAILED(cmdList->Close());
 	}
 
-	void Renderer::createFencesAndEvents()
+	void DXRenderer::createFencesAndEvents()
 	{
 		HRESULT hr;
 		// create fence and wait for gpu upload

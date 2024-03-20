@@ -25,7 +25,7 @@ namespace pathtracex {
 		Mouse mouse;
 		// defer construction of renderer since it needs the
 		// window handle and the imgui win32 wndproc hook
-		std::unique_ptr<Renderer> pRenderer;
+		std::unique_ptr<DXRenderer> pRenderer;
 		std::unique_ptr<ImguiManager> pImgui;
 
 	private:

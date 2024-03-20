@@ -16,12 +16,12 @@
 
 namespace pathtracex {
 
-	class Renderer : GraphicsAPI {
+	class DXRenderer : GraphicsAPI {
 	public:
-		Renderer(HWND windowHandle, UINT width, UINT height);
-		~Renderer() = default;
-		Renderer(const Renderer&) = delete;
-		Renderer& operator=(const Renderer&) = delete;
+		DXRenderer(HWND windowHandle, UINT width, UINT height);
+		~DXRenderer() = default;
+		DXRenderer(const DXRenderer&) = delete;
+		DXRenderer& operator=(const DXRenderer&) = delete;
 	
 		void onInit();
 		void onUpdate();
@@ -45,6 +45,7 @@ namespace pathtracex {
 		bool useWarpDevice; // ???
 
 	private:
+		int currentFrame = 0;
 
 		struct Vertex {
 			DirectX::XMFLOAT3 pos;

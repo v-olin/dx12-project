@@ -8,7 +8,7 @@ namespace pathtracex {
 		bool useMultiSampling;
 	};
 
-	class Renderer {
+	class DXRenderer {
 	public:
 		void renderScene(Scene& scene, RendererSettings& rendererSettings);
 
