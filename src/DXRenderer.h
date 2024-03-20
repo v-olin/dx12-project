@@ -16,6 +16,11 @@
 
 namespace pathtracex {
 
+	struct Vertex {
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT4 color;
+	};
+
 	class Renderer : GraphicsAPI {
 	public:
 		Renderer(HWND windowHandle, UINT width, UINT height);
@@ -45,11 +50,6 @@ namespace pathtracex {
 		bool useWarpDevice; // ???
 
 	private:
-
-		struct Vertex {
-			DirectX::XMFLOAT3 pos;
-			DirectX::XMFLOAT4 color;
-		};
 		
 		// gpu pipeline objects
 		D3D12_VIEWPORT viewport;
