@@ -25,34 +25,20 @@ namespace pathtracex {
 	{ }
 
 	void Renderer::onInit() {
-		// https://www.braynzarsoft.net/viewtutorial/q16390-03-initializing-directx-12
-		// TODO: maybe structure the init like this
-		// Create factory
 		createFactory();
 #ifdef _DEBUG
 		createDebugController();
 #endif
 		createDevice();
-
-		// Create a command queue
 		createCommandQueue();
-		// Create swap chain
 		createSwapChain();
-		// Create descriptor heap
 		createDescriptorHeaps();
-		// Create command allocators
 		createCommandAllocators();
-		// Create root signature
 		createRootSignature();
-		// Create vertex and pixel shaders
 		createShaders();
-		// Create pipeline state object
 		createPipeline();
-		// Create command list
 		createCommandList();
-		// Create a fence & event handle
 		createFencesAndEvents();
-
 		createTestModel();
 
 		// dis do be correct i think?
