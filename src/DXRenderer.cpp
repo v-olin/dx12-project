@@ -25,6 +25,19 @@ namespace pathtracex {
 	{ }
 
 	void Renderer::onInit() {
+		// https://www.braynzarsoft.net/viewtutorial/q16390-03-initializing-directx-12
+		// TODO: maybe structure the init like this
+		// Create device
+		// Create a command queue
+		// Create swap chain
+		// Create descriptor heap
+		// Create command allocator
+		// Create root signature
+		// Create vertex and pixel shaders
+		// Create pipeline state object
+		// Create command list
+		// Create a fence & event handle
+
 		loadPipeline();
 		loadShaders();
 
