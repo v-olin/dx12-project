@@ -21,7 +21,7 @@ namespace pathtracex {
 		uint8_t n_components = 4;
 
 		bool load(const std::string& directory, const std::string& filename, int nof_component);
-		float4 sample(float3 uv) const;
+		float4 sample(float2 uv) const;
 		void free();
 
 	};
