@@ -1,5 +1,5 @@
 #pragma once
-#include <DirectXMath.h>
+#include "Helper.h"
 
 namespace pathtracex {
 	class Transform
@@ -9,13 +9,13 @@ namespace pathtracex {
 
 		// TODO: Add rotation
 
-		DirectX::XMFLOAT3 getPosition() const;
-		DirectX::XMFLOAT3 getScale() const;
+		float3 getPosition() const;
+		float3 getScale() const;
 
-		void setPosition(DirectX::XMFLOAT3 position);
-		void setScale(const DirectX::XMFLOAT3& scale);
+		void setPosition(float3 position);
+		void setScale(const float3& scale);
 
-		void translate(const DirectX::XMFLOAT3& translation);
-		void scale(const DirectX::XMFLOAT3& scale);
+		void translate(const float3& translation);
+		void scale(const float3& scale);
 	};
 }
