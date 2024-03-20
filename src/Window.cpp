@@ -119,7 +119,7 @@ namespace pathtracex {
 		pImgui = std::make_unique<ImguiManager>();
 		ImGui_ImplWin32_Init(windowHandle);
 
-		pRenderer = std::make_unique<Renderer>(windowHandle, width, height);
+		pRenderer = std::make_unique<DXRenderer>(windowHandle, width, height);
 		pRenderer->onInit();
 
 		ShowWindow(windowHandle, SW_SHOWDEFAULT);

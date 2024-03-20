@@ -16,12 +16,12 @@
 
 namespace pathtracex {
 
-	class Renderer : GraphicsAPI {
+	class DXRenderer : GraphicsAPI {
 	public:
-		Renderer(HWND windowHandle, UINT width, UINT height);
-		~Renderer() = default;
-		Renderer(const Renderer&) = delete;
-		Renderer& operator=(const Renderer&) = delete;
+		DXRenderer(HWND windowHandle, UINT width, UINT height);
+		~DXRenderer() = default;
+		DXRenderer(const DXRenderer&) = delete;
+		DXRenderer& operator=(const DXRenderer&) = delete;
 	
 		void onInit();
 		void onUpdate();
@@ -45,12 +45,16 @@ namespace pathtracex {
 		bool useWarpDevice; // ???
 
 	private:
+		int currentFrame = 0;
 
 		struct Vertex {
 			DirectX::XMFLOAT3 pos;
 			DirectX::XMFLOAT4 color;
 		};
 		
+		Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+		UINT dxgiFactoryFlags = 0u;
+
 		// gpu pipeline objects
 		D3D12_VIEWPORT viewport;
 		D3D12_RECT scissorRect;
@@ -72,17 +76,29 @@ namespace pathtracex {
 		// synch objects
 		UINT frameIdx;
 		HANDLE fenceEvent;
-		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-		UINT64 fenceValue;
+
+		Microsoft::WRL::ComPtr<ID3D12Fence> fences[FRAME_COUNT];
+		UINT64 fenceValues[FRAME_COUNT];
 
 		bool renderRasterized = true;
 
-		void loadPipeline();
-		void loadShaders();
+		void createTestModel();
 		void populateCommandList();
 		void waitForPreviousFrame();
 		void toggleRenderMode();
 		void getHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter);
+
+		void createFactory();
+		void createDebugController();
+		void createDevice();
+		void createCommandQueue();
+		void createSwapChain();
+		void createDescriptorHeaps();
+		void createCommandAllocators();
+		void createRootSignature();
+		void createPipeline();
+		void createCommandList();
+		void createFencesAndEvents();
 	};
 
 }
