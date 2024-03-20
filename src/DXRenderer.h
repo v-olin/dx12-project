@@ -82,10 +82,6 @@ namespace pathtracex {
 
 		bool renderRasterized = true;
 
-		// Shaders
-		Microsoft::WRL::ComPtr<ID3DBlob> vShader;
-		Microsoft::WRL::ComPtr<ID3DBlob> pShader;
-
 		void createTestModel();
 		void populateCommandList();
 		void waitForPreviousFrame();
@@ -100,7 +96,6 @@ namespace pathtracex {
 		void createDescriptorHeaps();
 		void createCommandAllocators();
 		void createRootSignature();
-		void createShaders();
 		void createPipeline();
 		void createCommandList();
 		void createFencesAndEvents();
