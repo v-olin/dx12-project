@@ -10,6 +10,15 @@
 
 namespace pathtracex {
 
+	enum PrimitiveModelType
+	{
+		CUBE,
+		SPHERE,
+		CYLINDER,
+		PLANE,
+		NONE
+	};
+
 	struct Texture {
 		bool valid = false;
 		uint32_t gl_id = 0;
@@ -54,6 +63,16 @@ namespace pathtracex {
 	public:
 		Model(std::string path);
 		//Model(std::shared_ptr<Model> src);
+		Model(std::string name
+			, std::vector<Material> materials
+			, std::vector<Mesh> meshes
+			, uint32_t positions_bo
+			, uint32_t normals_bo
+			, uint32_t texture_coordinates_bo
+			, uint32_t vaob
+			, bool hasDedicatedShader
+			, float3 max_cords
+			, float3 min_cords);
 		~Model();
 		void Draw();
 		// Buffers on CPU
@@ -63,6 +82,7 @@ namespace pathtracex {
 		std::vector<DirectX::SimpleMath::Vector3> m_normals;
 		std::vector<DirectX::SimpleMath::Vector2> m_texture_coordinates;
 		*/
+		static std::shared_ptr<Model> createPrimative(PrimitiveModelType type);
 
 
 		Transform trans;
@@ -84,7 +104,11 @@ namespace pathtracex {
 		uint32_t m_vaob;
 		bool m_hasDedicatedShader;
 
-		float3 max_cords;
-		float3 min_cords;
+		float3 m_max_cords;
+		float3 m_min_cords;
+	private:
+		static std::shared_ptr<Model> createCube();
+		static std::shared_ptr<Model> createPlane();
+		static std::shared_ptr<Model> createSphere();
 	};
 }
