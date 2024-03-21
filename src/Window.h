@@ -4,7 +4,7 @@
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "DXRenderer.h"
-#include "ImguiManager.h"
+#include "GUI.h"
 
 #include <memory>
 #include <optional>
@@ -26,7 +26,6 @@ namespace pathtracex {
 		// defer construction of renderer since it needs the
 		// window handle and the imgui win32 wndproc hook
 		std::unique_ptr<DXRenderer> pRenderer;
-		std::unique_ptr<ImguiManager> pImgui;
 
 	private:
 		int width, height;

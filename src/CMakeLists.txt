@@ -5,8 +5,8 @@ add_executable(PathTracerX)
 target_sources(PathTracerX PRIVATE 
 	App.h
 	App.cpp
-	ImguiManager.h
-	ImguiManager.cpp
+	GUI.h
+	GUI.cpp
 	Mouse.h
 	Mouse.cpp
 	Window.h

@@ -4,10 +4,12 @@
 
 namespace pathtracex {
 
-	class ImguiManager {
+	class GUI {
 	public:
-		ImguiManager();
-		~ImguiManager();
+		GUI();
+		~GUI();
+
+		void drawGUI();
 
 	private:
 		ImGuiContext* context;

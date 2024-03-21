@@ -116,7 +116,6 @@ namespace pathtracex {
 		
 
 		// hook imgui to wndproc before creating renderer
-		pImgui = std::make_unique<ImguiManager>();
 		ImGui_ImplWin32_Init(windowHandle);
 
 		pRenderer = std::make_unique<DXRenderer>(windowHandle, width, height);
