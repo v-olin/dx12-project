@@ -27,6 +27,7 @@ namespace pathtracex {
 		// window handle and the imgui win32 wndproc hook
 		std::unique_ptr<DXRenderer> pRenderer;
 
+		void getSize(int& width, int& height) const;
 	private:
 		int width, height;
 		std::string title;

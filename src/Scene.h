@@ -5,6 +5,7 @@
 
 namespace pathtracex {
 	class Scene {
+	public:
 		std::vector<std::shared_ptr<Model>> models;
 	};
 }

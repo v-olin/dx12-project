@@ -6,8 +6,9 @@
 
 namespace pathtracex {
 
-	GUI::GUI() :
-		context(nullptr)
+#define SHOW_DEMO_WINDOW false
+
+	GUI::GUI(Scene& scene) : scene(scene)
 	{
 		IMGUI_CHECKVERSION();
 		context = ImGui::CreateContext();
@@ -26,13 +27,73 @@ namespace pathtracex {
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		static bool showGui = true;
-		ImGui::ShowDemoWindow(&showGui);
+		drawTopMenu();
+		drawModelSelectionMenu();
+		drawSettingsMenu();
 
-		ImGui::Begin("Path-traceX");
-		ImGui::Text("Hello, world!");
-		ImGui::End();
+#if SHOW_DEMO_WINDOW
+		ImGui::ShowDemoWindow();
+#endif
+
 
 		ImGui::Render();
+	}
+	void GUI::drawModelSelectionMenu()
+	{
+		int w, h;
+		window->getSize(w, h);
+		int panelWidth = w / 5;
+		ImGui::SetNextWindowPos(ImVec2(0, 18));
+		ImGui::SetNextWindowSize(ImVec2(panelWidth, h));
+
+		ImGuiWindowFlags windowFlags = 0;
+		windowFlags |= ImGuiWindowFlags_NoTitleBar;
+		windowFlags |= ImGuiWindowFlags_NoMove;
+		windowFlags |= ImGuiWindowFlags_NoScrollbar;
+
+		ImGui::Begin("Model selection", nullptr, windowFlags);
+
+
+		for (auto model : scene.models)
+		{
+			ImGui::Selectable(model->name.c_str());
+		}
+
+		ImGui::End();
+	}
+
+	void GUI::drawSettingsMenu()
+	{
+		int w, h;
+		window->getSize(w, h);
+		int panelWidth = w / 5;
+		ImGui::SetNextWindowPos(ImVec2(w - panelWidth, 18));
+		ImGui::SetNextWindowSize(ImVec2(panelWidth, h));
+
+		ImGuiWindowFlags windowFlags = 0;
+		windowFlags |= ImGuiWindowFlags_NoTitleBar;
+		windowFlags |= ImGuiWindowFlags_NoMove;
+		windowFlags |= ImGuiWindowFlags_NoScrollbar;
+
+		ImGui::Begin("Settings", nullptr, windowFlags);
+		ImGui::Text("Settings");
+		ImGui::End();
+	}
+
+	void GUI::drawGizmos()
+	{
+
+	}
+
+	void GUI::drawTopMenu()
+	{
+		ImGui::BeginMainMenuBar();
+
+		if (ImGui::BeginMenu("File"))
+		{
+
+		}
+
+		ImGui::EndMainMenuBar();
 	}
 }

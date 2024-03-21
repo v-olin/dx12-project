@@ -8,6 +8,7 @@ target_sources(PathTracerX PRIVATE
 	GUI.h
 	GUI.cpp
 	Mouse.h
+	Model.h
 	Mouse.cpp
 	Window.h
 	Window.cpp

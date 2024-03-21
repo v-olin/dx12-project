@@ -17,7 +17,8 @@ namespace pathtracex {
 		void everyFrame();
 		void drawGui();
 
-		GUI gui{};
+		Scene scene{};
+		GUI gui{scene};
 		Window window;
 	};
 

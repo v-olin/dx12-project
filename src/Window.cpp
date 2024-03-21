@@ -50,6 +50,12 @@ namespace pathtracex {
 		return {};
 	}
 
+	void Window::getSize(int& width, int& height) const
+	{
+		width = this->width;
+		height = this->height;
+	}
+
 	void Window::registerClass() const noexcept {
 		WNDCLASSEX wc{ 0 };
 		wc.cbSize = sizeof(wc);

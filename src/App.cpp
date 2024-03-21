@@ -2,8 +2,12 @@
 
 
 namespace pathtracex {
-
-	App::App() : window(1280, 760, "Path-traceX") {}
+	App::App() : window(1280, 720, "PathTracer")
+	{
+		gui.window = &window;
+		std::shared_ptr<Model> testModel = std::make_shared<Model>();
+		scene.models.push_back(testModel);
+	}
 
 	int App::run() {
 		while(true) {
