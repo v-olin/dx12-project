@@ -155,7 +155,41 @@ namespace pathtracex {
 
 		if (ImGui::BeginMenu("File"))
 		{
+			if (ImGui::MenuItem("Change scene"))
+			{
 
+			}
+			if (ImGui::MenuItem("Create new scene"))
+			{
+
+			}
+			if (ImGui::MenuItem("Save scene"))
+			{
+
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Models"))
+		{
+			if (ImGui::MenuItem("Add model from obj file"))
+			{
+
+			}
+			if (ImGui::MenuItem("Add model primative"))
+			{
+
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Lights"))
+		{
+			if (ImGui::MenuItem("Add new light"))
+			{
+
+			}
+
+			ImGui::EndMenu();
 		}
 
 		ImGui::EndMainMenuBar();
