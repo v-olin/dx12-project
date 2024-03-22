@@ -11,6 +11,13 @@
 #include "../../vendor/SimpleMath/SimpleMath.h"
 #include <DirectXPackedVector.h>
 
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <memory>
+#include "Transform.h"
+#include "Helper.h"
+
 namespace pathtracex {
 
 	enum PrimitiveModelType
