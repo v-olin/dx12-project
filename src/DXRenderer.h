@@ -104,6 +104,8 @@ namespace pathtracex {
 		void createPipeline();
 		void createCommandList();
 		void createFencesAndEvents();
+
+		void destroyDevice();
 	};
 
 }

@@ -6,6 +6,7 @@
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include <dxgi1_2.h>
+//#include <dxgidebug.h>
 #include "backends/imgui_impl_dx12.h"
 
 namespace wrl = Microsoft::WRL;
@@ -69,8 +70,27 @@ namespace pathtracex {
 	void DXRenderer::onDestroy() {
 		// wait for gpu to be finished using cpu resources
 		waitForPreviousFrame();
-		CloseHandle(fenceEvent);
 		ImGui_ImplDX12_Shutdown();
+		// cleanup device
+		destroyDevice();
+	}
+
+	void DXRenderer::destroyDevice() {
+		if (pSwap) { // is ComPtr so no need to call release
+			pSwap->SetFullscreenState(false, nullptr);
+		}
+
+		// cmdAllocator is comptr
+		CloseHandle(fenceEvent);
+		/*
+#ifdef _DEBUG
+		IDXGIDebug1* pDebug = nullptr;
+		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug)))) {
+			pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_SUMMARY);
+			pDebug->Release();
+		}
+#endif
+		*/
 	}
 
 	ID3D12GraphicsCommandList* const DXRenderer::borrowCommandListPointer() const noexcept {
