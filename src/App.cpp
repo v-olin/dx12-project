@@ -18,6 +18,12 @@ namespace pathtracex {
 
 			everyFrame();
 		}
+
+
+	}
+
+	void App::cleanup() {
+
 	}
 
 	void App::everyFrame() {

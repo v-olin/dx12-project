@@ -1,5 +1,6 @@
 #include "DXRenderer.h"
 
+#include "Exceptions.h"
 #include "Helper.h"
 
 #include <DirectXMath.h>
@@ -69,12 +70,13 @@ namespace pathtracex {
 		// wait for gpu to be finished using cpu resources
 		waitForPreviousFrame();
 		CloseHandle(fenceEvent);
+		ImGui_ImplDX12_Shutdown();
 	}
 
 	ID3D12GraphicsCommandList* const DXRenderer::borrowCommandListPointer() const noexcept {
 		return cmdList.Get();
 	}
-
+	
 	void DXRenderer::initGraphicsAPI()
 	{
 		// TODO

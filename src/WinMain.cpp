@@ -4,6 +4,7 @@
 
 #include "PathWin.h"
 #include "App.h"
+#include "Exceptions.h"
 #include "Window.h"
 
 LPCWSTR towstr(const char* str) {
@@ -19,8 +20,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	try {
 		return pathtracex::App{}.run();
 	}
+	catch (const pathtracex::HRException ex) {
+		MessageBox(nullptr, ex.what(), ex.getType(), MB_OK | MB_ICONEXCLAMATION);
+	}
+	catch (const pathtracex::PathException ex) {
+		MessageBox(nullptr, ex.what(), ex.getType(), MB_OK | MB_ICONEXCLAMATION);
+	}
 	catch (const std::exception& ex) {
-		MessageBox(nullptr, ex.what(), "skill issue", MB_OK | MB_ICONEXCLAMATION);
+		MessageBox(nullptr, ex.what(), "unknown error", MB_OK | MB_ICONEXCLAMATION);
 	}
 	return -1;
 }

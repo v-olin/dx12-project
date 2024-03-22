@@ -16,6 +16,7 @@ namespace pathtracex {
 	private:
 		void everyFrame();
 		void drawGui();
+		void cleanup();
 
 		Window window;
 	};
