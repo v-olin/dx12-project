@@ -27,6 +27,7 @@ target_sources(PathTracerX PRIVATE
 	Camera.h
 	Transform.h
 	Transform.cpp
+	Light.h
 	Selectable.h
 	GraphicsAPI.h
 	DXRenderer.h

@@ -56,12 +56,25 @@ namespace pathtracex {
 
 		ImGui::Begin("Model selection", nullptr, windowFlags);
 
-
-		for (auto model : scene.models)
+		if (ImGui::CollapsingHeader("Models", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			if (ImGui::Selectable(model->name.c_str())) {
+			for (auto model : scene.models)
+			{
+				if (ImGui::Selectable(model->name.c_str())) {
 
-				selectedSelectable = model;
+					selectedSelectable = model;
+				}
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Lights", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			for (auto light : scene.lights)
+			{
+				if (ImGui::Selectable(light->name.c_str())) {
+
+					selectedSelectable = light;
+				}
 			}
 		}
 
