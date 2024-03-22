@@ -23,6 +23,7 @@ namespace pathtracex {
 	}
 	
 	Window::~Window() {
+		pRenderer->onDestroy();
 		ImGui_ImplWin32_Shutdown();
 		DestroyWindow(windowHandle);
 		UnregisterClass(_wndClassName, _hInstance);

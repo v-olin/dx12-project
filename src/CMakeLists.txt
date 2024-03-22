@@ -28,6 +28,8 @@ target_sources(PathTracerX PRIVATE
 	GraphicsAPI.h
 	DXRenderer.h
 	DXRenderer.cpp
+	Exceptions.h
+	Exceptions.cpp
 )
 
 source_group("DX" FILES
