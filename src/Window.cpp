@@ -51,6 +51,12 @@ namespace pathtracex {
 		return {};
 	}
 
+	void Window::getSize(int& width, int& height) const
+	{
+		width = this->width;
+		height = this->height;
+	}
+
 	void Window::registerClass() const noexcept {
 		WNDCLASSEX wc{ 0 };
 		wc.cbSize = sizeof(wc);
@@ -117,7 +123,6 @@ namespace pathtracex {
 		
 
 		// hook imgui to wndproc before creating renderer
-		pImgui = std::make_unique<ImguiManager>();
 		ImGui_ImplWin32_Init(windowHandle);
 
 		pRenderer = std::make_unique<DXRenderer>(windowHandle, width, height);

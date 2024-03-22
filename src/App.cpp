@@ -1,13 +1,15 @@
 #include "App.h"
 
-#include "backends/imgui_impl_dx12.h"
-#include "backends/imgui_impl_win32.h"
 
 namespace pathtracex {
-
-	App::App() :
-		window(1280, 760, "Path-traceX")
-	{ }
+	App::App() : window(1280, 720, "PathTracer")
+	{
+		gui.window = &window;
+		std::shared_ptr<Model> testModel = std::make_shared<Model>();
+		scene.models.push_back(testModel);
+		std::shared_ptr<Light> testLight = std::make_shared<Light>();
+		scene.lights.push_back(testLight);
+	}
 
 	int App::run() {
 		while(true) {
@@ -27,20 +29,13 @@ namespace pathtracex {
 	}
 
 	void App::everyFrame() {
-		drawGui();
+		gui.drawGUI();
 		window.pRenderer->onUpdate();
 		window.pRenderer->onRender();
 	}
 
 	void App::drawGui() {
 
-		ImGui_ImplDX12_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
 
-		static bool showGui = true;
-		ImGui::ShowDemoWindow(&showGui);
-
-		ImGui::Render();
 	}
 }

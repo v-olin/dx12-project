@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Window.h"
-#include "ImguiManager.h"
+#include "GUI.h"
 
 #include <memory>
 
@@ -18,6 +18,8 @@ namespace pathtracex {
 		void drawGui();
 		void cleanup();
 
+		Scene scene{};
+		GUI gui{scene};
 		Window window;
 	};
 

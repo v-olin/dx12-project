@@ -1,12 +1,8 @@
 #pragma once
 #include "Scene.h"
+#include "RendererSettings.h"
 
 namespace pathtracex {
-	struct RendererSettings {
-		int width;
-		int height;
-		bool useMultiSampling;
-	};
 
 	class DXRenderer {
 	public:

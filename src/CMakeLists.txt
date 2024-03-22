@@ -5,9 +5,10 @@ add_executable(PathTracerX)
 target_sources(PathTracerX PRIVATE 
 	App.h
 	App.cpp
-	ImguiManager.h
-	ImguiManager.cpp
+	GUI.h
+	GUI.cpp
 	Mouse.h
+	Model.h
 	Mouse.cpp
 	Window.h
 	Window.cpp
@@ -19,12 +20,15 @@ target_sources(PathTracerX PRIVATE
 	Helper.h
 	Renderer.h
 	Renderer.cpp
+	RendererSettings.h
 	Scene.h
 	Material.h
 	Texture.h
 	Camera.h
 	Transform.h
 	Transform.cpp
+	Light.h
+	Selectable.h
 	GraphicsAPI.h
 	DXRenderer.h
 	DXRenderer.cpp
@@ -41,6 +45,7 @@ source_group("Renderer" FILES
 	GraphicsAPI.h
 	Renderer.h
 	Renderer.cpp
+	RendererSettings.h
 )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
