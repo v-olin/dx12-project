@@ -21,7 +21,7 @@ namespace pathtracex {
 		float4 color;
 	};
 
-	class Renderer : GraphicsAPI {
+	class DXRenderer : GraphicsAPI {
 	public:
 		DXRenderer(HWND windowHandle, UINT width, UINT height);
 		~DXRenderer() = default;
