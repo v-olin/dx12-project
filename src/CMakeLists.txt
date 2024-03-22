@@ -20,12 +20,14 @@ target_sources(PathTracerX PRIVATE
 	Helper.h
 	Renderer.h
 	Renderer.cpp
+	RendererSettings.h
 	Scene.h
 	Material.h
 	Texture.h
 	Camera.h
 	Transform.h
 	Transform.cpp
+	Selectable.h
 	GraphicsAPI.h
 	DXRenderer.h
 	DXRenderer.cpp
@@ -40,6 +42,7 @@ source_group("Renderer" FILES
 	GraphicsAPI.h
 	Renderer.h
 	Renderer.cpp
+	RendererSettings.h
 )
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")

@@ -19,12 +19,18 @@ namespace pathtracex {
 	private:
 		void drawTopMenu();
 		void drawModelSelectionMenu();
-		void drawSettingsMenu();
+		void drawRightWindow();
 		void drawGizmos();
+		void drawRenderingSettings();
+		void drawSelectableSettings();
+		void drawSelectedModelSettings();
 
 		ImGuiContext* context;
 
 		Scene& scene;
+
+		// The selected object that is displayed in the right window
+		std::weak_ptr<Selectable> selectedSelectable;
 	};
 
 }

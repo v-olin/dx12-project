@@ -3,6 +3,7 @@
 
 namespace pathtracex {
 	class Camera {
+	public:
 		Transform transform{};
 
 		float fov = 50.0f;

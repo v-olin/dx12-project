@@ -3,6 +3,9 @@
 
 #include "backends/imgui_impl_dx12.h"
 #include "backends/imgui_impl_win32.h"
+#include "../../vendor/ImGuizmo/ImGuizmo.h"
+#include <DirectXMath.h>
+
 
 namespace pathtracex {
 
@@ -29,7 +32,7 @@ namespace pathtracex {
 
 		drawTopMenu();
 		drawModelSelectionMenu();
-		drawSettingsMenu();
+		drawRightWindow();
 
 #if SHOW_DEMO_WINDOW
 		ImGui::ShowDemoWindow();
@@ -56,13 +59,16 @@ namespace pathtracex {
 
 		for (auto model : scene.models)
 		{
-			ImGui::Selectable(model->name.c_str());
+			if (ImGui::Selectable(model->name.c_str())) {
+
+				selectedSelectable = model;
+			}
 		}
 
 		ImGui::End();
 	}
 
-	void GUI::drawSettingsMenu()
+	void GUI::drawRightWindow()
 	{
 		int w, h;
 		window->getSize(w, h);
@@ -75,13 +81,58 @@ namespace pathtracex {
 		windowFlags |= ImGuiWindowFlags_NoMove;
 		windowFlags |= ImGuiWindowFlags_NoScrollbar;
 
-		ImGui::Begin("Settings", nullptr, windowFlags);
-		ImGui::Text("Settings");
+		ImGui::Begin("RightWindow", nullptr, windowFlags);
+
+		if (selectedSelectable.expired())
+			drawRenderingSettings();
+		else
+			drawSelectableSettings();
+
 		ImGui::End();
 	}
 
 	void GUI::drawGizmos()
 	{
+
+	}
+
+	void GUI::drawRenderingSettings()
+	{
+		ImGui::Text("Rendering Settings");
+		ImGui::Checkbox("Use Multisampling", &scene.rendererSettings.useMultiSampling);
+		ImGui::Checkbox("Use RayTracing", &scene.rendererSettings.useRayTracing);
+
+		ImGui::Text("Camera Settings");
+		ImGui::SliderFloat("FOV", &scene.camera.fov, 0, 120);
+		ImGui::SliderFloat("Near Plane", &scene.camera.nearPlane, 0, 500);
+		ImGui::SliderFloat("Far Plane", &scene.camera.farPlane, 0, 5000);
+
+	}
+
+	void GUI::drawSelectableSettings()
+	{
+		
+		drawSelectedModelSettings();
+	}
+
+	void GUI::drawSelectedModelSettings()
+	{
+		if (auto lockedModel = std::dynamic_pointer_cast<Model>(selectedSelectable.lock()))
+		{
+			if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+
+				float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+				//DirectX::XMMatrixDecompose(matrixTranslation)
+				//ImGuizmo::DecomposeMatrixToComponents(&(lockedModel->transform.transformMatrix.r->m128_f32[0]), matrixTranslation, matrixRotation, matrixScale);
+
+				ImGui::InputFloat3("Translation", matrixTranslation);
+				ImGui::InputFloat3("Rotation", matrixRotation);
+				ImGui::InputFloat3("Scale", matrixScale);
+
+				//ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, &(lockedModel->transform.transformMatrix.r->m128_f32[0]));
+			}
+		}
 
 	}
 
