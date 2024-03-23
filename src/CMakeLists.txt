@@ -34,6 +34,8 @@ target_sources(PathTracerX PRIVATE
 	DXRenderer.cpp
 	Exceptions.h
 	Exceptions.cpp
+	Logger.cpp
+	Logger.h
 )
 
 source_group("DX" FILES
