@@ -33,7 +33,7 @@ namespace pathtracex {
 		drawTopMenu();
 		drawModelSelectionMenu();
 		drawRightWindow();
-
+		
 #if SHOW_DEMO_WINDOW
 		ImGui::ShowDemoWindow();
 #endif
@@ -76,6 +76,12 @@ namespace pathtracex {
 					selectedSelectable = light;
 				}
 			}
+		}
+
+		// Unselect the selected object if the user clicks outside the selectable objects
+		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0))
+		{
+			selectedSelectable.reset();
 		}
 
 		ImGui::End();
