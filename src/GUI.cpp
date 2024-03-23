@@ -60,7 +60,7 @@ namespace pathtracex {
 		{
 			for (auto model : scene.models)
 			{
-				if (ImGui::Selectable(model->name.c_str())) {
+				if (ImGui::Selectable(model->getName().c_str())) {
 
 					selectedSelectable = model;
 				}

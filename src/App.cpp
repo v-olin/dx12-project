@@ -5,10 +5,6 @@ namespace pathtracex {
 	App::App() : window(1280, 720, "PathTracer")
 	{
 		gui.window = &window;
-		std::shared_ptr<Model> testModel = std::make_shared<Model>();
-		scene.models.push_back(testModel);
-		std::shared_ptr<Light> testLight = std::make_shared<Light>();
-		scene.lights.push_back(testLight);
 	}
 
 	int App::run() {

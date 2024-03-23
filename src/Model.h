@@ -69,7 +69,7 @@ namespace pathtracex {
 		uint32_t m_number_of_vertices;
 	};
 
-	class Model {
+	class Model : public Selectable {
 	public:
 		Model(std::string path);
 		//Model(std::shared_ptr<Model> src);
@@ -94,6 +94,7 @@ namespace pathtracex {
 		*/
 		static std::shared_ptr<Model> createPrimative(PrimitiveModelType type);
 
+		std::string getName() override { return m_name; };
 
 		Transform trans;
 
