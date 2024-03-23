@@ -16,11 +16,10 @@ namespace pathtracex {
 
 	private:
 		void everyFrame();
-		void drawGui();
 		void cleanup();
 
 		Scene scene{};
-	//	GUI gui{scene};
+		GUI gui{scene};
 		Window window;
 		DXRenderer renderer{window};
 	};

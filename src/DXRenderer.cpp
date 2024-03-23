@@ -88,10 +88,10 @@ namespace pathtracex {
 		scissorRect.bottom = height;
 
 		// dis do be correct i think?
-	//	ImGui_ImplDX12_Init(pDevice.Get(), frameBufferCount,
-	//		DXGI_FORMAT_R8G8B8A8_UNORM, srvHeap.Get(),
-	//		srvHeap.Get()->GetCPUDescriptorHandleForHeapStart(),
-	//		srvHeap.Get()->GetGPUDescriptorHandleForHeapStart());
+		ImGui_ImplDX12_Init(device, frameBufferCount,
+			DXGI_FORMAT_R8G8B8A8_UNORM, srvHeap,
+			srvHeap->GetCPUDescriptorHandleForHeapStart(),
+			srvHeap->GetGPUDescriptorHandleForHeapStart());
 		return true;
 	}
 
@@ -208,6 +208,9 @@ namespace pathtracex {
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // set the vertex buffer (using the vertex buffer view)
 		commandList->DrawInstanced(3, 1, 0, 0); // finally draw 3 vertices (draw the triangle)
+
+		commandList->SetDescriptorHeaps(1, &srvHeap);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
 
 		// transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
 		// warning if present is called on the render target when it's not in the present state
@@ -394,6 +397,19 @@ namespace pathtracex {
 		// get a handle to the first descriptor in the descriptor heap. a handle is basically a pointer,
 		// but we cannot literally use it like a c++ pointer.
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+	
+		D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
+		srvHeapDesc.NumDescriptors = 1;
+		srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+		hr = device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
+		if (FAILED(hr))
+		{
+			return false;
+		}
+	
 
 		// Create a RTV for each buffer (double buffering is two buffers, tripple buffering is 3).
 		for (int i = 0; i < frameBufferCount; i++)

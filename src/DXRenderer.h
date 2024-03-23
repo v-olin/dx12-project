@@ -62,6 +62,8 @@ namespace pathtracex {
 
 		ID3D12DescriptorHeap* rtvDescriptorHeap; // a descriptor heap to hold resources like the render targets
 
+		ID3D12DescriptorHeap* srvHeap;
+
 		ID3D12Resource* renderTargets[frameBufferCount]; // number of render targets equal to buffer count
 
 		ID3D12CommandAllocator* commandAllocator[frameBufferCount]; // we want enough allocators for each buffer * number of threads (we only have one thread)
