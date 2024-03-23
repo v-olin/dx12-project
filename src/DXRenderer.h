@@ -21,6 +21,11 @@ namespace pathtracex {
 		float4 color;
 	};
 
+	struct ColorVertex {
+		float x, y, z; // position
+		float r, g, b, z; // color;
+	}
+
 	class DXRenderer : GraphicsAPI {
 	public:
 		DXRenderer(Window& window);
@@ -45,7 +50,6 @@ namespace pathtracex {
 	private:
 		Window& window;
 
-		HRESULT hr;
 		// direct3d stuff
  // number of buffers we want, 2 for double buffering, 3 for tripple buffering
 
