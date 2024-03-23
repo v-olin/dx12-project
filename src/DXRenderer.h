@@ -17,7 +17,9 @@ namespace pathtracex {
 	const int frameBufferCount = 3;
 
 	struct Vertex {
+		Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, z) {}
 		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT4 color;
 	};
 
 	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
