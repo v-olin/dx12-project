@@ -194,13 +194,16 @@ namespace pathtracex {
 		// here we again get the handle to our current render target view so we can set it as the render target in the output merger stage of the pipeline
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
 
+		// get a handle to the depth/stencil buffer
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
 		// set the render target for the output merger stage (the output of the pipeline)
-		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		// Clear the render target by using the ClearRenderTargetView command
 		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-
+		commandList->ClearDepthStencilView(dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 		// draw triangle
 		commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
 		commandList->RSSetViewports(1, &viewport); // set the viewports
@@ -209,6 +212,7 @@ namespace pathtracex {
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // set the vertex buffer (using the vertex buffer view)
 		commandList->IASetIndexBuffer(&indexBufferView);
 		commandList->DrawIndexedInstanced(6, 1, 0, 0, 0); // finally draw 3 vertices (draw the triangle)
+		commandList->DrawIndexedInstanced(6, 1, 0, 4, 0); // finally draw 3 vertices (draw the triangle)
 
 		commandList->SetDescriptorHeaps(1, &srvHeap);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -575,6 +579,7 @@ namespace pathtracex {
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
 		psoDesc.NumRenderTargets = 1; // we are only binding one render target
+		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // a default depth stencil state
 
 		// create the pso
 		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject));
@@ -630,13 +635,20 @@ namespace pathtracex {
 		HRESULT hr;
 		// Create vertex buffer
 
+// a triangle
 		Vertex vList[] = {
-			{ -0.5f,  0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-			{  0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+			// first quad (closer to camera, blue)
+			{ -0.5f,  0.5f, 0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+			{  0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
 			{ -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-			{  0.5f,  0.5f, 0.5f, 1.0f, 0.0f, 1.0f, 1.0f }
-		};
+			{  0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
 
+			// second quad (further from camera, green)
+			{ -0.75f,  0.75f,  0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
+			{   0.0f,  0.0f, 0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
+			{ -0.75f,  0.0f, 0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
+			{   0.0f,  0.75f,  0.7f, 0.0f, 1.0f, 0.0f, 1.0f }
+		};
 		int vBufferSize = sizeof(vList);
 
 		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
@@ -691,10 +703,10 @@ namespace pathtracex {
 
 		// Create index buffer
 
-// a quad (2 triangles)
 		DWORD iList[] = {
+			// first quad (blue)
 			0, 1, 2, // first triangle
-			0, 3, 1 // second triangle
+			0, 3, 1, // second triangle
 		};
 
 		int iBufferSize = sizeof(iList);
@@ -739,6 +751,46 @@ namespace pathtracex {
 		// transition the vertex buffer data from copy destination state to vertex buffer state
 		CD3DX12_RESOURCE_BARRIER barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 		commandList->ResourceBarrier(1, &barrier2);
+
+		// Create depth/stencil buffer
+
+		// create a depth stencil descriptor heap so we can get a pointer to the depth stencil buffer
+		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+		dsvHeapDesc.NumDescriptors = 1;
+		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		hr = device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsDescriptorHeap));
+		if (FAILED(hr))
+		{
+			throw std::runtime_error("Error: createBuffer()");
+		}
+
+		D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+		depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+		D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+		depthOptimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+		depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+		int Width, Height;
+		window.getSize(Width, Height);
+
+		CD3DX12_HEAP_PROPERTIES heapProperties5 = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC buffer5 = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, Width, Height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+		device->CreateCommittedResource(
+			&heapProperties5,
+			D3D12_HEAP_FLAG_NONE,
+			&buffer5,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&depthOptimizedClearValue,
+			IID_PPV_ARGS(&depthStencilBuffer)
+		);
+		dsDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
+
+		device->CreateDepthStencilView(depthStencilBuffer, &depthStencilDesc, dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
 		// Now we execute the command list to upload the initial assets (triangle data)
 		commandList->Close();
@@ -788,6 +840,8 @@ namespace pathtracex {
 		SAFE_RELEASE(commandList);
 		SAFE_RELEASE(indexBuffer);
 		SAFE_RELEASE(vertexBuffer);
+		SAFE_RELEASE(depthStencilBuffer);
+		SAFE_RELEASE(dsDescriptorHeap);
 
 		for (int i = 0; i < frameBufferCount; ++i)
 		{

@@ -102,6 +102,8 @@ namespace pathtracex {
 		// the total size of the buffer, and the size of each element (vertex)
 		DXGI_SAMPLE_DESC sampleDesc{};
 
+		ID3D12Resource* depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
+		ID3D12DescriptorHeap* dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
 
 		// function declarations
 
