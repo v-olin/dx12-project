@@ -28,7 +28,7 @@ namespace pathtracex {
 		DXRenderer(const DXRenderer&) = delete;
 		DXRenderer& operator=(const DXRenderer&) = delete;
 	
-
+		bool InitD3D(); // initializes direct3d 12
 
 		void initGraphicsAPI() override;
 		void setClearColor(const dx::XMFLOAT3& color) override;
@@ -39,11 +39,13 @@ namespace pathtracex {
 		GraphicsAPIType getGraphicsAPIType() override { return GraphicsAPIType::DirectX12; };
 
 	private:
-		HWND windowHandle;
+		HWND hwnd;
 		bool useWarpDevice; // ???
 
 	private:
-		
+		Window& window;
+
+		HRESULT hr;
 		// direct3d stuff
  // number of buffers we want, 2 for double buffering, 3 for tripple buffering
 
@@ -72,8 +74,10 @@ namespace pathtracex {
 
 		int rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
 
+		IDXGIFactory4* dxgiFactory;
+
 		// function declarations
-		bool InitD3D(); // initializes direct3d 12
+
 
 		void Update(); // update the game logic
 
@@ -87,17 +91,17 @@ namespace pathtracex {
 
 
 
-		void createFactory();
-		void createDebugController();
-		void createDevice();
-		void createCommandQueue();
-		void createSwapChain();
-		void createDescriptorHeaps();
-		void createCommandAllocators();
-		void createRootSignature();
-		void createPipeline();
-		void createCommandList();
-		void createFencesAndEvents();
+		bool createFactory();
+		bool createDebugController();
+		bool createDevice();
+		bool createCommandQueue();
+		bool createSwapChain();
+		bool createDescriptorHeaps();
+		bool createCommandAllocators();
+		bool createRootSignature();
+		bool createPipeline();
+		bool createCommandList();
+		bool createFencesAndEvents();
 
 		void destroyDevice();
 	};
