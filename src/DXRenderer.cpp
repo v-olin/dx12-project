@@ -69,11 +69,10 @@ namespace pathtracex {
 		if (!createVertexBuffer())
 			return false;
 
-
 		int width, height;
 		window.getSize(width, height);
 
-		// TODO: Move this
+
 		// Fill out the Viewport
 		viewport.TopLeftX = 0;
 		viewport.TopLeftY = 0;
@@ -159,7 +158,6 @@ namespace pathtracex {
 	{
 		HRESULT hr;
 
-
 		// We have to wait for the gpu to finish with the command allocator before we reset it
 		WaitForPreviousFrame();
 
@@ -168,7 +166,7 @@ namespace pathtracex {
 		hr = commandAllocator[frameIndex]->Reset();
 		if (FAILED(hr))
 		{
-			throw std::runtime_error("Error, UpdatePipeline()");
+		
 		}
 
 		// reset the command list. by resetting the command list we are putting it into
@@ -181,15 +179,15 @@ namespace pathtracex {
 		// but in this tutorial we are only clearing the rtv, and do not actually need
 		// anything but an initial default pipeline, which is what we get by setting
 		// the second parameter to NULL
-		hr = commandList->Reset(commandAllocator[frameIndex], NULL);
+		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
 		if (FAILED(hr))
 		{
-			throw std::runtime_error("Error, UpdatePipeline()");
+	
 		}
 
 		// here we start recording commands into the commandList (which all the commands will be stored in the commandAllocator)
 
-// transition the "frameIndex" render target from the present state to the render target state so the command list draws to it starting from here
+		// transition the "frameIndex" render target from the present state to the render target state so the command list draws to it starting from here
 		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		commandList->ResourceBarrier(1, &barrier);
 
@@ -199,7 +197,9 @@ namespace pathtracex {
 		// set the render target for the output merger stage (the output of the pipeline)
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
-
+		// Clear the render target by using the ClearRenderTargetView command
+		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
 		// draw triangle
 		commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
@@ -209,19 +209,15 @@ namespace pathtracex {
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // set the vertex buffer (using the vertex buffer view)
 		commandList->DrawInstanced(3, 1, 0, 0); // finally draw 3 vertices (draw the triangle)
 
-		// Clear the render target by using the ClearRenderTargetView command
-		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-
 		// transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
 		// warning if present is called on the render target when it's not in the present state
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-		commandList->ResourceBarrier(1, &barrier);
+		CD3DX12_RESOURCE_BARRIER barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		commandList->ResourceBarrier(1, &barrier2);
 
 		hr = commandList->Close();
 		if (FAILED(hr))
 		{
-			throw std::runtime_error("Error, UpdatePipeline()");
+			
 		}
 	}
 
@@ -575,14 +571,12 @@ namespace pathtracex {
 	bool DXRenderer::createCommandList()
 	{
 		HRESULT hr;
-		// create the command list with the first allocator
-		hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator[0], NULL, IID_PPV_ARGS(&commandList));
+
+		hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator[frameIndex], NULL, IID_PPV_ARGS(&commandList));
 		if (FAILED(hr))
 		{
 			return false;
 		}
-		// command lists are created in the recording state. our main loop will set it up for recording again so close it now
-		commandList->Close();
 
 		return true;
 	}
