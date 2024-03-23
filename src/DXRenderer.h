@@ -22,6 +22,11 @@ namespace pathtracex {
 		DirectX::XMFLOAT4 color;
 	};
 
+	// this is the structure of our constant buffer.
+	struct ConstantBuffer {
+		DirectX::XMFLOAT4 colorMultiplier;
+	};
+
 	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
 	#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
@@ -43,7 +48,7 @@ namespace pathtracex {
 		GraphicsAPIType getGraphicsAPIType() override { return GraphicsAPIType::DirectX12; };
 
 		void Render(); // execute the command list
-
+		void Update(); // update the game logic
 	private:
 		HWND hwnd;
 		bool useWarpDevice; // ???
@@ -105,10 +110,19 @@ namespace pathtracex {
 		ID3D12Resource* depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
 		ID3D12DescriptorHeap* dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
 
+		ID3D12DescriptorHeap* mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
+		ID3D12Resource* constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
+
+		ConstantBuffer cbColorMultiplierData; // this is the constant buffer data we will send to the gpu 
+		// (which will be placed in the resource we created above)
+
+		UINT8* cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
+
+
 		// function declarations
 
 
-		void Update(); // update the game logic
+
 
 		void UpdatePipeline(); // update the direct3d pipeline (update command lists)
 

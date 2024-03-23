@@ -41,6 +41,7 @@ namespace pathtracex {
 		gui.drawGUI();
 	//	window.pRenderer->onUpdate();
 	//	window.pRenderer->onRender();
+		renderer.Update();
 		renderer.Render();
 	}
 }
