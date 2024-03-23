@@ -17,14 +17,11 @@ namespace pathtracex {
 	const int frameBufferCount = 3;
 
 	struct Vertex {
-		float3 pos;
-		float4 color;
+		DirectX::XMFLOAT3 pos;
 	};
 
-	struct ColorVertex {
-		float x, y, z; // position
-		float r, g, b, z; // color;
-	}
+	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
+	#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
 	class DXRenderer : GraphicsAPI {
 	public:
@@ -42,6 +39,8 @@ namespace pathtracex {
 		void setDrawTriangleOutline(bool enabled) override;
 		void setViewport(int x, int y, int width, int height) override;
 		GraphicsAPIType getGraphicsAPIType() override { return GraphicsAPIType::DirectX12; };
+
+		void Render(); // execute the command list
 
 	private:
 		HWND hwnd;
@@ -80,6 +79,21 @@ namespace pathtracex {
 
 		IDXGIFactory4* dxgiFactory;
 
+		ID3D12PipelineState* pipelineStateObject; // pso containing a pipeline state
+
+		ID3D12RootSignature* rootSignature; // root signature defines data shaders will access
+
+		D3D12_VIEWPORT viewport; // area that output from rasterizer will be stretched to.
+
+		D3D12_RECT scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
+
+		ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
+
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
+		// the total size of the buffer, and the size of each element (vertex)
+		DXGI_SAMPLE_DESC sampleDesc{};
+
+
 		// function declarations
 
 
@@ -87,7 +101,7 @@ namespace pathtracex {
 
 		void UpdatePipeline(); // update the direct3d pipeline (update command lists)
 
-		void Render(); // execute the command list
+
 
 		void Cleanup(); // release com ojects and clean up memory
 
@@ -106,6 +120,7 @@ namespace pathtracex {
 		bool createPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
+		bool createVertexBuffer();
 
 		void destroyDevice();
 	};
