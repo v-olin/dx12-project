@@ -94,6 +94,11 @@ namespace pathtracex {
 		ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
 
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
+
+		ID3D12Resource* indexBuffer; // a default buffer in GPU memory that we will load index data for our triangle into
+
+		D3D12_INDEX_BUFFER_VIEW indexBufferView; // a structure holding information about the index buffer
+
 		// the total size of the buffer, and the size of each element (vertex)
 		DXGI_SAMPLE_DESC sampleDesc{};
 
@@ -124,7 +129,7 @@ namespace pathtracex {
 		bool createPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
-		bool createVertexBuffer();
+		bool createBuffers();
 
 		void destroyDevice();
 	};
