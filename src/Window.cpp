@@ -2,11 +2,11 @@
 
 #include "StringUtil.h"
 
-#include "backends/imgui_impl_win32.h"
+//#include "backends/imgui_impl_win32.h"
 
 #define WINDOW_STYLING (WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU)
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+//extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace pathtracex {
 
@@ -23,8 +23,7 @@ namespace pathtracex {
 	}
 	
 	Window::~Window() {
-		pRenderer->onDestroy();
-		ImGui_ImplWin32_Shutdown();
+		//ImGui_ImplWin32_Shutdown();
 		DestroyWindow(windowHandle);
 		UnregisterClass(_wndClassName, _hInstance);
 	}
@@ -123,10 +122,7 @@ namespace pathtracex {
 		
 
 		// hook imgui to wndproc before creating renderer
-		ImGui_ImplWin32_Init(windowHandle);
-
-		pRenderer = std::make_unique<DXRenderer>(windowHandle, width, height);
-		pRenderer->onInit();
+	//	ImGui_ImplWin32_Init(windowHandle);
 
 		ShowWindow(windowHandle, SW_SHOWDEFAULT);
 	}
@@ -155,9 +151,9 @@ namespace pathtracex {
 	}
 
 	LRESULT Window::handleMessage(HWND winHandle, UINT message, WPARAM wparam, LPARAM lparam) noexcept {
-		if (ImGui_ImplWin32_WndProcHandler(winHandle, message, wparam, lparam)) {
-			return true;
-		}
+	//	if (ImGui_ImplWin32_WndProcHandler(winHandle, message, wparam, lparam)) {
+	//		return true;
+	//	}
 		
 		
 		switch (message) {

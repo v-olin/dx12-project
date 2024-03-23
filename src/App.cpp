@@ -4,7 +4,11 @@
 namespace pathtracex {
 	App::App() : window(1280, 720, "PathTracer")
 	{
-		gui.window = &window;
+	//	gui.window = &window;
+
+		// Initialize renderer
+	
+
 	}
 
 	int App::run() {
@@ -25,9 +29,9 @@ namespace pathtracex {
 	}
 
 	void App::everyFrame() {
-		gui.drawGUI();
-		window.pRenderer->onUpdate();
-		window.pRenderer->onRender();
+		//gui.drawGUI();
+	//	window.pRenderer->onUpdate();
+	//	window.pRenderer->onRender();
 	}
 
 	void App::drawGui() {

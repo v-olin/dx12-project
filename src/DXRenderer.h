@@ -11,10 +11,10 @@
 #include <wrl.h>
 
 #include "GraphicsAPI.h"
-
-#define FRAME_COUNT 2u
+#include "Window.h"
 
 namespace pathtracex {
+	const int frameBufferCount = 3;
 
 	struct Vertex {
 		float3 pos;
@@ -23,17 +23,12 @@ namespace pathtracex {
 
 	class DXRenderer : GraphicsAPI {
 	public:
-		DXRenderer(HWND windowHandle, UINT width, UINT height);
+		DXRenderer(Window& window);
 		~DXRenderer() = default;
 		DXRenderer(const DXRenderer&) = delete;
 		DXRenderer& operator=(const DXRenderer&) = delete;
 	
-		void onInit();
-		void onUpdate();
-		void onRender();
-		void onDestroy();
 
-		ID3D12GraphicsCommandList* const borrowCommandListPointer() const noexcept;
 
 		void initGraphicsAPI() override;
 		void setClearColor(const dx::XMFLOAT3& color) override;
@@ -44,48 +39,53 @@ namespace pathtracex {
 		GraphicsAPIType getGraphicsAPIType() override { return GraphicsAPIType::DirectX12; };
 
 	private:
-		UINT width, height;
-		float aspectRatio;
 		HWND windowHandle;
 		bool useWarpDevice; // ???
 
 	private:
 		
-		Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
-		UINT dxgiFactoryFlags = 0u;
+		// direct3d stuff
+ // number of buffers we want, 2 for double buffering, 3 for tripple buffering
 
-		// gpu pipeline objects
-		D3D12_VIEWPORT viewport;
-		D3D12_RECT scissorRect;
-		Microsoft::WRL::ComPtr<IDXGISwapChain3> pSwap;
-		Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
-		Microsoft::WRL::ComPtr<ID3D12Resource> renderTargets[FRAME_COUNT];
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdAllocator;
-		Microsoft::WRL::ComPtr<ID3D12CommandQueue> cmdQueue;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdList;
-		UINT rtvDescriptorSize;
+		ID3D12Device* device; // direct3d device
 
-		// app objects
-		Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+		IDXGISwapChain3* swapChain; // swapchain used to switch between render targets
 
-		// synch objects
-		UINT frameIdx;
-		HANDLE fenceEvent;
-		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-		UINT64 fenceValue;
+		ID3D12CommandQueue* commandQueue; // container for command lists
 
-		bool renderRasterized = true;
+		ID3D12DescriptorHeap* rtvDescriptorHeap; // a descriptor heap to hold resources like the render targets
 
-		void createTestModel();
-		void populateCommandList();
-		void waitForPreviousFrame();
-		void toggleRenderMode();
-		void getHardwareAdapter(IDXGIFactory2* pFactory, IDXGIAdapter1** ppAdapter);
+		ID3D12Resource* renderTargets[frameBufferCount]; // number of render targets equal to buffer count
+
+		ID3D12CommandAllocator* commandAllocator[frameBufferCount]; // we want enough allocators for each buffer * number of threads (we only have one thread)
+
+		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
+
+		ID3D12Fence* fence[frameBufferCount];    // an object that is locked while our command list is being executed by the gpu. We need as many 
+		//as we have allocators (more if we want to know when the gpu is finished with an asset)
+
+		HANDLE fenceEvent; // a handle to an event when our fence is unlocked by the gpu
+
+		UINT64 fenceValue[frameBufferCount]; // this value is incremented each frame. each fence will have its own value
+
+		int frameIndex; // current rtv we are on
+
+		int rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
+
+		// function declarations
+		bool InitD3D(); // initializes direct3d 12
+
+		void Update(); // update the game logic
+
+		void UpdatePipeline(); // update the direct3d pipeline (update command lists)
+
+		void Render(); // execute the command list
+
+		void Cleanup(); // release com ojects and clean up memory
+
+		void WaitForPreviousFrame(); // wait until gpu is finished with command list
+
+
 
 		void createFactory();
 		void createDebugController();

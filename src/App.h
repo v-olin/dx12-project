@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "GUI.h"
+#include "DXRenderer.h"
 
 #include <memory>
 
@@ -19,8 +20,9 @@ namespace pathtracex {
 		void cleanup();
 
 		Scene scene{};
-		GUI gui{scene};
+	//	GUI gui{scene};
 		Window window;
+		DXRenderer renderer{window};
 	};
 
 }
