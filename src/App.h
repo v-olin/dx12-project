@@ -3,6 +3,7 @@
 #include "Window.h"
 #include "GUI.h"
 #include "DXRenderer.h"
+#include "RenderSettings.h"
 
 #include <memory>
 
@@ -22,6 +23,8 @@ namespace pathtracex {
 		GUI gui{scene};
 		Window window;
 		DXRenderer renderer{window};
+		Camera defaultCamera{};
+		RenderSettings defaultRenderSettings{ 0, 0, defaultCamera };
 	};
 
 }

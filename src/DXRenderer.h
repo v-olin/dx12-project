@@ -51,8 +51,8 @@ namespace pathtracex {
 		void setViewport(int x, int y, int width, int height) override;
 		GraphicsAPIType getGraphicsAPIType() override { return GraphicsAPIType::DirectX12; };
 
-		void Render(); // execute the command list
-		void Update(); // update the game logic
+		void Render(RenderSettings& renderSettings); // execute the command list
+		void Update(RenderSettings& renderSettings); // update the game logic
 	private:
 		HWND hwnd;
 		bool useWarpDevice; // ???

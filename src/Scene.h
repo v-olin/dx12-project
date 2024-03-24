@@ -3,7 +3,7 @@
 #include <memory>
 #include "Model.h"
 #include "Camera.h"
-#include "RendererSettings.h"
+#include "RenderSettings.h"
 #include "Light.h"
 
 namespace pathtracex {
@@ -11,8 +11,6 @@ namespace pathtracex {
 	public:
 		std::vector<std::shared_ptr<Model>> models;
 		std::vector<std::shared_ptr<Light>> lights;
-
-		RendererSettings rendererSettings{};
 
 		Camera camera{};
 	};

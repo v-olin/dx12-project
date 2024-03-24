@@ -7,7 +7,6 @@ namespace pathtracex {
 		gui.window = &window;
 
 		// Initialize renderer
-	
 
 	}
 
@@ -38,10 +37,16 @@ namespace pathtracex {
 	}
 
 	void App::everyFrame() {
-		gui.drawGUI();
+		gui.drawGUI(defaultRenderSettings);
 	//	window.pRenderer->onUpdate();
 	//	window.pRenderer->onRender();
-		renderer.Update();
-		renderer.Render();
+
+		// Update render settings
+		int width, height;
+		window.getSize(width, height);
+		defaultRenderSettings.width = width;
+		defaultRenderSettings.height = height;
+
+		renderer.Render(defaultRenderSettings);
 	}
 }

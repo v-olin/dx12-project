@@ -24,7 +24,7 @@ namespace pathtracex {
 		ImGui::DestroyContext();
 	}
 
-	void GUI::drawGUI()
+	void GUI::drawGUI(RenderSettings& renderSettings)
 	{
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -32,7 +32,7 @@ namespace pathtracex {
 
 		drawTopMenu();
 		drawModelSelectionMenu();
-		drawRightWindow();
+		drawRightWindow(renderSettings);
 
 #if SHOW_DEMO_WINDOW
 		ImGui::ShowDemoWindow();
@@ -81,7 +81,7 @@ namespace pathtracex {
 		ImGui::End();
 	}
 
-	void GUI::drawRightWindow()
+	void GUI::drawRightWindow(RenderSettings& renderSettings)
 	{
 		int w, h;
 		window->getSize(w, h);
@@ -97,7 +97,7 @@ namespace pathtracex {
 		ImGui::Begin("RightWindow", nullptr, windowFlags);
 
 		if (selectedSelectable.expired())
-			drawRenderingSettings();
+			drawRenderingSettings(renderSettings);
 		else
 			drawSelectableSettings();
 
@@ -109,11 +109,11 @@ namespace pathtracex {
 
 	}
 
-	void GUI::drawRenderingSettings()
+	void GUI::drawRenderingSettings(RenderSettings& renderSettings)
 	{
 		ImGui::Text("Rendering Settings");
-		ImGui::Checkbox("Use Multisampling", &scene.rendererSettings.useMultiSampling);
-		ImGui::Checkbox("Use RayTracing", &scene.rendererSettings.useRayTracing);
+		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
+		ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
 
 		ImGui::Text("Camera Settings");
 		ImGui::SliderFloat("FOV", &scene.camera.fov, 0, 120);

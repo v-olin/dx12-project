@@ -9,11 +9,8 @@
 #include <d3d12.h>
 #include "../vendor/d3dx12/d3dx12.h"
 
-//#include <dxgidebug.h>
 #include "backends/imgui_impl_dx12.h"
 #include <stdexcept>
-
-
 
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
@@ -127,38 +124,12 @@ namespace pathtracex {
 		// TODO
 	}
 
-	/*
-	void DXRenderer::waitForPreviousFrame()
-	{
-	    HRESULT hr;
-	
-	    // swap the current rtv buffer index so we draw on the correct buffer
-	    frameIdx = pSwap->GetCurrentBackBufferIndex();
-	
-	    // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
-	    // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
-	    if (fences[frameIdx]->GetCompletedValue() < fenceValues[frameIdx])
-	    {
-	        // we have the fence create an event which is signaled once the fence's current value is "fenceValue"
-	        hr = fences[frameIdx]->SetEventOnCompletion(fenceValues[frameIdx], fenceEvent);
-	
-	        // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
-	        // has reached "fenceValue", we know the command queue has finished executing
-	        WaitForSingleObject(fenceEvent, INFINITE);
-	    }
-	
-	    // increment fenceValue for next frame
-	    fenceValues[frameIdx]++;
-	}
-*/
 
-
-
-	void DXRenderer::Update()
+	void DXRenderer::Update(RenderSettings& renderSettings)
 	{
 		// update app logic, such as moving the camera or figuring out what objects are in view
 
- // create rotation matrices
+		// create rotation matrices
 		DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0001f);
 		DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.0002f);
 		DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0003f);
@@ -315,9 +286,11 @@ namespace pathtracex {
 		}
 	}
 
-	void DXRenderer::Render()
+	void DXRenderer::Render(RenderSettings& renderSettings)
 	{
 		HRESULT hr;
+
+		Update(renderSettings);
 
 		UpdatePipeline(); // update the pipeline by sending commands to the commandqueue
 
