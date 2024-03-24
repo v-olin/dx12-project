@@ -62,6 +62,19 @@ namespace pathtracex {
 		CD3DX12_RESOURCE_BARRIER vertexBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 		renderer->commandList->ResourceBarrier(1, &vertexBufferResourceBarrier);
 		
+		// create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+		vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
+		vertexBufferView.StrideInBytes = sizeof(Vertex);
+		vertexBufferView.SizeInBytes = vBufferSize;
+
+	//	renderer->executeCommandList();
+		// We make sure the index buffer is uploaded to the GPU before the renderer uses it
+		//renderer->incrementFenceAndSignalCurrentFrame();
+	}
+
+	DXVertexBuffer::~DXVertexBuffer()
+	{
+		SAFE_RELEASE(vertexBuffer);
 	}
 
 	void pathtracex::DXVertexBuffer::bind()

@@ -96,6 +96,8 @@ namespace pathtracex {
 
 		ImGui::Begin("RightWindow", nullptr, windowFlags);
 
+		ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
+
 		if (selectedSelectable.expired())
 			drawRenderingSettings(renderSettings);
 		else

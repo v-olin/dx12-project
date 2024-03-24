@@ -62,8 +62,16 @@ namespace pathtracex {
 
 		ID3D12Device* device; // direct3d device
 
+		ID3D12CommandQueue* commandQueue; // container for command lists
+
+		
+		void executeCommandList();
+
+		void incrementFenceAndSignalCurrentFrame();
+
 	private:
 		DXRenderer();
+
 
 		HWND hwnd;
 		bool useWarpDevice; // ???
@@ -79,7 +87,7 @@ namespace pathtracex {
 
 		IDXGISwapChain3* swapChain; // swapchain used to switch between render targets
 
-		ID3D12CommandQueue* commandQueue; // container for command lists
+
 
 		ID3D12DescriptorHeap* rtvDescriptorHeap; // a descriptor heap to hold resources like the render targets
 

@@ -21,6 +21,31 @@ namespace pathtracex {
 
 	DXRenderer::DXRenderer(){ }
 
+	void DXRenderer::executeCommandList()
+	{
+		HRESULT hr;
+		hr = commandList->Close();
+		if (FAILED(hr))
+		{
+			throw std::runtime_error("Error, executeCommandList()");
+		}
+
+		ID3D12CommandList* ppCommandLists[] = { commandList };
+		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	
+	}
+
+	void DXRenderer::incrementFenceAndSignalCurrentFrame()
+	{
+		HRESULT hr;
+		fenceValue[frameIndex]++;
+		hr = commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
+		if (FAILED(hr))
+		{
+			throw std::runtime_error("Error, signalCurrentFrameAndIncrementFence()");
+		}
+	}
+
 
 	bool DXRenderer::init(Window* window)
 	{
@@ -215,18 +240,7 @@ namespace pathtracex {
 		commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress());
 
 		// draw first cube
-		commandList->DrawIndexedInstanced(numCubeIndices, 1, 0, 0, 0);
-
-		// second cube
-
-		// set cube2's constant buffer. You can see we are adding the size of ConstantBufferPerObject to the constant buffer
-		// resource heaps address. This is because cube1's constant buffer is stored at the beginning of the resource heap, while
-		// cube2's constant buffer data is stored after (256 bits from the start of the heap).
-		commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + ConstantBufferPerObjectAlignedSize);
-
-		// draw second cube
-		commandList->DrawIndexedInstanced(numCubeIndices, 1, 0, 0, 0);
-
+		commandList->DrawIndexedInstanced(indexBuffer->numCubeIndices, 1, 0, 0, 0);
 
 		commandList->SetDescriptorHeaps(1, &srvHeap);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -668,9 +682,9 @@ namespace pathtracex {
 		HRESULT hr;
 		// Create vertex buffer
 
-   // Create vertex buffer
+		// Create vertex buffer
 
-	// a quad
+		// a quad
 		Vertex vList[] = {
 			// front face
 			{ -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
@@ -827,44 +841,13 @@ namespace pathtracex {
 			memcpy(cbvGPUAddress[i] + ConstantBufferPerObjectAlignedSize, &cbPerObject, sizeof(cbPerObject)); // cube2's constant buffer data
 		}
 
-		// Now we execute the command list to upload the initial assets (triangle data)
-		commandList->Close();
-		ID3D12CommandList* ppCommandLists[] = { commandList };
-		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		executeCommandList();
 
-		// increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
-		fenceValue[frameIndex]++;
-		hr = commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
-		if (FAILED(hr))
-		{
-			
-		}
-
-		// create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-		vertexBuffer->vertexBufferView.BufferLocation = vertexBuffer->vertexBuffer->GetGPUVirtualAddress();
-		vertexBuffer->vertexBufferView.StrideInBytes = sizeof(Vertex);
-		vertexBuffer->vertexBufferView.SizeInBytes = vertexBuffer->vBufferSize;
-
-		// create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-		indexBuffer->indexBufferView.BufferLocation = indexBuffer->indexBuffer->GetGPUVirtualAddress();
-		indexBuffer->indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
-		indexBuffer->indexBufferView.SizeInBytes = indexBuffer->iBufferSize;
+		incrementFenceAndSignalCurrentFrame();
 
 		// build projection and view matrix
-		DirectX::XMMATRIX tmpMat = DirectX::XMMatrixPerspectiveFovLH(45.0f * (3.14f / 180.0f), (float)Width / (float)Height, 0.1f, 1000.0f);
-		XMStoreFloat4x4(&cameraProjMat, tmpMat);
+		DirectX::XMMATRIX tmpMat;
 
-		// set starting camera state
-		cameraPosition = DirectX::XMFLOAT4(0.0f, 2.0f, -4.0f, 0.0f);
-		cameraTarget = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-		cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
-
-		// build view matrix
-		DirectX::XMVECTOR cPos = XMLoadFloat4(&cameraPosition);
-		DirectX::XMVECTOR cTarg = XMLoadFloat4(&cameraTarget);
-		DirectX::XMVECTOR cUp = XMLoadFloat4(&cameraUp);
-		tmpMat = DirectX::XMMatrixLookAtLH(cPos, cTarg, cUp);
-		XMStoreFloat4x4(&cameraViewMat, tmpMat);
 
 		// set starting cubes position
 		// first cube
@@ -874,16 +857,6 @@ namespace pathtracex {
 		tmpMat = DirectX::XMMatrixTranslationFromVector(posVec); // create translation matrix from cube1's position vector
 		XMStoreFloat4x4(&cube1RotMat, DirectX::XMMatrixIdentity()); // initialize cube1's rotation matrix to identity matrix
 		XMStoreFloat4x4(&cube1WorldMat, tmpMat); // store cube1's world matrix
-
-		// second cube
-		cube2PositionOffset = DirectX::XMFLOAT4(1.5f, 0.0f, 0.0f, 0.0f);
-		//posVec = DirectX::XMLoadFloat4(&cube2PositionOffset) + DirectX::XMLoadFloat4(&cube1Position); // create xmvector for cube2's position
-		// we are rotating around cube1 here, so add cube2's position to cube1
-
-		tmpMat = DirectX::XMMatrixTranslationFromVector(posVec); // create translation matrix from cube2's position offset vector
-		XMStoreFloat4x4(&cube2RotMat, DirectX::XMMatrixIdentity()); // initialize cube2's rotation matrix to identity matrix
-		XMStoreFloat4x4(&cube2WorldMat, tmpMat); // store cube2's world matrix
-
 
 		return true;
 	}
@@ -908,8 +881,6 @@ namespace pathtracex {
 		SAFE_RELEASE(commandQueue);
 		SAFE_RELEASE(rtvDescriptorHeap);
 		SAFE_RELEASE(commandList);
-		//SAFE_RELEASE(indexBuffer);
-		//SAFE_RELEASE(vertexBuffer);
 		SAFE_RELEASE(depthStencilBuffer);
 		SAFE_RELEASE(dsDescriptorHeap);
 
