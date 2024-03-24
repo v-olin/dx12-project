@@ -7,7 +7,7 @@ namespace pathtracex {
 		gui.window = &window;
 
 		// Initialize renderer
-
+		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
 	}
 
 	int App::run() {

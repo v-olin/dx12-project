@@ -116,9 +116,9 @@ namespace pathtracex {
 		ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
 
 		ImGui::Text("Camera Settings");
-		ImGui::SliderFloat("FOV", &scene.camera.fov, 0, 120);
-		ImGui::SliderFloat("Near Plane", &scene.camera.nearPlane, 0, 500);
-		ImGui::SliderFloat("Far Plane", &scene.camera.farPlane, 0, 5000);
+		ImGui::SliderFloat("FOV", &renderSettings.camera.fov, 0, 120);
+		ImGui::SliderFloat("Near Plane", &renderSettings.camera.nearPlane, 0.1, 50);
+		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 5000);
 
 	}
 

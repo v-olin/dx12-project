@@ -5,7 +5,7 @@ namespace pathtracex {
 	class Transform
 	{
 	public:
-		DirectX::XMMATRIX transformMatrix{};
+		DirectX::XMMATRIX transformMatrix = DirectX::XMMatrixIdentity();
 
 		// TODO: Add rotation
 

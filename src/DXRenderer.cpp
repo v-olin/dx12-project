@@ -129,28 +129,19 @@ namespace pathtracex {
 	{
 		// update app logic, such as moving the camera or figuring out what objects are in view
 
-		// create rotation matrices
-		DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0001f);
-		DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.0002f);
-		DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0003f);
-
-		// add rotation to cube1's rotation matrix and store it
-		DirectX::XMMATRIX rotMat = DirectX::XMLoadFloat4x4(&cube1RotMat) * rotXMat * rotYMat * rotZMat;
-		DirectX::XMStoreFloat4x4(&cube1RotMat, rotMat);
-
 		// create translation matrix for cube 1 from cube 1's position vector
 		DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&cube1Position));
 
 		// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-		DirectX::XMMATRIX worldMat = rotMat * translationMat;
+		DirectX::XMMATRIX worldMat =  translationMat;
 
 		// store cube1's world matrix
 		DirectX::XMStoreFloat4x4(&cube1WorldMat, worldMat);
 
 		// update constant buffer for cube1
 		// create the wvp matrix and store in constant buffer
-		DirectX::XMMATRIX viewMat = DirectX::XMLoadFloat4x4(&cameraViewMat); // load view matrix
-		DirectX::XMMATRIX projMat = DirectX::XMLoadFloat4x4(&cameraProjMat); // load projection matrix
+		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix(); // load view matrix
+		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 		DirectX::XMMATRIX wvpMat = DirectX::XMLoadFloat4x4(&cube1WorldMat) * viewMat * projMat; // create wvp matrix
 		DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
 		DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
@@ -158,38 +149,6 @@ namespace pathtracex {
 		// copy our ConstantBuffer instance to the mapped constant buffer resource
 		memcpy(cbvGPUAddress[frameIndex], &cbPerObject, sizeof(cbPerObject));
 
-		// now do cube2's world matrix
-		// create rotation matrices for cube2
-		rotXMat = DirectX::XMMatrixRotationX(0.0003f);
-		rotYMat = DirectX::XMMatrixRotationY(0.0002f);
-		rotZMat = DirectX::XMMatrixRotationZ(0.0001f);
-
-		// add rotation to cube2's rotation matrix and store it
-		rotMat = rotZMat * (XMLoadFloat4x4(&cube2RotMat) * (rotXMat * rotYMat));
-		XMStoreFloat4x4(&cube2RotMat, rotMat);
-
-		// create translation matrix for cube 2 to offset it from cube 1 (its position relative to cube1
-		DirectX::XMMATRIX translationOffsetMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&cube2PositionOffset));
-
-		// we want cube 2 to be half the size of cube 1, so we scale it by .5 in all dimensions
-		DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
-
-		// reuse worldMat. 
-		// first we scale cube2. scaling happens relative to point 0,0,0, so you will almost always want to scale first
-		// then we translate it. 
-		// then we rotate it. rotation always rotates around point 0,0,0
-		// finally we move it to cube 1's position, which will cause it to rotate around cube 1
-		worldMat = scaleMat * translationOffsetMat * rotMat * translationMat;
-
-		wvpMat = DirectX::XMLoadFloat4x4(&cube2WorldMat) * viewMat * projMat; // create wvp matrix
-		transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
-		DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
-
-		// copy our ConstantBuffer instance to the mapped constant buffer resource
-		memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize, &cbPerObject, sizeof(cbPerObject));
-
-		// store cube2's world matrix
-		DirectX::XMStoreFloat4x4(&cube2WorldMat, worldMat);
 	}
 
 	void DXRenderer::UpdatePipeline()
