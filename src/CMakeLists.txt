@@ -35,6 +35,10 @@ target_sources(PathTracerX PRIVATE
 	GraphicsAPI.h
 	DXRenderer.h
 	DXRenderer.cpp
+	DXVertexBuffer.h
+	DXVertexBuffer.cpp
+	DXIndexBuffer.h
+	DXIndexBuffer.cpp
 	Exceptions.h
 	Exceptions.cpp
 	../vendor/d3dx12/d3dx12.h
@@ -43,6 +47,10 @@ target_sources(PathTracerX PRIVATE
 source_group("DX" FILES
 	DXRenderer.h
 	DXRenderer.cpp
+	DXVertexBuffer.h
+	DXVertexBuffer.cpp
+	DXIndexBuffer.h
+	DXIndexBuffer.cpp
 )
 
 source_group("Renderer" FILES

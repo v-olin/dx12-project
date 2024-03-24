@@ -206,7 +206,7 @@ namespace pathtracex {
 		commandList->RSSetScissorRects(1, &scissorRect); // set the scissor rects
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
 		commandList->IASetVertexBuffers(0, 1, &(vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
-		commandList->IASetIndexBuffer(&indexBufferView);
+		commandList->IASetIndexBuffer(&indexBuffer->indexBufferView);
 
 
 		// first cube
@@ -742,50 +742,9 @@ namespace pathtracex {
 			20, 23, 21, // second triangle
 		};
 
-		int iBufferSize = sizeof(iList);
+		std::vector<DWORD> indices(iList, iList + sizeof(iList) / sizeof(iList[0]));
 
-		numCubeIndices = sizeof(iList) / sizeof(DWORD);
-
-		// create default heap to hold index buffer
-		CD3DX12_HEAP_PROPERTIES iHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		CD3DX12_RESOURCE_DESC iResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(iBufferSize);
-		device->CreateCommittedResource(
-			&iHeapProperties, // a default heap
-			D3D12_HEAP_FLAG_NONE, // no flags
-			&iResourceDesc, // resource description for a buffer
-			D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
-			nullptr, // optimized clear value must be null for this type of resource
-			IID_PPV_ARGS(&indexBuffer));
-
-		// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
-		indexBuffer->SetName(L"Index Buffer Resource Heap");
-
-		// create upload heap to upload index buffer
-		CD3DX12_HEAP_PROPERTIES iHeapPropertiesUpload(D3D12_HEAP_TYPE_UPLOAD);
-		CD3DX12_RESOURCE_DESC iResourceDescUpload = CD3DX12_RESOURCE_DESC::Buffer(iBufferSize);
-		ID3D12Resource* iBufferUploadHeap;
-		device->CreateCommittedResource(
-			&iHeapPropertiesUpload, // upload heap
-			D3D12_HEAP_FLAG_NONE, // no flags
-			&iResourceDescUpload, // resource description for a buffer
-			D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-			nullptr,
-			IID_PPV_ARGS(&iBufferUploadHeap));
-//		vBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
-
-		// store vertex buffer in upload heap
-		D3D12_SUBRESOURCE_DATA indexData = {};
-		indexData.pData = reinterpret_cast<BYTE*>(iList); // pointer to our index array
-		indexData.RowPitch = iBufferSize; // size of all our index buffer
-		indexData.SlicePitch = iBufferSize; // also the size of our index buffer
-
-		// we are now creating a command with the command list to copy the data from
-		// the upload heap to the default heap
-		UpdateSubresources(commandList, indexBuffer, iBufferUploadHeap, 0, 0, 1, &indexData);
-
-		// transition the vertex buffer data from copy destination state to vertex buffer state
-		CD3DX12_RESOURCE_BARRIER indexBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		commandList->ResourceBarrier(1, &indexBufferResourceBarrier);
+		indexBuffer = new DXIndexBuffer(indices);
 
 		// Create the depth/stencil buffer
 
@@ -887,9 +846,9 @@ namespace pathtracex {
 		vertexBuffer->vertexBufferView.SizeInBytes = vertexBuffer->vBufferSize;
 
 		// create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-		indexBufferView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
-		indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
-		indexBufferView.SizeInBytes = iBufferSize;
+		indexBuffer->indexBufferView.BufferLocation = indexBuffer->indexBuffer->GetGPUVirtualAddress();
+		indexBuffer->indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
+		indexBuffer->indexBufferView.SizeInBytes = indexBuffer->iBufferSize;
 
 		// build projection and view matrix
 		DirectX::XMMATRIX tmpMat = DirectX::XMMatrixPerspectiveFovLH(45.0f * (3.14f / 180.0f), (float)Width / (float)Height, 0.1f, 1000.0f);
@@ -949,7 +908,7 @@ namespace pathtracex {
 		SAFE_RELEASE(commandQueue);
 		SAFE_RELEASE(rtvDescriptorHeap);
 		SAFE_RELEASE(commandList);
-		SAFE_RELEASE(indexBuffer);
+		//SAFE_RELEASE(indexBuffer);
 		//SAFE_RELEASE(vertexBuffer);
 		SAFE_RELEASE(depthStencilBuffer);
 		SAFE_RELEASE(dsDescriptorHeap);

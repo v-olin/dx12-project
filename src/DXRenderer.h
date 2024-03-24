@@ -15,6 +15,7 @@
 #include "Vertex.h"
 
 #include "DXVertexBuffer.h"
+#include "DXIndexBuffer.h"
 
 namespace pathtracex {
 	const int frameBufferCount = 3;
@@ -113,9 +114,7 @@ namespace pathtracex {
 
 		DXVertexBuffer* vertexBuffer = nullptr; // a default buffer in GPU memory that we will load vertex data for our triangle into
 
-		ID3D12Resource* indexBuffer; // a default buffer in GPU memory that we will load index data for our triangle into
-
-		D3D12_INDEX_BUFFER_VIEW indexBufferView; // a structure holding information about the index buffer
+		DXIndexBuffer* indexBuffer = nullptr;
 
 		// the total size of the buffer, and the size of each element (vertex)
 		DXGI_SAMPLE_DESC sampleDesc{};
