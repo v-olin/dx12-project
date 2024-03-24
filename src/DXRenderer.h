@@ -12,15 +12,12 @@
 
 #include "GraphicsAPI.h"
 #include "Window.h"
+#include "Vertex.h"
+
+#include "DXVertexBuffer.h"
 
 namespace pathtracex {
 	const int frameBufferCount = 3;
-
-	struct Vertex {
-		Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, z) {}
-		DirectX::XMFLOAT3 pos;
-		DirectX::XMFLOAT4 color;
-	};
 
 	// Must align to 256 bytes
 	struct ConstantBuffer
@@ -59,6 +56,11 @@ namespace pathtracex {
 			}
 			return instance;
 		}
+
+		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
+
+		ID3D12Device* device; // direct3d device
+
 	private:
 		DXRenderer();
 
@@ -72,7 +74,7 @@ namespace pathtracex {
 		// direct3d stuff
  // number of buffers we want, 2 for double buffering, 3 for tripple buffering
 
-		ID3D12Device* device; // direct3d device
+
 
 		IDXGISwapChain3* swapChain; // swapchain used to switch between render targets
 
@@ -86,7 +88,7 @@ namespace pathtracex {
 
 		ID3D12CommandAllocator* commandAllocator[frameBufferCount]; // we want enough allocators for each buffer * number of threads (we only have one thread)
 
-		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
+
 
 		ID3D12Fence* fence[frameBufferCount];    // an object that is locked while our command list is being executed by the gpu. We need as many 
 		//as we have allocators (more if we want to know when the gpu is finished with an asset)
@@ -109,9 +111,7 @@ namespace pathtracex {
 
 		D3D12_RECT scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
 
-		ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
-
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
+		DXVertexBuffer* vertexBuffer = nullptr; // a default buffer in GPU memory that we will load vertex data for our triangle into
 
 		ID3D12Resource* indexBuffer; // a default buffer in GPU memory that we will load index data for our triangle into
 

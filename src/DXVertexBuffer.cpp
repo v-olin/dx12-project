@@ -4,13 +4,16 @@
 #include <dxgi1_2.h>
 #include <d3d12.h>
 #include "../vendor/d3dx12/d3dx12.h"
+#include "DXRenderer.h"
 
 namespace pathtracex {
+
+
 	DXVertexBuffer::DXVertexBuffer(std::vector<Vertex> vertices)
 	{
-		/*
-		
-		int vBufferSize = sizeof(&vertices[0]);
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		vBufferSize = sizeof(Vertex) * vertices.size();
 
 		// create default heap
 		// default heap is memory on the GPU. Only the GPU has access to this memory
@@ -18,7 +21,7 @@ namespace pathtracex {
 		// an upload heap
 		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 		CD3DX12_RESOURCE_DESC bufferResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vBufferSize);
-		device->CreateCommittedResource(
+		renderer->device->CreateCommittedResource(
 			&heapProperties, // a default heap
 			D3D12_HEAP_FLAG_NONE, // no flags
 			&bufferResourceDesc, // resource description for a buffer
@@ -36,7 +39,7 @@ namespace pathtracex {
 		CD3DX12_HEAP_PROPERTIES heapPropertiesUpload(D3D12_HEAP_TYPE_UPLOAD);
 		CD3DX12_RESOURCE_DESC bufferResourceDescUpload = CD3DX12_RESOURCE_DESC::Buffer(vBufferSize);
 		ID3D12Resource* vBufferUploadHeap;
-		device->CreateCommittedResource(
+		renderer->device->CreateCommittedResource(
 			&heapPropertiesUpload, // upload heap
 			D3D12_HEAP_FLAG_NONE, // no flags
 			&bufferResourceDescUpload, // resource description for a buffer
@@ -53,12 +56,12 @@ namespace pathtracex {
 
 		// we are now creating a command with the command list to copy the data from
 		// the upload heap to the default heap
-		UpdateSubresources(commandList, vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
+		UpdateSubresources(renderer->commandList, vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
 
 		// transition the vertex buffer data from copy destination state to vertex buffer state
 		CD3DX12_RESOURCE_BARRIER vertexBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-		commandList->ResourceBarrier(1, &vertexBufferResourceBarrier);
-		*/
+		renderer->commandList->ResourceBarrier(1, &vertexBufferResourceBarrier);
+		
 	}
 
 	void pathtracex::DXVertexBuffer::bind()
