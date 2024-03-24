@@ -19,16 +19,14 @@ namespace pathtracex {
 
 #define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), IID_PPV_ARGS_Helper(ppType)
 
-	DXRenderer::DXRenderer(Window& window) :
-		window(window),
-		hwnd(window.windowHandle),
-		useWarpDevice(false),
-		rtvDescriptorSize(0)
-	{ }
+	DXRenderer::DXRenderer(){ }
 
 
-	bool DXRenderer::InitD3D()
+	bool DXRenderer::init(Window* window)
 	{
+		this->window = window;
+		hwnd = window->windowHandle;
+
 #ifdef _DEBUG
 		if (!createDebugController())
 			return false;
@@ -67,7 +65,7 @@ namespace pathtracex {
 			return false;
 
 		int width, height;
-		window.getSize(width, height);
+		window->getSize(width, height);
 
 
 		// Fill out the Viewport
@@ -358,7 +356,7 @@ namespace pathtracex {
 	{
 		HRESULT hr;
 		int width, height;
-		window.getSize(width, height);
+		window->getSize(width, height);
 
 		// -- Create the Swap Chain (double/tripple buffering) -- //
 		DXGI_MODE_DESC backBufferDesc = {}; // this is to describe our display mode
@@ -858,7 +856,7 @@ namespace pathtracex {
 		depthOptimizedClearValue.DepthStencil.Stencil = 0;
 
 		int Width, Height;
-		window.getSize(Width, Height);
+		window->getSize(Width, Height);
 
 		CD3DX12_HEAP_PROPERTIES heapPropertiesDefault(D3D12_HEAP_TYPE_DEFAULT);
 		CD3DX12_RESOURCE_DESC depthStencilResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, Width, Height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);

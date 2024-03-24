@@ -11,7 +11,8 @@ namespace pathtracex {
 	}
 
 	int App::run() {
-		if (!renderer.InitD3D())
+		renderer = DXRenderer::getInstance();
+		if (!renderer->init(&window))
 		{
 			MessageBox(0, "Failed to initialize direct3d 12",
 				"Error", MB_OK);
@@ -47,6 +48,6 @@ namespace pathtracex {
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
 
-		renderer.Render(defaultRenderSettings);
+		renderer->Render(defaultRenderSettings);
 	}
 }

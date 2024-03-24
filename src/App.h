@@ -22,7 +22,7 @@ namespace pathtracex {
 		Scene scene{};
 		GUI gui{scene};
 		Window window;
-		DXRenderer renderer{window};
+		DXRenderer* renderer = nullptr;
 		Camera defaultCamera{};
 		RenderSettings defaultRenderSettings{ 0, 0, defaultCamera };
 	};

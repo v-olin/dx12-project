@@ -36,12 +36,11 @@ namespace pathtracex {
 
 	class DXRenderer : GraphicsAPI {
 	public:
-		DXRenderer(Window& window);
 		~DXRenderer() = default;
 		DXRenderer(const DXRenderer&) = delete;
 		DXRenderer& operator=(const DXRenderer&) = delete;
 	
-		bool InitD3D(); // initializes direct3d 12
+		bool init(Window* window); // initializes direct3d 12
 
 		void initGraphicsAPI() override;
 		void setClearColor(const dx::XMFLOAT3& color) override;
@@ -53,12 +52,22 @@ namespace pathtracex {
 
 		void Render(RenderSettings& renderSettings); // execute the command list
 		void Update(RenderSettings& renderSettings); // update the game logic
+
+		static DXRenderer* getInstance() {
+			if (!instance) {
+				instance = new DXRenderer();
+			}
+			return instance;
+		}
 	private:
+		DXRenderer();
+
 		HWND hwnd;
 		bool useWarpDevice; // ???
 
-	private:
-		Window& window;
+		Window* window = nullptr;
+
+		inline static DXRenderer* instance;
 
 		// direct3d stuff
  // number of buffers we want, 2 for double buffering, 3 for tripple buffering
