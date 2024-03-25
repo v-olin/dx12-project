@@ -9,6 +9,8 @@ target_sources(PathTracerX PRIVATE
 	GUI.cpp
 	Mouse.h
 	Model.h
+	Model.cpp
+	Vertex.h
 	Mouse.cpp
 	Window.h
 	Window.cpp
@@ -20,11 +22,14 @@ target_sources(PathTracerX PRIVATE
 	Helper.h
 	Renderer.h
 	Renderer.cpp
-	RendererSettings.h
+	RenderSettings.h
 	Scene.h
+	Model.h
+	Model.cpp
 	Material.h
 	Texture.h
 	Camera.h
+	Camera.cpp
 	Transform.h
 	Transform.cpp
 	Light.h
@@ -32,8 +37,13 @@ target_sources(PathTracerX PRIVATE
 	GraphicsAPI.h
 	DXRenderer.h
 	DXRenderer.cpp
+	DXVertexBuffer.h
+	DXVertexBuffer.cpp
+	DXIndexBuffer.h
+	DXIndexBuffer.cpp
 	Exceptions.h
 	Exceptions.cpp
+	../vendor/d3dx12/d3dx12.h
 	Logger.h
 	Logger.cpp
 )
@@ -41,6 +51,10 @@ target_sources(PathTracerX PRIVATE
 source_group("DX" FILES
 	DXRenderer.h
 	DXRenderer.cpp
+	DXVertexBuffer.h
+	DXVertexBuffer.cpp
+	DXIndexBuffer.h
+	DXIndexBuffer.cpp
 )
 
 source_group("Renderer" FILES

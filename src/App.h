@@ -2,6 +2,8 @@
 
 #include "Window.h"
 #include "GUI.h"
+#include "DXRenderer.h"
+#include "RenderSettings.h"
 
 #include <memory>
 
@@ -15,12 +17,14 @@ namespace pathtracex {
 
 	private:
 		void everyFrame();
-		void drawGui();
 		void cleanup();
 
 		Scene scene{};
 		GUI gui{scene};
 		Window window;
+		DXRenderer* renderer = nullptr;
+		Camera defaultCamera{};
+		RenderSettings defaultRenderSettings{ 0, 0, defaultCamera };
 	};
 
 }

@@ -11,7 +11,7 @@ namespace pathtracex {
 		GUI(Scene& scene);
 		~GUI();
 
-		void drawGUI();
+		void drawGUI(RenderSettings& renderSettings);
 
 
 
@@ -19,9 +19,9 @@ namespace pathtracex {
 	private:
 		void drawTopMenu();
 		void drawModelSelectionMenu();
-		void drawRightWindow();
+		void drawRightWindow(RenderSettings& renderSettings);
 		void drawGizmos();
-		void drawRenderingSettings();
+		void drawRenderingSettings(RenderSettings& renderSettings);
 		void drawSelectableSettings();
 		void drawSelectedModelSettings();
 

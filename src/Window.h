@@ -3,7 +3,6 @@
 #include "PathWin.h"
 #include "Keyboard.h"
 #include "Mouse.h"
-#include "DXRenderer.h"
 #include "GUI.h"
 
 #include <memory>
@@ -23,15 +22,12 @@ namespace pathtracex {
 
 		Keyboard kbd;
 		Mouse mouse;
-		// defer construction of renderer since it needs the
-		// window handle and the imgui win32 wndproc hook
-		std::unique_ptr<DXRenderer> pRenderer;
-
+		HWND windowHandle;
 		void getSize(int& width, int& height) const;
 	private:
 		int width, height;
 		std::string title;
-		HWND windowHandle;
+
 
 		HINSTANCE _hInstance; // i tink program instance?
 		static constexpr LPCSTR _wndClassName = "pathtracex::window";

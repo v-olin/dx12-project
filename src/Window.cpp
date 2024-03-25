@@ -23,7 +23,6 @@ namespace pathtracex {
 	}
 	
 	Window::~Window() {
-		pRenderer->onDestroy();
 		ImGui_ImplWin32_Shutdown();
 		DestroyWindow(windowHandle);
 		UnregisterClass(_wndClassName, _hInstance);
@@ -124,9 +123,6 @@ namespace pathtracex {
 
 		// hook imgui to wndproc before creating renderer
 		ImGui_ImplWin32_Init(windowHandle);
-
-		pRenderer = std::make_unique<DXRenderer>(windowHandle, width, height);
-		pRenderer->onInit();
 
 		ShowWindow(windowHandle, SW_SHOWDEFAULT);
 	}

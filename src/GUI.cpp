@@ -24,7 +24,7 @@ namespace pathtracex {
 		ImGui::DestroyContext();
 	}
 
-	void GUI::drawGUI()
+	void GUI::drawGUI(RenderSettings& renderSettings)
 	{
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -32,8 +32,8 @@ namespace pathtracex {
 
 		drawTopMenu();
 		drawModelSelectionMenu();
-		drawRightWindow();
-		
+		drawRightWindow(renderSettings);
+
 #if SHOW_DEMO_WINDOW
 		ImGui::ShowDemoWindow();
 #endif
@@ -60,7 +60,7 @@ namespace pathtracex {
 		{
 			for (auto model : scene.models)
 			{
-				if (ImGui::Selectable(model->name.c_str())) {
+				if (ImGui::Selectable(model->getName().c_str())) {
 
 					selectedSelectable = model;
 				}
@@ -87,7 +87,7 @@ namespace pathtracex {
 		ImGui::End();
 	}
 
-	void GUI::drawRightWindow()
+	void GUI::drawRightWindow(RenderSettings& renderSettings)
 	{
 		int w, h;
 		window->getSize(w, h);
@@ -102,8 +102,10 @@ namespace pathtracex {
 
 		ImGui::Begin("RightWindow", nullptr, windowFlags);
 
+		ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
+
 		if (selectedSelectable.expired())
-			drawRenderingSettings();
+			drawRenderingSettings(renderSettings);
 		else
 			drawSelectableSettings();
 
@@ -115,16 +117,16 @@ namespace pathtracex {
 
 	}
 
-	void GUI::drawRenderingSettings()
+	void GUI::drawRenderingSettings(RenderSettings& renderSettings)
 	{
 		ImGui::Text("Rendering Settings");
-		ImGui::Checkbox("Use Multisampling", &scene.rendererSettings.useMultiSampling);
-		ImGui::Checkbox("Use RayTracing", &scene.rendererSettings.useRayTracing);
+		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
+		ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
 
 		ImGui::Text("Camera Settings");
-		ImGui::SliderFloat("FOV", &scene.camera.fov, 0, 120);
-		ImGui::SliderFloat("Near Plane", &scene.camera.nearPlane, 0, 500);
-		ImGui::SliderFloat("Far Plane", &scene.camera.farPlane, 0, 5000);
+		ImGui::SliderFloat("FOV", &renderSettings.camera.fov, 0, 120);
+		ImGui::SliderFloat("Near Plane", &renderSettings.camera.nearPlane, 0.1, 50);
+		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 5000);
 
 	}
 

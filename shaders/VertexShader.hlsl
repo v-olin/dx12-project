@@ -1,23 +1,24 @@
-struct VSOut
+struct VS_INPUT
 {
-	// order is important!!
-	// order must match argument order in main of PixelShader
-    float3 color : Color;
-    float4 pos : SV_Position;
+    float4 pos : POSITION;
+    float4 color : COLOR;
 };
 
-/*
-cbuffer Cbuf
+struct VS_OUTPUT
 {
-    matrix transform;
-}
-*/
+    float4 pos : SV_POSITION;
+    float4 color : COLOR;
+};
 
-// <type> name : <semantic name>
-VSOut main(float3 pos : Position, float3 color : Color)
+cbuffer ConstantBuffer : register(b0)
 {
-    VSOut vso;
-    vso.pos = float4(pos, 1.0f);
-    vso.color = color;
-    return vso;
+    float4x4 wvpMat;
+};
+
+VS_OUTPUT main(VS_INPUT input)
+{
+    VS_OUTPUT output;
+    output.pos = mul(input.pos, wvpMat);
+    output.color = input.color;
+    return output;
 }

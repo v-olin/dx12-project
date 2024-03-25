@@ -1,7 +1,9 @@
+/*
 #include "Renderer.h"
 
 namespace pathtracex {
-	void pathtracex::DXRenderer::renderScene(Scene& scene, RendererSettings& rendererSettings)
+	void pathtracex::DXRenderer::renderScene(Scene& scene, RenderSettings& rendererSettings)
 	{
 	}
 }
+*/

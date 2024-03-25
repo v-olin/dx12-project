@@ -1,17 +1,34 @@
 #include "App.h"
-
+#include <Windows.h>
 
 namespace pathtracex {
 	App::App() : window(1280, 720, "PathTracer")
 	{
 		gui.window = &window;
-		std::shared_ptr<Model> testModel = std::make_shared<Model>();
-		scene.models.push_back(testModel);
-		std::shared_ptr<Light> testLight = std::make_shared<Light>();
-		scene.lights.push_back(testLight);
+
+		// Initialize renderer
+		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
 	}
 
 	int App::run() {
+		renderer = DXRenderer::getInstance();
+		if (!renderer->init(&window))
+		{
+			MessageBox(0, "Failed to initialize direct3d 12",
+				"Error", MB_OK);
+			cleanup();
+			return 1;
+		}
+
+		std::shared_ptr<Model> cube = Model::createPrimative(PrimitiveModelType::CUBE);
+		cube->trans.setPosition({ 0, 1, 0 });
+		scene.models.push_back(cube);
+
+		std::shared_ptr<Model> cube2 = Model::createPrimative(PrimitiveModelType::PLANE);
+		cube2->trans.setPosition({ 1, -1, 0 });
+		scene.models.push_back(cube2);
+
+
 		while(true) {
 			const auto ecode = Window::processMessages();
 			if (ecode) {
@@ -29,13 +46,16 @@ namespace pathtracex {
 	}
 
 	void App::everyFrame() {
-		gui.drawGUI();
-		window.pRenderer->onUpdate();
-		window.pRenderer->onRender();
-	}
+		gui.drawGUI(defaultRenderSettings);
+	//	window.pRenderer->onUpdate();
+	//	window.pRenderer->onRender();
 
-	void App::drawGui() {
+		// Update render settings
+		int width, height;
+		window.getSize(width, height);
+		defaultRenderSettings.width = width;
+		defaultRenderSettings.height = height;
 
-
+		renderer->Render(defaultRenderSettings, scene);
 	}
 }
