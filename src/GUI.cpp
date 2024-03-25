@@ -5,7 +5,7 @@
 #include "backends/imgui_impl_win32.h"
 #include "../../vendor/ImGuizmo/ImGuizmo.h"
 #include <DirectXMath.h>
-
+#include <imgui_internal.h>
 
 namespace pathtracex {
 
@@ -29,10 +29,12 @@ namespace pathtracex {
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 
 		drawTopMenu();
 		drawModelSelectionMenu();
 		drawRightWindow(renderSettings);
+		drawViewport(renderSettings);
 
 #if SHOW_DEMO_WINDOW
 		ImGui::ShowDemoWindow();
@@ -112,8 +114,34 @@ namespace pathtracex {
 		ImGui::End();
 	}
 
-	void GUI::drawGizmos()
+	void GUI::drawGizmos(RenderSettings& renderSettings)
 	{
+		bool shouldDrawGizmos = false;
+
+		float* modelMatrixPtr = nullptr;
+		if (auto lockedSelectedSelectable = selectedSelectable.lock())
+		{
+			if (auto lockedModel = std::dynamic_pointer_cast<Model>(lockedSelectedSelectable))
+			{
+				shouldDrawGizmos = true;
+				modelMatrixPtr = &(lockedModel->trans.transformMatrix.r->m128_f32[0]);
+			}
+		}
+
+		if (shouldDrawGizmos)
+		{
+			ImGuizmo::SetOrthographic(false);
+			ImGuizmo::SetDrawlist();
+
+			ImGuizmo::SetRect(0, 0, renderSettings.width, renderSettings.height);
+
+			DirectX::XMMATRIX cameraView = renderSettings.camera.getViewMatrix();
+
+			DirectX::XMMATRIX projectionMatrix = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height);
+			float* viewMatrixPtr = &(cameraView.r->m128_f32[0]);
+			float* projectionMatrixPtr = &(projectionMatrix.r->m128_f32[0]);
+			ImGuizmo::Manipulate(viewMatrixPtr, projectionMatrixPtr, ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, modelMatrixPtr);
+		}
 
 	}
 
@@ -145,16 +173,38 @@ namespace pathtracex {
 
 				float matrixTranslation[3], matrixRotation[3], matrixScale[3];
 				//DirectX::XMMatrixDecompose(matrixTranslation)
-				//ImGuizmo::DecomposeMatrixToComponents(&(lockedModel->transform.transformMatrix.r->m128_f32[0]), matrixTranslation, matrixRotation, matrixScale);
+				ImGuizmo::DecomposeMatrixToComponents(&(lockedModel->trans.transformMatrix.r->m128_f32[0]), matrixTranslation, matrixRotation, matrixScale);
 
 				ImGui::InputFloat3("Translation", matrixTranslation);
 				ImGui::InputFloat3("Rotation", matrixRotation);
 				ImGui::InputFloat3("Scale", matrixScale);
 
-				//ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, &(lockedModel->transform.transformMatrix.r->m128_f32[0]));
+				ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, &(lockedModel->trans.transformMatrix.r->m128_f32[0]));
 			}
 		}
 
+	}
+
+	void GUI::drawViewport(RenderSettings& renderSettings)
+	{
+		ImGui::SetNextWindowPos(ImVec2(0, 18));
+		ImGui::SetNextWindowSize(ImVec2(renderSettings.width, renderSettings.height));
+
+		ImGuiWindowFlags windowFlags = 0;
+		windowFlags |= ImGuiWindowFlags_NoBackground;
+		windowFlags |= ImGuiWindowFlags_NoTitleBar;
+		windowFlags |= ImGuiWindowFlags_NoMove;
+		windowFlags |= ImGuiWindowFlags_NoScrollbar;
+		windowFlags |= ImGuiWindowFlags_NoScrollWithMouse;
+		windowFlags |= ImGuiWindowFlags_NoCollapse;
+		windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+		windowFlags |= ImGuiWindowFlags_NoResize;
+
+		ImGui::Begin("Viewport", nullptr, windowFlags);
+
+		drawGizmos(renderSettings);
+
+		ImGui::End();
 	}
 
 	void GUI::drawTopMenu()

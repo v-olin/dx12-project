@@ -44,6 +44,8 @@ target_sources(PathTracerX PRIVATE
 	Exceptions.h
 	Exceptions.cpp
 	../vendor/d3dx12/d3dx12.h
+	../vendor/ImGuizmo/ImGuizmo.h
+	../vendor/ImGuizmo/ImGuizmo.cpp
 	Logger.h
 	Logger.cpp
 )
