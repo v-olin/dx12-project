@@ -443,12 +443,14 @@ namespace pathtracex {
 			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i) };
 			vertices.push_back(vert);
 		}
-		std::vector<uint32_t> indecies;
 
 		for (auto mesh : m_meshes) {
 			for (size_t i = 0; i < mesh.m_number_of_vertices; i++)
-				indecies.push_back(i + mesh.m_start_index);
+				indices.push_back(i + mesh.m_start_index);
 		}
+		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
+		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
+
 
 
 		//TODO: the hard shit, aka translate to DirectX
@@ -519,7 +521,7 @@ namespace pathtracex {
 		case pathtracex::CUBE:
 			return createCube();
 		case pathtracex::SPHERE:
-			return createSphere(10, 10);
+			return createSphere(100, 100);
 		case pathtracex::CYLINDER:
 			break;
 		case pathtracex::PLANE:
@@ -754,7 +756,8 @@ namespace pathtracex {
 				normal.Normalize();
 				float2 uv = float2((float)j / slices, (float)i / stacks);
 
-				tmp_vertices.push_back({ float3(x, y, z), cols[i%3], normal, uv});
+				float4 col{ normal.x, normal.y, normal.z, 1 };
+				tmp_vertices.push_back({ float3(x, y, z), col, normal, uv});
 			}
 		}
 
@@ -787,6 +790,7 @@ namespace pathtracex {
 		mesh.m_name = "sphere_mesh";
 		mesh.m_start_index = 0;
 		mesh.m_number_of_vertices = indices.size();
+		std::vector<Mesh> meshes{ mesh };
 		
 		std::vector<Vertex> vertecies;
 		size_t idx;
@@ -794,8 +798,8 @@ namespace pathtracex {
 			idx = indices.at(i);
 			vertecies.push_back(tmp_vertices.at(idx));
 		}
-		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
+
 
 		float3 max_cords(vertecies.at(0).pos);
 		float3 min_cords(vertecies.at(0).pos);
@@ -832,7 +836,7 @@ namespace pathtracex {
 
 		Mesh mesh;
 		mesh.m_material_idx = 0;
-		mesh.m_name = "sphere_mesh";
+		mesh.m_name = "Plane mesh";
 		mesh.m_start_index = 0;
 		mesh.m_number_of_vertices = indices.size();
 		
@@ -842,7 +846,7 @@ namespace pathtracex {
 			idx = indices.at(i);
 			vertecies.push_back(tmp_vertices.at(idx));
 		}
-		std::vector<Mesh> meshes;
+		std::vector<Mesh> meshes{ mesh };
 		std::vector<Material> materials;
 
 		float3 max_cords(vertecies.at(0).pos);
