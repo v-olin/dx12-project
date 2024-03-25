@@ -46,6 +46,11 @@ target_sources(PathTracerX PRIVATE
 	../vendor/d3dx12/d3dx12.h
 	Logger.h
 	Logger.cpp
+	EventCallback.h
+	Event.h
+	Event.cpp
+	InputHandler.h
+	InputHandler.cpp
 )
 
 source_group("DX" FILES

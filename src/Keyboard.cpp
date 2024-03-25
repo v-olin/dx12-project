@@ -13,7 +13,7 @@ namespace pathtracex {
 			keyBuffer.pop();
 			return e;
 		}
-		return {};
+		return std::nullopt;
 	}
 
 	bool Keyboard::keyIsEmpty() const noexcept {
@@ -27,7 +27,7 @@ namespace pathtracex {
 			charBuffer.pop();
 			return charcode;
 		}
-		return {};
+		return std::nullopt;
 	}
 
 	bool Keyboard::charIsEmpty() const noexcept {
