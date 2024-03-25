@@ -192,20 +192,16 @@ namespace pathtracex {
 	Model::Model(std::string name
 			, std::vector<Material> materials
 			, std::vector<Mesh> meshes
-			, uint32_t positions_bo
-			, uint32_t normals_bo
-			, uint32_t texture_coordinates_bo
-			, uint32_t vaob
+			, DXVertexBuffer* vertex_buffer
+			, DXIndexBuffer* index_buffer
 			, bool hasDedicatedShader
 			, float3 max_cords
 			, float3 min_cords)
 		: m_name(name)
 		, m_materials(materials)
 		, m_meshes(meshes)
-		, m_positions_bo(positions_bo)
-		, m_normals_bo(normals_bo)
-		, m_texture_coordinates_bo(texture_coordinates_bo)
-		, m_vaob(vaob)
+		, m_vertex_buffer(vertex_buffer)
+		, m_index_buffer(index_buffer)
 		, m_hasDedicatedShader(hasDedicatedShader)
 		, m_max_cords(max_cords)
 		, m_min_cords(min_cords)
@@ -217,6 +213,8 @@ namespace pathtracex {
 		//TODO: This could be fucked
 		, m_max_cords(-INFINITE)
 		, m_min_cords(INFINITE)
+		, m_vertex_buffer(nullptr)
+		, m_index_buffer(nullptr)
 	{
 		std::string filename, extension, directory;
 
@@ -501,7 +499,7 @@ namespace pathtracex {
 		case pathtracex::CUBE:
 			return createCube();
 		case pathtracex::SPHERE:
-			return createSphere();
+			return createSphere(10, 10);
 		case pathtracex::CYLINDER:
 			break;
 		case pathtracex::PLANE:
@@ -514,22 +512,15 @@ namespace pathtracex {
 	}
 
 	std::shared_ptr<Model> Model::createCube() {
-		struct Vertex
-		{
-			float3 position{};
-			float3 color{};
-			float3 normal{};
-			float2 texCoords{};
-		};
-
-		std::vector<Vertex> vertices{};
+		std::vector<ModelVertex> tmp_vertices{};
+		std::vector<Vertex> vertecies;
 		std::vector<uint32_t> indices{};
 		std::vector<float3> m_positions;
 		std::vector<float3> m_normals;
 		std::vector<float2> m_texture_coordinates;
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
-		Vertex vertex;
+		ModelVertex vertex;
 		size_t number_of_vertices = 36;
 
 		m_positions.resize(number_of_vertices);
@@ -538,10 +529,10 @@ namespace pathtracex {
 
 
 		// Front
-		vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float3(1, 0, 0), float3(0, 0, 1), float2(0, 0) });
-		vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float3(0, 1, 0), float3(0, 0, 1), float2(1, 0) });
-		vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float3(0, 0, 1), float3(0, 0, 1), float2(1, 1) });
-		vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float3(1, 1, 0), float3(0, 0, 1), float2(0, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 0, 0, 1), float3(0, 0, 1), float2(0, 0) });
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(0, 0, 1), float2(1, 0) });
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 0, 1), float2(1, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 0, 1), float2(0, 1) });
 
 		indices.push_back(0); indices.push_back(1); indices.push_back(2);
 		indices.push_back(2); indices.push_back(3); indices.push_back(0);
@@ -554,19 +545,18 @@ namespace pathtracex {
 		meshes.push_back(front_mesh);
 
 		for (int i = 0; i < 6; i++) {
-			vertex = vertices.at(indices.at(i));
+			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.position);
 			m_normals.push_back(vertex.normal);
 			m_texture_coordinates.push_back(vertex.texCoords);
+			vertecies.push_back({ vertex.position, vertex.color });
 		}
 
-		
-
 		// Back
-		vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float3(1, 0, 0), float3(0, 0, -1), float2(0, 0) });
-		vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float3(0, 1, 0), float3(0, 0, -1), float2(1, 0) });
-		vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float3(0, 0, 1), float3(0, 0, -1), float2(1, 1) });
-		vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float3(1, 1, 0), float3(0, 0, -1), float2(0, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 0, -1), float2(0, 0) });
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 0, -1), float2(1, 0) });
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 0, 1, 1), float3(0, 0, -1), float2(1, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(0, 0, -1), float2(0, 1) });
 
 		indices.push_back(6); indices.push_back(5); indices.push_back(4);
 		indices.push_back(4); indices.push_back(7); indices.push_back(6);
@@ -579,22 +569,21 @@ namespace pathtracex {
 		meshes.push_back(back_mesh);
 
 		for (int i = 6; i < 12; i++) {
-			vertex = vertices.at(indices.at(i));
+			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.position);
 			m_normals.push_back(vertex.normal);
 			m_texture_coordinates.push_back(vertex.texCoords);
+			vertecies.push_back({ vertex.position, vertex.color });
 		}
 
-
 		// Left
-		vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float3(1, 0, 0), float3(-1, 0, 0), float2(0, 0) });
-		vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float3(0, 1, 0), float3(-1, 0, 0), float2(1, 0) });
-		vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float3(0, 0, 1), float3(-1, 0, 0), float2(1, 1) });
-		vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float3(1, 1, 0), float3(-1, 0, 0), float2(0, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(-1, 0, 0), float2(0, 0) });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(-1, 0, 0), float2(1, 0) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(-1, 0, 0), float2(1, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(-1, 0, 0), float2(0, 1) });
 
 		indices.push_back(8); indices.push_back(9); indices.push_back(10);
 		indices.push_back(10); indices.push_back(11); indices.push_back(8);
-
 
 		Mesh left_mesh;
 		left_mesh.m_name = "left_mesh";
@@ -605,20 +594,18 @@ namespace pathtracex {
 		meshes.push_back(left_mesh);
 
 		for (int i = 12; i < 18; i++) {
-			vertex = vertices.at(indices.at(i));
+			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.position);
 			m_normals.push_back(vertex.normal);
 			m_texture_coordinates.push_back(vertex.texCoords);
+			vertecies.push_back({ vertex.position, vertex.color });
 		}
 
-
-
-
 		// Right
-		vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float3(1, 0, 0), float3(1, 0, 0), float2(0, 0) });
-		vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float3(0, 1, 0), float3(1, 0, 0), float2(1, 0) });
-		vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float3(0, 0, 1), float3(1, 0, 0), float2(1, 1) });
-		vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float3(1, 1, 0), float3(1, 0, 0), float2(0, 1) });
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(1, 0, 0), float2(0, 0) });
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(1, 0, 0), float2(1, 0) });
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(1, 0, 0), float2(1, 1) });
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(1, 0, 0), float2(0, 1) });
 
 		indices.push_back(14); indices.push_back(13); indices.push_back(12);
 		indices.push_back(12); indices.push_back(15); indices.push_back(14);
@@ -631,19 +618,20 @@ namespace pathtracex {
 		meshes.push_back(right_mesh);
 
 		for (int i = 18; i < 24; i++) {
-			vertex = vertices.at(indices.at(i));
+			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.position);
 			m_normals.push_back(vertex.normal);
 			m_texture_coordinates.push_back(vertex.texCoords);
+			vertecies.push_back({ vertex.position, vertex.color });
 		}
 
 
 
 		// Top
-		vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float3(1, 0, 0), float3(0, 1, 0), float2(0, 0) });
-		vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float3(0, 1, 0), float3(0, 1, 0), float2(1, 0) });
-		vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float3(0, 0, 1), float3(0, 1, 0), float2(1, 1) });
-		vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float3(1, 1, 0), float3(0, 1, 0), float2(0, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0) });
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0) });
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1) });
 
 		indices.push_back(18); indices.push_back(17); indices.push_back(16);
 		indices.push_back(16); indices.push_back(19); indices.push_back(18);
@@ -656,19 +644,20 @@ namespace pathtracex {
 		meshes.push_back(top_mesh);
 
 		for (int i = 24; i < 30; i++) {
-			vertex = vertices.at(indices.at(i));
+			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.position);
 			m_normals.push_back(vertex.normal);
 			m_texture_coordinates.push_back(vertex.texCoords);
+			vertecies.push_back({ vertex.position, vertex.color });
 		}
 
 
 
 		// Bottom
-		vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float3(1, 0, 0), float3(0, -1, 0), float2(0, 0) });
-		vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float3(0, 1, 0), float3(0, -1, 0), float2(1, 0) });
-		vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float3(0, 0, 1), float3(0, -1, 0), float2(1, 1) });
-		vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float3(1, 1, 0), float3(0, -1, 0), float2(0, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, -1, 0), float2(0, 0) });
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, -1, 0), float2(1, 0) });
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, -1, 0), float2(1, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, -1, 0), float2(0, 1) });
 
 		indices.push_back(20); indices.push_back(21); indices.push_back(22);
 		indices.push_back(22); indices.push_back(23); indices.push_back(20);
@@ -682,16 +671,13 @@ namespace pathtracex {
 		meshes.push_back(bottom_mesh);
 
 		for (int i = 30; i < 36; i++) {
-			vertex = vertices.at(indices.at(i));
+			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.position);
 			m_normals.push_back(vertex.normal);
 			m_texture_coordinates.push_back(vertex.texCoords);
+			vertecies.push_back({ vertex.position, vertex.color });
 		}
 	
-		uint32_t positions_bo;
-		uint32_t normals_bo;
-		uint32_t texture_coordinates_bo;
-		uint32_t vaob;
 
 		float3 max_cords(m_positions.at(0));
 		float3 min_cords(m_positions.at(0));
@@ -703,24 +689,173 @@ namespace pathtracex {
 		//TODO: create buffers on gpu so that bo:s actually are something...
 		//TODO creatye materials for cube faces, 
 		// posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
+		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(vertecies);
+		std::vector<DWORD> indecies;
+		for (size_t i = 0; i < vertecies.size(); i++)
+			indecies.push_back(i);
+		DXIndexBuffer* index_buffer = new DXIndexBuffer(indecies);
 
 
 		return std::make_shared<Model>("Primative Cube"
 			, materials
 			, meshes
-			, positions_bo
-			, normals_bo
-			, texture_coordinates_bo
-			, vaob
+			, vertex_buffer
+			, index_buffer
+			, false
+			, max_cords
+			, min_cords);
+	}
+	std::shared_ptr<Model> Model::createSphere(int stacks, int slices) {
+		std::vector<ModelVertex> tmp_vertices{};
+		std::vector<uint32_t> indices{};
+
+		float radius = 1.0f;
+		float sectorStep = 2 * 3.1415 / slices;
+		float stackStep = 3.1415 / stacks;
+		float sectorAngle, stackAngle;
+		float4 cols[] = {
+			{1, 0, 0, 1},
+			{0, 1, 0, 1},
+			{0, 0, 1, 1}
+		};
+		for (int i = 0; i <= stacks; ++i)
+		{
+			stackAngle = 3.1415 / 2 - i * stackStep;
+			float xy = radius * cosf(stackAngle);
+			float z = radius * sinf(stackAngle);
+
+			for (int j = 0; j <= slices; ++j)
+			{
+				sectorAngle = j * sectorStep;
+
+				float x = xy * cosf(sectorAngle);
+				float y = xy * sinf(sectorAngle);
+
+				float3 normal = (float3(x, y, z));
+				normal.Normalize();
+				float2 uv = float2((float)j / slices, (float)i / stacks);
+
+				tmp_vertices.push_back({ float3(x, y, z), cols[i%3], normal, uv});
+			}
+		}
+
+		int k1, k2;
+
+		for (int i = 0; i < stacks; ++i)
+		{
+			k1 = i * (slices + 1);
+			k2 = k1 + slices + 1;
+
+			for (int j = 0; j < slices; ++j, ++k1, ++k2)
+			{
+				if (i != 0)
+				{
+					indices.push_back(k1);
+					indices.push_back(k2);
+					indices.push_back(k1 + 1);
+				}
+
+				if (i != (stacks - 1))
+				{
+					indices.push_back(k1 + 1);
+					indices.push_back(k2);
+					indices.push_back(k2 + 1);
+				}
+			}
+		}
+		Mesh mesh;
+		mesh.m_material_idx = 0;
+		mesh.m_name = "sphere_mesh";
+		mesh.m_start_index = 0;
+		mesh.m_number_of_vertices = indices.size();
+		
+		std::vector<ModelVertex> vertecies;
+		size_t idx;
+		for (size_t i = 0; i < indices.size(); i++) {
+			idx = indices.at(i);
+			vertecies.push_back(tmp_vertices.at(idx));
+		}
+		std::vector<Mesh> meshes;
+		std::vector<Material> materials;
+
+		float3 max_cords(vertecies.at(0).position);
+		float3 min_cords(vertecies.at(0).position);
+		for (size_t i = 1; i < vertecies.size(); i++) {
+			max_cords = max_cords.Max(max_cords, vertecies.at(0).position);
+			min_cords = max_cords.Min(min_cords, vertecies.at(0).position);
+		}
+
+		std::vector<Vertex> dx_vertecies;
+		for (auto v : vertecies)
+			dx_vertecies.push_back({ v.position, v.color });
+
+		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(dx_vertecies);
+		std::vector<DWORD> indecies;
+		for (size_t i = 0; i < dx_vertecies.size(); i++)
+			indecies.push_back(i);
+		DXIndexBuffer* index_buffer = new DXIndexBuffer(indecies);
+		return std::make_shared<Model>("Primative Sphere"
+			, materials
+			, meshes
+			, vertex_buffer
+			, index_buffer
 			, false
 			, max_cords
 			, min_cords);
 	}
 	std::shared_ptr<Model> Model::createPlane() {
-		return nullptr;
-	}
-	std::shared_ptr<Model> Model::createSphere() {
-		return nullptr;
+		std::vector<ModelVertex> tmp_vertices{};
+		std::vector<uint32_t> indices{};
+
+		tmp_vertices.push_back({ float3(-5.f, 0.0f, -5.f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0) });
+		tmp_vertices.push_back({ float3(5.f, 0.0f, -5.f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0) });
+		tmp_vertices.push_back({ float3(5.f, 0.0f, 5.f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1) });
+		tmp_vertices.push_back({ float3(-5.f, 0.0f, 5.f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1) });
+
+		indices.push_back(0); indices.push_back(1); indices.push_back(2);
+		indices.push_back(2); indices.push_back(3); indices.push_back(0);
+		indices.push_back(2); indices.push_back(1); indices.push_back(0);
+		indices.push_back(0); indices.push_back(3); indices.push_back(2);
+
+		Mesh mesh;
+		mesh.m_material_idx = 0;
+		mesh.m_name = "sphere_mesh";
+		mesh.m_start_index = 0;
+		mesh.m_number_of_vertices = indices.size();
+		
+		std::vector<ModelVertex> vertecies;
+		size_t idx;
+		for (size_t i = 0; i < indices.size(); i++) {
+			idx = indices.at(i);
+			vertecies.push_back(tmp_vertices.at(idx));
+		}
+		std::vector<Mesh> meshes;
+		std::vector<Material> materials;
+
+		float3 max_cords(vertecies.at(0).position);
+		float3 min_cords(vertecies.at(0).position);
+		for (size_t i = 1; i < vertecies.size(); i++) {
+			max_cords = max_cords.Max(max_cords, vertecies.at(0).position);
+			min_cords = max_cords.Min(min_cords, vertecies.at(0).position);
+		}
+		std::vector<Vertex> dx_vertecies;
+		for (auto v : vertecies)
+			dx_vertecies.push_back({ v.position, v.color });
+
+		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(dx_vertecies);
+		std::vector<DWORD> indecies;
+		for (size_t i = 0; i < dx_vertecies.size(); i++)
+			indecies.push_back(i);
+		DXIndexBuffer* index_buffer = new DXIndexBuffer(indecies);
+
+		return std::make_shared<Model>("Primative plane"
+			, materials
+			, meshes
+			, vertex_buffer
+			, index_buffer
+			, false
+			, max_cords
+			, min_cords);
 	}
 
 
