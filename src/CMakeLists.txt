@@ -36,6 +36,11 @@ target_sources(PathTracerX PRIVATE
 	Exceptions.cpp
 	Logger.h
 	Logger.cpp
+	EventCallback.h
+	Event.h
+	Event.cpp
+	InputHandler.h
+	InputHandler.cpp
 )
 
 source_group("DX" FILES
