@@ -1,3 +1,4 @@
+add_subdirectory(spdlog)
 add_subdirectory ( ${CMAKE_SOURCE_DIR}/vendor/imgui-cmake ${CMAKE_CURRENT_BINARY_DIR}/imgui )
 set_target_properties(imgui PROPERTIES FOLDER external)
 
@@ -12,3 +13,7 @@ target_include_directories(imguilib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui-cma
 
 
 add_library(vendor INTERFACE)
+
+target_link_libraries(vendor INTERFACE 
+	spdlog::spdlog
+)

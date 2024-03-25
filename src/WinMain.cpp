@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <string>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 #include "PathWin.h"
 #include "App.h"
+#include "Logger.h"
 #include "Exceptions.h"
 #include "Window.h"
 
@@ -18,6 +20,8 @@ LPCWSTR towstr(const char* str) {
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	try {
+		AllocConsole();
+		pathtracex::Logger::init();
 		return pathtracex::App{}.run();
 	}
 	catch (const pathtracex::HRException ex) {

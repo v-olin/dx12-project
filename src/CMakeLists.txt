@@ -44,6 +44,8 @@ target_sources(PathTracerX PRIVATE
 	Exceptions.h
 	Exceptions.cpp
 	../vendor/d3dx12/d3dx12.h
+	Logger.h
+	Logger.cpp
 )
 
 source_group("DX" FILES
