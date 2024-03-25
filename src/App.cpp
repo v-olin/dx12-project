@@ -1,13 +1,25 @@
 #include "App.h"
-#include <Windows.h>
+
+#include "PathWin.h"
+#include "Logger.h"
+#include "EventCallback.h"
 
 namespace pathtracex {
 	App::App() : window(1280, 720, "PathTracer")
 	{
 		gui.window = &window;
 
+		InputHandler::configure(&window.kbd);
+
+		EventCallback<App> act{ this, dummy };
+		//InputHandler::addListener(Keyboard::Event::Press, 'p', act);
+
 		// Initialize renderer
 		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
+	}
+
+	void App::dummy() {
+		LOG_INFO("exec dummy");
 	}
 
 	int App::run() {
@@ -34,6 +46,8 @@ namespace pathtracex {
 			if (ecode) {
 				return *ecode;
 			}
+
+			InputHandler::getInstance().processEvents();
 
 			everyFrame();
 		}

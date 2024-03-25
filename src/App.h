@@ -4,6 +4,7 @@
 #include "GUI.h"
 #include "DXRenderer.h"
 #include "RenderSettings.h"
+#include "InputHandler.h"
 
 #include <memory>
 
@@ -18,6 +19,8 @@ namespace pathtracex {
 	private:
 		void everyFrame();
 		void cleanup();
+
+		void dummy();
 
 		Scene scene{};
 		GUI gui{scene};

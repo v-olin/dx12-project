@@ -10,19 +10,22 @@ namespace pathtracex {
 	public:
 		class Event {
 		public:
-			enum class Type { Press, Release, Invalid };
+			enum Type { Press, Release, Invalid };
 
 			Event() : type(Type::Invalid), code(0u) {}
 			Event(Type type, unsigned char code) : type(type), code(code) {}
 
-		private:
+			bool operator==(const Event& other) const {
+				return this->code == other.code && this->type == other.type;
+			}
+
 			Type type;
 			unsigned char code;
 		};
 
 		Keyboard() = default;
 		Keyboard(const Keyboard&) = delete;
-		Keyboard& operator=(const Keyboard&) = delete;
+		void operator=(const Keyboard&) = delete;
 
 		bool keyIsPressed(unsigned char keycode) const noexcept;
 		std::optional<Event> readKey() noexcept;
