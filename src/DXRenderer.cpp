@@ -15,11 +15,12 @@
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
 
-namespace pathtracex {
+namespace pathtracex
+{
 
 #define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), IID_PPV_ARGS_Helper(ppType)
 
-	DXRenderer::DXRenderer(){ }
+	DXRenderer::DXRenderer() {}
 
 	void DXRenderer::executeCommandList()
 	{
@@ -30,9 +31,9 @@ namespace pathtracex {
 			throw std::runtime_error("Error, executeCommandList()");
 		}
 
-		ID3D12CommandList* ppCommandLists[] = { commandList };
-		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);	
-		
+		ID3D12CommandList *ppCommandLists[] = {commandList};
+		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
 		// This is maybe sus
 		resetCommandList();
 	}
@@ -43,13 +44,11 @@ namespace pathtracex {
 		hr = commandAllocator[frameIndex]->Reset();
 		if (FAILED(hr))
 		{
-
 		}
 
 		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
 		if (FAILED(hr))
 		{
-
 		}
 	}
 
@@ -64,8 +63,7 @@ namespace pathtracex {
 		}
 	}
 
-
-	bool DXRenderer::init(Window* window)
+	bool DXRenderer::init(Window *window)
 	{
 		this->window = window;
 		hwnd = window->windowHandle;
@@ -110,7 +108,6 @@ namespace pathtracex {
 		int width, height;
 		window->getSize(width, height);
 
-
 		// Fill out the Viewport
 		viewport.TopLeftX = 0;
 		viewport.TopLeftY = 0;
@@ -127,20 +124,18 @@ namespace pathtracex {
 
 		// dis do be correct i think?
 		ImGui_ImplDX12_Init(device, frameBufferCount,
-			DXGI_FORMAT_R8G8B8A8_UNORM, srvHeap,
-			srvHeap->GetCPUDescriptorHandleForHeapStart(),
-			srvHeap->GetGPUDescriptorHandleForHeapStart());
+							DXGI_FORMAT_R8G8B8A8_UNORM, srvHeap,
+							srvHeap->GetCPUDescriptorHandleForHeapStart(),
+							srvHeap->GetGPUDescriptorHandleForHeapStart());
 		return true;
 	}
 
-
-	
 	void DXRenderer::initGraphicsAPI()
 	{
 		// TODO
 	}
 
-	void DXRenderer::setClearColor(const dx::XMFLOAT3& color)
+	void DXRenderer::setClearColor(const dx::XMFLOAT3 &color)
 	{
 		// TODO
 	}
@@ -165,8 +160,7 @@ namespace pathtracex {
 		// TODO
 	}
 
-
-	void DXRenderer::Update(RenderSettings& renderSettings)
+	void DXRenderer::Update(RenderSettings &renderSettings)
 	{
 		// update app logic, such as moving the camera or figuring out what objects are in view
 
@@ -174,25 +168,24 @@ namespace pathtracex {
 		DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&cube1Position));
 
 		// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-		DirectX::XMMATRIX worldMat =  translationMat;
+		DirectX::XMMATRIX worldMat = translationMat;
 
 		// store cube1's world matrix
 		DirectX::XMStoreFloat4x4(&cube1WorldMat, worldMat);
 
 		// update constant buffer for cube1
 		// create the wvp matrix and store in constant buffer
-		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix(); // load view matrix
+		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
 		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
-		DirectX::XMMATRIX wvpMat = DirectX::XMLoadFloat4x4(&cube1WorldMat) * viewMat * projMat; // create wvp matrix
-		DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
-		DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
+		DirectX::XMMATRIX wvpMat = DirectX::XMLoadFloat4x4(&cube1WorldMat) * viewMat * projMat;								// create wvp matrix
+		DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
+		DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);															// store transposed wvp matrix in constant buffer
 
 		// copy our ConstantBuffer instance to the mapped constant buffer resource
 		memcpy(cbvGPUAddress[frameIndex], &cbPerObject, sizeof(cbPerObject));
-
 	}
 
-	void DXRenderer::UpdatePipeline(RenderSettings& renderSettings, Scene& scene)
+	void DXRenderer::UpdatePipeline(RenderSettings &renderSettings, Scene &scene)
 	{
 		HRESULT hr;
 
@@ -204,7 +197,6 @@ namespace pathtracex {
 		hr = commandAllocator[frameIndex]->Reset();
 		if (FAILED(hr))
 		{
-		
 		}
 
 		// reset the command list. by resetting the command list we are putting it into
@@ -220,7 +212,6 @@ namespace pathtracex {
 		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
 		if (FAILED(hr))
 		{
-			
 		}
 
 		// here we start recording commands into the commandList (which all the commands will be stored in the commandAllocator)
@@ -239,35 +230,35 @@ namespace pathtracex {
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		// Clear the render target by using the ClearRenderTargetView command
-		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+		const float clearColor[] = {0.0f, 0.2f, 0.4f, 1.0f};
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		commandList->ClearDepthStencilView(dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 		commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
 
 		// draw triangle
-		commandList->RSSetViewports(1, &viewport); // set the viewports
-		commandList->RSSetScissorRects(1, &scissorRect); // set the scissor rects
+		commandList->RSSetViewports(1, &viewport);								  // set the viewports
+		commandList->RSSetScissorRects(1, &scissorRect);						  // set the scissor rects
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
-		
+
 		int i = 0;
 		for (auto model : scene.models)
 		{
 			// create translation matrix for cube 1 from cube 1's position vector
-		//	DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&model->trans.getPosition()));
+			//	DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&model->trans.getPosition()));
 
 			// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-		//	DirectX::XMMATRIX worldMat = translationMat;
+			//	DirectX::XMMATRIX worldMat = translationMat;
 
 			// store cube1's world matrix
-		//	DirectX::XMStoreFloat4x4(&cube1WorldMat, worldMat);
+			//	DirectX::XMStoreFloat4x4(&cube1WorldMat, worldMat);
 
 			// update constant buffer for cube1
 			// create the wvp matrix and store in constant buffer
-			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix(); // load view matrix
+			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
 			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
-			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat; // create wvp matrix
-			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
-			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
+			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
+			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
+			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);															// store transposed wvp matrix in constant buffer
 
 			// copy our ConstantBuffer instance to the mapped constant buffer resource
 			memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
@@ -282,17 +273,16 @@ namespace pathtracex {
 
 			i++;
 		}
-	//	commandList->IASetVertexBuffers(0, 1, &(scene.models[0]->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
-	//	commandList->IASetIndexBuffer(&scene.models[0]->indexBuffer->indexBufferView);
-
+		//	commandList->IASetVertexBuffers(0, 1, &(scene.models[0]->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
+		//	commandList->IASetIndexBuffer(&scene.models[0]->indexBuffer->indexBufferView);
 
 		// first cube
 
 		// set cube1's constant buffer
-//		commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress());
+		//		commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress());
 
 		// draw first cube
-	//	commandList->DrawIndexedInstanced(scene.models[0]->indexBuffer->numCubeIndices, 1, 0, 0, 0);
+		//	commandList->DrawIndexedInstanced(scene.models[0]->indexBuffer->numCubeIndices, 1, 0, 0, 0);
 
 		commandList->SetDescriptorHeaps(1, &srvHeap);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -305,25 +295,24 @@ namespace pathtracex {
 		hr = commandList->Close();
 		if (FAILED(hr))
 		{
-			
 		}
 	}
 
-	void DXRenderer::Render(RenderSettings& renderSettings, Scene& scene)
+	void DXRenderer::Render(RenderSettings &renderSettings, Scene &scene)
 	{
 		HRESULT hr;
 
-	//	Update(renderSettings);
+		//	Update(renderSettings);
 
 		UpdatePipeline(renderSettings, scene); // update the pipeline by sending commands to the commandqueue
 
 		// create an array of command lists (only one command list here)
-		ID3D12CommandList* ppCommandLists[] = { commandList };
+		ID3D12CommandList *ppCommandLists[] = {commandList};
 
 		// execute the array of command lists
 		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-		// this command goes in at the end of our command queue. we will know when our command queue 
+		// this command goes in at the end of our command queue. we will know when our command queue
 		// has finished because the fence value will be set to "fenceValue" from the GPU since the command
 		// queue is being executed on the GPU
 		hr = commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
@@ -359,7 +348,7 @@ namespace pathtracex {
 	bool DXRenderer::createDevice()
 	{
 		HRESULT hr;
-		IDXGIAdapter1* adapter; // adapters are the graphics card (this includes the embedded graphics on the motherboard)
+		IDXGIAdapter1 *adapter; // adapters are the graphics card (this includes the embedded graphics on the motherboard)
 
 		int adapterIndex = 0; // we'll start looking for directx 12  compatible graphics devices starting at index 0
 
@@ -398,8 +387,7 @@ namespace pathtracex {
 		hr = D3D12CreateDevice(
 			adapter,
 			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&device)
-		);
+			IID_PPV_ARGS(&device));
 
 		return !FAILED(hr);
 	}
@@ -414,7 +402,7 @@ namespace pathtracex {
 		cqDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; // direct means the gpu can directly execute this command queue
 
 		hr = device->CreateCommandQueue(&cqDesc, IID_PPV_ARGS(&commandQueue)); // create the command queue
-		
+
 		return !FAILED(hr);
 	}
 
@@ -425,9 +413,9 @@ namespace pathtracex {
 		window->getSize(width, height);
 
 		// -- Create the Swap Chain (double/tripple buffering) -- //
-		DXGI_MODE_DESC backBufferDesc = {}; // this is to describe our display mode
-		backBufferDesc.Width = width; // buffer width
-		backBufferDesc.Height = height; // buffer height
+		DXGI_MODE_DESC backBufferDesc = {};					// this is to describe our display mode
+		backBufferDesc.Width = width;						// buffer width
+		backBufferDesc.Height = height;						// buffer height
 		backBufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the buffer (rgba 32 bits, 8 bits for each chanel)
 
 		// describe our multi-sampling. We are not multi-sampling, so we set the count to 1 (we need at least one sample of course)
@@ -435,23 +423,23 @@ namespace pathtracex {
 
 		// Describe and create the swap chain.
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-		swapChainDesc.BufferCount = frameBufferCount; // number of buffers we have
-		swapChainDesc.BufferDesc = backBufferDesc; // our back buffer description
+		swapChainDesc.BufferCount = frameBufferCount;				 // number of buffers we have
+		swapChainDesc.BufferDesc = backBufferDesc;					 // our back buffer description
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // this says the pipeline will render to this swap chain
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
-		swapChainDesc.OutputWindow = hwnd; // handle to our window
-		swapChainDesc.SampleDesc = sampleDesc; // our multi-sampling description
-		swapChainDesc.Windowed = true; // set to true, then if in fullscreen must call SetFullScreenState with true for full screen to get uncapped fps
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;	 // dxgi will discard the buffer (data) after we call present
+		swapChainDesc.OutputWindow = hwnd;							 // handle to our window
+		swapChainDesc.SampleDesc = sampleDesc;						 // our multi-sampling description
+		swapChainDesc.Windowed = true;								 // set to true, then if in fullscreen must call SetFullScreenState with true for full screen to get uncapped fps
 
-		IDXGISwapChain* tempSwapChain;
+		IDXGISwapChain *tempSwapChain;
 
 		dxgiFactory->CreateSwapChain(
-			commandQueue, // the queue will be flushed once the swap chain is created
+			commandQueue,	// the queue will be flushed once the swap chain is created
 			&swapChainDesc, // give it the swap chain description we created above
-			&tempSwapChain // store the created swap chain in a temp IDXGISwapChain interface
+			&tempSwapChain	// store the created swap chain in a temp IDXGISwapChain interface
 		);
 
-		swapChain = static_cast<IDXGISwapChain3*>(tempSwapChain);
+		swapChain = static_cast<IDXGISwapChain3 *>(tempSwapChain);
 
 		frameIndex = swapChain->GetCurrentBackBufferIndex();
 
@@ -464,7 +452,7 @@ namespace pathtracex {
 
 		// describe an rtv descriptor heap and create
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-		rtvHeapDesc.NumDescriptors = frameBufferCount; // number of descriptors for this heap.
+		rtvHeapDesc.NumDescriptors = frameBufferCount;	   // number of descriptors for this heap.
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // this heap is a render target view heap
 
 		// This heap will not be directly referenced by the shaders (not shader visible), as this will store the output from the pipeline
@@ -477,7 +465,7 @@ namespace pathtracex {
 		}
 
 		// get the size of a descriptor in this heap (this is a rtv heap, so only rtv descriptors should be stored in it.
-		// descriptor sizes may vary from device to device, which is why there is no set size and we must ask the 
+		// descriptor sizes may vary from device to device, which is why there is no set size and we must ask the
 		// device to give us the size. we will use this size to increment a descriptor handle offset
 		rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
@@ -485,7 +473,6 @@ namespace pathtracex {
 		// but we cannot literally use it like a c++ pointer.
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-	
 		D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
 		srvHeapDesc.NumDescriptors = 1;
 		srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -496,7 +483,6 @@ namespace pathtracex {
 		{
 			return false;
 		}
-	
 
 		// Create a RTV for each buffer (double buffering is two buffers, tripple buffering is 3).
 		for (int i = 0; i < frameBufferCount; i++)
@@ -545,23 +531,23 @@ namespace pathtracex {
 		rootCBVDescriptor.ShaderRegister = 0;
 
 		// create a root parameter and fill it out
-		D3D12_ROOT_PARAMETER  rootParameters[1]; // only one parameter right now
-		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // this is a constant buffer view root descriptor
-		rootParameters[0].Descriptor = rootCBVDescriptor; // this is the root descriptor for this root parameter
+		D3D12_ROOT_PARAMETER rootParameters[1];								 // only one parameter right now
+		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	 // this is a constant buffer view root descriptor
+		rootParameters[0].Descriptor = rootCBVDescriptor;					 // this is the root descriptor for this root parameter
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // our pixel shader will be the only shader accessing this parameter for now
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init(_countof(rootParameters), // we have 1 root parameter
-			rootParameters, // a pointer to the beginning of our root parameters array
-			0,
-			nullptr,
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // we can deny shader stages here for better performance
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
+							   rootParameters,			 // a pointer to the beginning of our root parameters array
+							   0,
+							   nullptr,
+							   D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // we can deny shader stages here for better performance
+								   D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+								   D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+								   D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+								   D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
 
-		ID3DBlob* signature;
+		ID3DBlob *signature;
 		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
 		if (FAILED(hr))
 		{
@@ -577,7 +563,8 @@ namespace pathtracex {
 		return true;
 	}
 
-	bool DXRenderer::createPipeline() {
+	bool DXRenderer::createPipeline()
+	{
 
 		HRESULT hr;
 		// create vertex and pixel shaders
@@ -590,20 +577,20 @@ namespace pathtracex {
 		// them at runtime
 
 		// compile vertex shader
-		ID3DBlob* vertexShader; // d3d blob for holding vertex shader bytecode
-		ID3DBlob* errorBuff; // a buffer holding the error data if any
+		ID3DBlob *vertexShader; // d3d blob for holding vertex shader bytecode
+		ID3DBlob *errorBuff;	// a buffer holding the error data if any
 		hr = D3DCompileFromFile(L"../../shaders/VertexShader.hlsl",
-			nullptr,
-			nullptr,
-			"main",
-			"vs_5_0",
-			D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-			0,
-			&vertexShader,
-			&errorBuff);
+								nullptr,
+								nullptr,
+								"main",
+								"vs_5_0",
+								D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+								0,
+								&vertexShader,
+								&errorBuff);
 		if (FAILED(hr))
 		{
-			OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+			OutputDebugStringA((char *)errorBuff->GetBufferPointer());
 			return false;
 		}
 
@@ -614,19 +601,19 @@ namespace pathtracex {
 		vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
 
 		// compile pixel shader
-		ID3DBlob* pixelShader;
+		ID3DBlob *pixelShader;
 		hr = D3DCompileFromFile(L"../../shaders/PixelShader.hlsl",
-			nullptr,
-			nullptr,
-			"main",
-			"ps_5_0",
-			D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-			0,
-			&pixelShader,
-			&errorBuff);
+								nullptr,
+								nullptr,
+								"main",
+								"ps_5_0",
+								D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+								0,
+								&pixelShader,
+								&errorBuff);
 		if (FAILED(hr))
 		{
-			OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+			OutputDebugStringA((char *)errorBuff->GetBufferPointer());
 			return false;
 		}
 
@@ -641,10 +628,9 @@ namespace pathtracex {
 		// how to read the vertex data bound to it.
 
 		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
-		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-		};
+			{
+				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
 
 		// fill out an input layout description structure
 		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
@@ -652,7 +638,6 @@ namespace pathtracex {
 		// we can get the number of elements in an array by "sizeof(array) / sizeof(arrayElementType)"
 		inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
 		inputLayoutDesc.pInputElementDescs = inputLayout;
-
 
 		// create a pipeline state object (PSO)
 
@@ -666,19 +651,19 @@ namespace pathtracex {
 		// output, and not on a render target, which means you would not need anything after the stream
 		// output.
 
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
-		psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
-		psoDesc.pRootSignature = rootSignature; // the root signature that describes the input data this pso needs
-		psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
-		psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};						// a structure to define a pso
+		psoDesc.InputLayout = inputLayoutDesc;									// the structure describing our input layout
+		psoDesc.pRootSignature = rootSignature;									// the root signature that describes the input data this pso needs
+		psoDesc.VS = vertexShaderBytecode;										// structure describing where to find the vertex shader bytecode and how large it is
+		psoDesc.PS = pixelShaderBytecode;										// same as VS but for pixel shader
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
-		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
-		psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
-		psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
-		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
-		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
-		psoDesc.NumRenderTargets = 1; // we are only binding one render target
-		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // a default depth stencil state
+		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;						// format of the render target
+		psoDesc.SampleDesc = sampleDesc;										// must be the same sample description as the swapchain and depth/stencil buffer
+		psoDesc.SampleMask = 0xffffffff;										// sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
+		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);		// a default rasterizer state.
+		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);					// a default blent state.
+		psoDesc.NumRenderTargets = 1;											// we are only binding one render target
+		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);	// a default depth stencil state
 
 		// create the pso
 		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject));
@@ -689,7 +674,7 @@ namespace pathtracex {
 
 		return true;
 	}
-	
+
 	bool DXRenderer::createCommandList()
 	{
 		HRESULT hr;
@@ -743,7 +728,6 @@ namespace pathtracex {
 		hr = device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsDescriptorHeap));
 		if (FAILED(hr))
 		{
-			
 		}
 
 		D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
@@ -767,8 +751,7 @@ namespace pathtracex {
 			&depthStencilResourceDesc,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE,
 			&depthOptimizedClearValue,
-			IID_PPV_ARGS(&depthStencilBuffer)
-		);
+			IID_PPV_ARGS(&depthStencilBuffer));
 		dsDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
 
 		device->CreateDepthStencilView(depthStencilBuffer, &depthStencilDesc, dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
@@ -782,8 +765,8 @@ namespace pathtracex {
 
 		// first we will create a resource heap (upload heap) for each frame for the cubes constant buffers
 		// As you can see, we are allocating 64KB for each resource we create. Buffer resource heaps must be
-		// an alignment of 64KB. We are creating 3 resources, one for each frame. Each constant buffer is 
-		// only a 4x4 matrix of floats in this tutorial. So with a float being 4 bytes, we have 
+		// an alignment of 64KB. We are creating 3 resources, one for each frame. Each constant buffer is
+		// only a 4x4 matrix of floats in this tutorial. So with a float being 4 bytes, we have
 		// 16 floats in one constant buffer, and we will store 2 constant buffers in each
 		// heap, one for each cube, thats only 64x2 bits, or 128 bits we are using for each
 		// resource, and each resource must be at least 64KB (65536 bits)
@@ -793,24 +776,24 @@ namespace pathtracex {
 			CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
 			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64); // allocate a 64KB buffer
 			hr = device->CreateCommittedResource(
-				&heapUpload, // this heap will be used to upload the constant buffer data
-				D3D12_HEAP_FLAG_NONE, // no flags
-				&cbResourceDesc, // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+				&heapUpload,					   // this heap will be used to upload the constant buffer data
+				D3D12_HEAP_FLAG_NONE,			   // no flags
+				&cbResourceDesc,				   // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
 				D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
-				nullptr, // we do not have use an optimized clear value for constant buffers
+				nullptr,						   // we do not have use an optimized clear value for constant buffers
 				IID_PPV_ARGS(&constantBufferUploadHeaps[i]));
 			constantBufferUploadHeaps[i]->SetName(L"Constant Buffer Upload Resource Heap");
 
 			ZeroMemory(&cbPerObject, sizeof(cbPerObject));
 
-			CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (so end is less than or equal to begin)
+			CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU. (so end is less than or equal to begin)
 
 			// map the resource heap to get a gpu virtual address to the beginning of the heap
-			hr = constantBufferUploadHeaps[i]->Map(0, &readRange, reinterpret_cast<void**>(&cbvGPUAddress[i]));
+			hr = constantBufferUploadHeaps[i]->Map(0, &readRange, reinterpret_cast<void **>(&cbvGPUAddress[i]));
 
 			// Because of the constant read alignment requirements, constant buffer views must be 256 bit aligned. Our buffers are smaller than 256 bits,
 			// so we need to add spacing between the two buffers, so that the second buffer starts at 256 bits from the beginning of the resource heap.
-			memcpy(cbvGPUAddress[i], &cbPerObject, sizeof(cbPerObject)); // cube1's constant buffer data
+			memcpy(cbvGPUAddress[i], &cbPerObject, sizeof(cbPerObject));									  // cube1's constant buffer data
 			memcpy(cbvGPUAddress[i] + ConstantBufferPerObjectAlignedSize, &cbPerObject, sizeof(cbPerObject)); // cube2's constant buffer data
 		}
 
@@ -821,19 +804,17 @@ namespace pathtracex {
 		// build projection and view matrix
 		DirectX::XMMATRIX tmpMat;
 
-
 		// set starting cubes position
 		// first cube
 		cube1Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // set cube 1's position
-		DirectX::XMVECTOR posVec = XMLoadFloat4(&cube1Position); // create xmvector for cube1's position
+		DirectX::XMVECTOR posVec = XMLoadFloat4(&cube1Position);   // create xmvector for cube1's position
 
-		tmpMat = DirectX::XMMatrixTranslationFromVector(posVec); // create translation matrix from cube1's position vector
+		tmpMat = DirectX::XMMatrixTranslationFromVector(posVec);	// create translation matrix from cube1's position vector
 		XMStoreFloat4x4(&cube1RotMat, DirectX::XMMatrixIdentity()); // initialize cube1's rotation matrix to identity matrix
-		XMStoreFloat4x4(&cube1WorldMat, tmpMat); // store cube1's world matrix
+		XMStoreFloat4x4(&cube1WorldMat, tmpMat);					// store cube1's world matrix
 
 		return true;
 	}
-
 
 	void DXRenderer::Cleanup()
 	{

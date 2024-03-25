@@ -24,8 +24,8 @@ namespace pathtracex {
 		cube->trans.setPosition({ 0, 1, 0 });
 		scene.models.push_back(cube);
 
-		std::shared_ptr<Model> cube2 = Model::createPrimative(PrimitiveModelType::CUBE);
-		cube2->trans.setPosition({ 1, 0, 0 });
+		std::shared_ptr<Model> cube2 = Model::createPrimative(PrimitiveModelType::PLANE);
+		cube2->trans.setPosition({ 1, -1, 0 });
 		scene.models.push_back(cube2);
 
 
