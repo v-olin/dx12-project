@@ -20,10 +20,11 @@ namespace pathtracex {
 		void drawTopMenu();
 		void drawModelSelectionMenu();
 		void drawRightWindow(RenderSettings& renderSettings);
-		void drawGizmos();
+		void drawGizmos(RenderSettings& renderSettings);
 		void drawRenderingSettings(RenderSettings& renderSettings);
 		void drawSelectableSettings();
 		void drawSelectedModelSettings();
+		void drawViewport(RenderSettings& renderSettings);
 
 		ImGuiContext* context;
 
