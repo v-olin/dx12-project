@@ -270,9 +270,9 @@ namespace pathtracex
 			commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
 			commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
 			//commandList->DrawIndexedInstanced(model->indexBuffer->numCubeIndices, 1, 0, 0, 0);
-			for (auto mesh : model->m_meshes) {
+			for (auto mesh : model->meshes) {
 				//here also set all uniforms for each mesh
-				commandList->DrawIndexedInstanced(mesh.m_number_of_vertices, 1, 0, mesh.m_start_index, 0);
+				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
 			}
 
 			i++;
