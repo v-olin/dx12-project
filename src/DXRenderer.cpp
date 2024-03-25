@@ -31,8 +31,26 @@ namespace pathtracex {
 		}
 
 		ID3D12CommandList* ppCommandLists[] = { commandList };
-		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-	
+		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);	
+		
+		// This is maybe sus
+		resetCommandList();
+	}
+
+	void DXRenderer::resetCommandList()
+	{
+		HRESULT hr;
+		hr = commandAllocator[frameIndex]->Reset();
+		if (FAILED(hr))
+		{
+
+		}
+
+		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
+		if (FAILED(hr))
+		{
+
+		}
 	}
 
 	void DXRenderer::incrementFenceAndSignalCurrentFrame()

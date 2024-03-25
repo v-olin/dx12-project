@@ -67,6 +67,8 @@ namespace pathtracex {
 		
 		void executeCommandList();
 
+		void resetCommandList();
+
 		void incrementFenceAndSignalCurrentFrame();
 
 	private:

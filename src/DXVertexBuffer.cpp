@@ -67,9 +67,9 @@ namespace pathtracex {
 		vertexBufferView.StrideInBytes = sizeof(Vertex);
 		vertexBufferView.SizeInBytes = vBufferSize;
 
-	//	renderer->executeCommandList();
+		renderer->executeCommandList();
 		// We make sure the index buffer is uploaded to the GPU before the renderer uses it
-		//renderer->incrementFenceAndSignalCurrentFrame();
+		renderer->incrementFenceAndSignalCurrentFrame();
 	}
 
 	DXVertexBuffer::~DXVertexBuffer()

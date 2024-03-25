@@ -63,8 +63,9 @@ namespace pathtracex {
 
 
 
-		// We make sure the index buffer is uploaded to the GPU before the renderer uses it
-//		renderer->incrementFenceAndSignalCurrentFrame();
+		renderer->executeCommandList();
+
+		renderer->incrementFenceAndSignalCurrentFrame();
 
 	}
 	DXIndexBuffer::~DXIndexBuffer()
