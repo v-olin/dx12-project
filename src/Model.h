@@ -92,14 +92,6 @@ namespace pathtracex {
 			, std::vector<Vertex> vertices
 			, std::vector<uint32_t> indices);
 		~Model();
-		void Draw();
-		// Buffers on CPU
-		/*
-		hopefully not needed
-		std::vector<DirectX::SimpleMath::Vector3> m_positions;
-		std::vector<DirectX::SimpleMath::Vector3> m_normals;
-		std::vector<DirectX::SimpleMath::Vector2> m_texture_coordinates;
-		*/
 		static std::shared_ptr<Model> createPrimative(PrimitiveModelType type);
 
 		std::string getName() override { return m_name; };
@@ -116,18 +108,8 @@ namespace pathtracex {
 		std::vector<Material> m_materials;
 		// A model will contain one or more "Meshes"
 		std::vector<Mesh> m_meshes;
-		// Buffers on GPU
-		DXVertexBuffer* m_vertex_buffer;
-		DXIndexBuffer* m_index_buffer;
 
-		//TODO: everything below this might have to be adapted
-		//uint32_t m_positions_bo;
-		//uint32_t m_normals_bo;
-		//uint32_t m_texture_coordinates_bo;
-		//// Vertex Array Object
-		//uint32_t m_vaob;
-		bool m_hasDedicatedShader;
-
+		//min and max values in all dimentions, for AABBs
 		float3 m_max_cords;
 		float3 m_min_cords;
 
@@ -135,6 +117,7 @@ namespace pathtracex {
 		std::vector<Vertex> vertices{};
 		std::vector<uint32_t> indices{};
 
+		// Buffers on GPU
 		std::unique_ptr<DXVertexBuffer> vertexBuffer;
 		std::unique_ptr<DXIndexBuffer> indexBuffer;
 	private:

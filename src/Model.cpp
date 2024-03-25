@@ -200,7 +200,6 @@ namespace pathtracex {
 		: m_name(name)
 		, m_materials(materials)
 		, m_meshes(meshes)
-		, m_hasDedicatedShader(hasDedicatedShader)
 		, m_max_cords(max_cords)
 		, m_min_cords(min_cords)
 		, vertices(vertices)
@@ -214,12 +213,9 @@ namespace pathtracex {
 
 
 	Model::Model(std::string path)
-		: m_hasDedicatedShader(false)
 		//TODO: This could be fucked
-		, m_max_cords(-INFINITE)
+		: m_max_cords(-INFINITE)
 		, m_min_cords(INFINITE)
-		, m_vertex_buffer(nullptr)
-		, m_index_buffer(nullptr)
 	{
 		std::string filename, extension, directory;
 
@@ -453,66 +449,8 @@ namespace pathtracex {
 
 
 
-		//TODO: the hard shit, aka translate to DirectX
-		/*
-		glGenVertexArrays(1, &m_vaob);
-		glBindVertexArray(m_vaob);
-		glGenBuffers(1, &m_positions_bo);
-		glBindBuffer(GL_ARRAY_BUFFER, m_positions_bo);
-		glBufferData(GL_ARRAY_BUFFER, m_positions.size() * sizeof(DirectX::float3), &m_positions[0].x,
-			GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-		glEnableVertexAttribArray(0);
-		glGenBuffers(1, &m_normals_bo);
-		glBindBuffer(GL_ARRAY_BUFFER, m_normals_bo);
-		glBufferData(GL_ARRAY_BUFFER, m_normals.size() * sizeof(DirectX::float3), &m_normals[0].x,
-			GL_STATIC_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
-		glEnableVertexAttribArray(1);
-		glGenBuffers(1, &m_texture_coordinates_bo);
-		glBindBuffer(GL_ARRAY_BUFFER, m_texture_coordinates_bo);
-		glBufferData(GL_ARRAY_BUFFER, m_texture_coordinates.size() * sizeof(float2),
-			&m_texture_coordinates[0].x, GL_STATIC_DRAW);
-		glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, 0);
-		glEnableVertexAttribArray(2);
-
-		glBindVertexArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		*/
-
+	
 		std::cout << "done.\n";
-	}
-	void Model::Draw() {
-		/* TODO: implement draw?
-		glBindVertexArray(m_vaob);
-		static ShaderManager& sm = ShaderManager::getInstance();
-		auto shader = sm.getDefaultShader();
-		for (auto& mesh : m_meshes) {
-			const Material& mat = m_materials[mesh.m_material_idx];
-			bool hasColor = mat.m_color_texture.valid;
-			sm.SetInteger1(shader, hasColor ? 1 : 0, "has_color_texture");
-			if (hasColor) {
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, mat.m_color_texture.gl_id);
-			}
-			bool hasEmission = mat.m_emission_texture.valid;
-			sm.SetInteger1(shader, hasEmission ? 1 : 0, "has_emission_texture");
-
-			if (hasEmission) {
-				glActiveTexture(GL_TEXTURE5);
-				glBindTexture(GL_TEXTURE_2D, mat.m_emission_texture.gl_id);
-			}
-			glActiveTexture(0);
-			sm.SetVec3(shader, mat.m_color, "material_color");
-
-			sm.SetFloat1(shader, mat.m_metalness, "material_metalness");
-			sm.SetFloat1(shader, mat.m_fresnel, "material_fresnel");
-			sm.SetFloat1(shader, mat.m_shininess, "material_shininess");
-			sm.SetVec3(shader, mat.m_emission, "material_emission");
-			glDrawArrays(GL_TRIANGLES, mesh.m_start_index, (GLsizei)mesh.m_number_of_vertices);
-		}
-		glBindVertexArray(0);
-		*/
 	}
 
 	std::shared_ptr<Model> Model::createPrimative(PrimitiveModelType type) {
@@ -673,8 +611,6 @@ namespace pathtracex {
 			vertecies.push_back(vertex);
 		}
 
-
-
 		// Bottom
 		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, -1, 0), float2(0, 0) });
 		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, -1, 0), float2(1, 0) });
@@ -708,7 +644,6 @@ namespace pathtracex {
 			min_cords = max_cords.Min(min_cords, m_positions.at(i));
 		}
 
-		//TODO: create buffers on gpu so that bo:s actually are something...
 		//TODO creatye materials for cube faces, 
 		// posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
 		std::vector<uint32_t> indecies;
