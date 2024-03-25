@@ -192,7 +192,7 @@ namespace pathtracex {
 
 	}
 
-	void DXRenderer::UpdatePipeline()
+	void DXRenderer::UpdatePipeline(RenderSettings& renderSettings, Scene& scene)
 	{
 		HRESULT hr;
 
@@ -220,7 +220,7 @@ namespace pathtracex {
 		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
 		if (FAILED(hr))
 		{
-	
+			
 		}
 
 		// here we start recording commands into the commandList (which all the commands will be stored in the commandAllocator)
@@ -248,17 +248,51 @@ namespace pathtracex {
 		commandList->RSSetViewports(1, &viewport); // set the viewports
 		commandList->RSSetScissorRects(1, &scissorRect); // set the scissor rects
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
-		commandList->IASetVertexBuffers(0, 1, &(vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
-		commandList->IASetIndexBuffer(&indexBuffer->indexBufferView);
+		
+		int i = 0;
+		for (auto model : scene.models)
+		{
+			// create translation matrix for cube 1 from cube 1's position vector
+		//	DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&model->trans.getPosition()));
+
+			// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
+		//	DirectX::XMMATRIX worldMat = translationMat;
+
+			// store cube1's world matrix
+		//	DirectX::XMStoreFloat4x4(&cube1WorldMat, worldMat);
+
+			// update constant buffer for cube1
+			// create the wvp matrix and store in constant buffer
+			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix(); // load view matrix
+			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
+			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat; // create wvp matrix
+			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
+			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
+
+			// copy our ConstantBuffer instance to the mapped constant buffer resource
+			memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
+
+			// set cube1's constant buffer
+			commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + ConstantBufferPerObjectAlignedSize * i);
+
+			// draw first cube
+			commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
+			commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
+			commandList->DrawIndexedInstanced(model->indexBuffer->numCubeIndices, 1, 0, 0, 0);
+
+			i++;
+		}
+	//	commandList->IASetVertexBuffers(0, 1, &(scene.models[0]->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
+	//	commandList->IASetIndexBuffer(&scene.models[0]->indexBuffer->indexBufferView);
 
 
 		// first cube
 
 		// set cube1's constant buffer
-		commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress());
+//		commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress());
 
 		// draw first cube
-		commandList->DrawIndexedInstanced(indexBuffer->numCubeIndices, 1, 0, 0, 0);
+	//	commandList->DrawIndexedInstanced(scene.models[0]->indexBuffer->numCubeIndices, 1, 0, 0, 0);
 
 		commandList->SetDescriptorHeaps(1, &srvHeap);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -275,13 +309,13 @@ namespace pathtracex {
 		}
 	}
 
-	void DXRenderer::Render(RenderSettings& renderSettings)
+	void DXRenderer::Render(RenderSettings& renderSettings, Scene& scene)
 	{
 		HRESULT hr;
 
-		Update(renderSettings);
+	//	Update(renderSettings);
 
-		UpdatePipeline(); // update the pipeline by sending commands to the commandqueue
+		UpdatePipeline(renderSettings, scene); // update the pipeline by sending commands to the commandqueue
 
 		// create an array of command lists (only one command list here)
 		ID3D12CommandList* ppCommandLists[] = { commandList };
@@ -698,10 +732,6 @@ namespace pathtracex {
 	bool DXRenderer::createBuffers()
 	{
 		HRESULT hr;
-
-		static std::shared_ptr<Model> cube = Model::createPrimative(PrimitiveModelType::CUBE);
-		vertexBuffer = cube->vertexBuffer.get();
-		indexBuffer = cube->indexBuffer.get();
 
 		// Create the depth/stencil buffer
 

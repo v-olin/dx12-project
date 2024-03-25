@@ -48,7 +48,7 @@ namespace pathtracex {
 		void setViewport(int x, int y, int width, int height) override;
 		GraphicsAPIType getGraphicsAPIType() override { return GraphicsAPIType::DirectX12; };
 
-		void Render(RenderSettings& renderSettings); // execute the command list
+		void Render(RenderSettings& renderSettings, Scene& scene); // execute the command list
 		void Update(RenderSettings& renderSettings); // update the game logic
 
 		static DXRenderer* getInstance() {
@@ -122,10 +122,6 @@ namespace pathtracex {
 
 		D3D12_RECT scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
 
-		DXVertexBuffer* vertexBuffer = nullptr; // a default buffer in GPU memory that we will load vertex data for our triangle into
-
-		DXIndexBuffer* indexBuffer = nullptr;
-
 		// the total size of the buffer, and the size of each element (vertex)
 		DXGI_SAMPLE_DESC sampleDesc{};
 
@@ -189,7 +185,7 @@ namespace pathtracex {
 
 
 
-		void UpdatePipeline(); // update the direct3d pipeline (update command lists)
+		void UpdatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
 
 
 
