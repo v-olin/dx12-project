@@ -215,6 +215,8 @@ namespace pathtracex {
 		, indices(indices)
 	{
 		// Create the vertex buffer and index buffer
+		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
+		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
 
 	}
 

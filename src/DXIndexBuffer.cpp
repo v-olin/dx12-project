@@ -7,11 +7,11 @@
 #include "DXRenderer.h"
 
 namespace pathtracex {
-	DXIndexBuffer::DXIndexBuffer(std::vector<DWORD> indices)
+	DXIndexBuffer::DXIndexBuffer(std::vector<uint32_t> indices)
 	{
 		DXRenderer* renderer = DXRenderer::getInstance();
 
-		iBufferSize = sizeof(DWORD) * indices.size();
+		iBufferSize = sizeof(uint32_t) * indices.size();
 
 		numCubeIndices = indices.size();
 

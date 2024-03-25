@@ -9,7 +9,7 @@
 namespace pathtracex {
 	class DXIndexBuffer {
 	public:
-		DXIndexBuffer(std::vector<DWORD> indices);
+		DXIndexBuffer(std::vector<uint32_t> indices);
 		~DXIndexBuffer();
 
 		int numCubeIndices;
