@@ -438,6 +438,23 @@ namespace pathtracex {
 		std::sort(m_meshes.begin(), m_meshes.end(),
 			[](const Mesh& a, const Mesh& b) { return a.m_name < b.m_name; });
 
+		//trying very simple way tyo draw vertecies
+		for (int i = 0; i < number_of_vertices; i++) {
+			float3 n = m_normals.at(i);
+			float4 col = { n.x, n.y, n.z, 1 };
+			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i) };
+			vertices.push_back(vert);
+		}
+		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(vertices);
+		std::vector<DWORD> indecies;
+
+		for (auto mesh : m_meshes) {
+			for (size_t i = 0; i < mesh.m_number_of_vertices; i++)
+				indecies.push_back(i + mesh.m_start_index);
+		}
+		DXIndexBuffer* index_buffer = new DXIndexBuffer(indecies);
+
+
 		//TODO: the hard shit, aka translate to DirectX
 		/*
 		glGenVertexArrays(1, &m_vaob);
@@ -698,11 +715,12 @@ namespace pathtracex {
 		// posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
 		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(vertecies);
 		std::vector<DWORD> indecies;
-		for (size_t i = 0; i < vertecies.size(); i++)
-			indecies.push_back(i);
+
+		for (auto mesh : meshes) {
+			for (size_t i = 0; i < mesh.m_number_of_vertices; i++)
+				indecies.push_back(i + mesh.m_start_index);
+		}
 		DXIndexBuffer* index_buffer = new DXIndexBuffer(indecies);
-
-
 		return std::make_shared<Model>("Primative Cube"
 			, materials
 			, meshes

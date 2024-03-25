@@ -699,7 +699,11 @@ namespace pathtracex {
 	{
 		HRESULT hr;
 		// Create vertex buffer
+
+
 		auto prim_cube = Model::createPrimative(PrimitiveModelType::CUBE);
+
+
 		vertexBuffer = prim_cube->m_vertex_buffer;
 		indexBuffer = prim_cube->m_index_buffer;
 
