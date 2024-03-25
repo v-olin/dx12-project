@@ -17,6 +17,9 @@
 #include <memory>
 #include "Transform.h"
 #include "Helper.h"
+#include "DXIndexBuffer.h"
+#include "DXVertexBuffer.h"
+#include "Vertex.h"
 
 #include "Vertex.h"
 
@@ -87,7 +90,9 @@ namespace pathtracex {
 			, DXIndexBuffer* index_buffer
 			, bool hasDedicatedShader
 			, float3 max_cords
-			, float3 min_cords);
+			, float3 min_cords
+			, std::vector<Vertex> vertices
+			, std::vector<uint32_t> indices);
 		~Model();
 		void Draw();
 		// Buffers on CPU
@@ -102,6 +107,8 @@ namespace pathtracex {
 		std::string getName() override { return m_name; };
 
 		Transform trans;
+
+
 
 		// The name of the whole model
 		std::string m_name;
@@ -125,16 +132,15 @@ namespace pathtracex {
 
 		float3 m_max_cords;
 		float3 m_min_cords;
+
+		// Currently storing vertices, if this becomes a memory issue it can probably be removed
+		std::vector<Vertex> vertices{};
+		std::vector<uint32_t> indices{};
+
+		std::unique_ptr<DXVertexBuffer> vertexBuffer;
+		std::unique_ptr<DXIndexBuffer> indexBuffer;
 	private:
-		struct ModelVertex
-		{
-			float3 position{};
-			float4 color{};
-			float3 normal{};
-			float2 texCoords{};
-		};
-
-
+	
 		static std::shared_ptr<Model> createCube();
 		static std::shared_ptr<Model> createPlane();
 		static std::shared_ptr<Model> createSphere(int stacks, int slices);

@@ -56,6 +56,21 @@ namespace pathtracex {
 		CD3DX12_RESOURCE_BARRIER indexBufferResourceBarrier = CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 		renderer->commandList->ResourceBarrier(1, &indexBufferResourceBarrier);
 
+		// create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+		indexBufferView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
+		indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
+		indexBufferView.SizeInBytes = iBufferSize;
+
+
+
+		renderer->executeCommandList();
+
+		renderer->incrementFenceAndSignalCurrentFrame();
+
+	}
+	DXIndexBuffer::~DXIndexBuffer()
+	{
+		SAFE_RELEASE(indexBuffer);
 	}
 }
 

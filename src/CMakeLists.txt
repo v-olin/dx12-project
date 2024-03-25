@@ -9,6 +9,8 @@ target_sources(PathTracerX PRIVATE
 	GUI.cpp
 	Mouse.h
 	Model.h
+	Model.cpp
+	Vertex.h
 	Mouse.cpp
 	Window.h
 	Window.cpp

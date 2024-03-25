@@ -196,7 +196,9 @@ namespace pathtracex {
 			, DXIndexBuffer* index_buffer
 			, bool hasDedicatedShader
 			, float3 max_cords
-			, float3 min_cords)
+			, float3 min_cords
+		, std::vector<Vertex> vertices = {}
+		, std::vector<uint32_t> indices = {})
 		: m_name(name)
 		, m_materials(materials)
 		, m_meshes(meshes)
@@ -205,7 +207,12 @@ namespace pathtracex {
 		, m_hasDedicatedShader(hasDedicatedShader)
 		, m_max_cords(max_cords)
 		, m_min_cords(min_cords)
-	{}
+		, vertices(vertices)
+		, indices(indices)
+	{
+		// Create the vertex buffer and index buffer
+
+	}
 
 
 	Model::Model(std::string path)
@@ -512,7 +519,7 @@ namespace pathtracex {
 	}
 
 	std::shared_ptr<Model> Model::createCube() {
-		std::vector<ModelVertex> tmp_vertices{};
+		std::vector<Vertex> tmp_vertices{};
 		std::vector<Vertex> vertecies;
 		std::vector<uint32_t> indices{};
 		std::vector<float3> m_positions;
@@ -520,7 +527,7 @@ namespace pathtracex {
 		std::vector<float2> m_texture_coordinates;
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
-		ModelVertex vertex;
+		Vertex vertex;
 		size_t number_of_vertices = 36;
 
 		m_positions.resize(number_of_vertices);
@@ -546,10 +553,10 @@ namespace pathtracex {
 
 		for (int i = 0; i < 6; i++) {
 			vertex = tmp_vertices.at(indices.at(i));
-			m_positions.push_back(vertex.position);
+			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
-			m_texture_coordinates.push_back(vertex.texCoords);
-			vertecies.push_back({ vertex.position, vertex.color });
+			m_texture_coordinates.push_back(vertex.tex);
+			vertecies.push_back(vertex);
 		}
 
 		// Back
@@ -570,10 +577,10 @@ namespace pathtracex {
 
 		for (int i = 6; i < 12; i++) {
 			vertex = tmp_vertices.at(indices.at(i));
-			m_positions.push_back(vertex.position);
+			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
-			m_texture_coordinates.push_back(vertex.texCoords);
-			vertecies.push_back({ vertex.position, vertex.color });
+			m_texture_coordinates.push_back(vertex.tex);
+			vertecies.push_back(vertex);
 		}
 
 		// Left
@@ -595,10 +602,10 @@ namespace pathtracex {
 
 		for (int i = 12; i < 18; i++) {
 			vertex = tmp_vertices.at(indices.at(i));
-			m_positions.push_back(vertex.position);
+			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
-			m_texture_coordinates.push_back(vertex.texCoords);
-			vertecies.push_back({ vertex.position, vertex.color });
+			m_texture_coordinates.push_back(vertex.tex);
+			vertecies.push_back(vertex);
 		}
 
 		// Right
@@ -619,10 +626,10 @@ namespace pathtracex {
 
 		for (int i = 18; i < 24; i++) {
 			vertex = tmp_vertices.at(indices.at(i));
-			m_positions.push_back(vertex.position);
+			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
-			m_texture_coordinates.push_back(vertex.texCoords);
-			vertecies.push_back({ vertex.position, vertex.color });
+			m_texture_coordinates.push_back(vertex.tex);
+			vertecies.push_back(vertex);
 		}
 
 
@@ -645,10 +652,10 @@ namespace pathtracex {
 
 		for (int i = 24; i < 30; i++) {
 			vertex = tmp_vertices.at(indices.at(i));
-			m_positions.push_back(vertex.position);
+			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
-			m_texture_coordinates.push_back(vertex.texCoords);
-			vertecies.push_back({ vertex.position, vertex.color });
+			m_texture_coordinates.push_back(vertex.tex);
+			vertecies.push_back(vertex);
 		}
 
 
@@ -672,10 +679,10 @@ namespace pathtracex {
 
 		for (int i = 30; i < 36; i++) {
 			vertex = tmp_vertices.at(indices.at(i));
-			m_positions.push_back(vertex.position);
+			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
-			m_texture_coordinates.push_back(vertex.texCoords);
-			vertecies.push_back({ vertex.position, vertex.color });
+			m_texture_coordinates.push_back(vertex.tex);
+			vertecies.push_back(vertex);
 		}
 	
 
@@ -706,7 +713,7 @@ namespace pathtracex {
 			, min_cords);
 	}
 	std::shared_ptr<Model> Model::createSphere(int stacks, int slices) {
-		std::vector<ModelVertex> tmp_vertices{};
+		std::vector<Vertex> tmp_vertices{};
 		std::vector<uint32_t> indices{};
 
 		float radius = 1.0f;
@@ -769,7 +776,7 @@ namespace pathtracex {
 		mesh.m_start_index = 0;
 		mesh.m_number_of_vertices = indices.size();
 		
-		std::vector<ModelVertex> vertecies;
+		std::vector<Vertex> vertecies;
 		size_t idx;
 		for (size_t i = 0; i < indices.size(); i++) {
 			idx = indices.at(i);
@@ -778,20 +785,17 @@ namespace pathtracex {
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
 
-		float3 max_cords(vertecies.at(0).position);
-		float3 min_cords(vertecies.at(0).position);
+		float3 max_cords(vertecies.at(0).pos);
+		float3 min_cords(vertecies.at(0).pos);
 		for (size_t i = 1; i < vertecies.size(); i++) {
-			max_cords = max_cords.Max(max_cords, vertecies.at(0).position);
-			min_cords = max_cords.Min(min_cords, vertecies.at(0).position);
+			max_cords = max_cords.Max(max_cords, vertecies.at(0).pos);
+			min_cords = max_cords.Min(min_cords, vertecies.at(0).pos);
 		}
 
-		std::vector<Vertex> dx_vertecies;
-		for (auto v : vertecies)
-			dx_vertecies.push_back({ v.position, v.color });
 
-		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(dx_vertecies);
+		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(vertecies);
 		std::vector<DWORD> indecies;
-		for (size_t i = 0; i < dx_vertecies.size(); i++)
+		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
 		DXIndexBuffer* index_buffer = new DXIndexBuffer(indecies);
 		return std::make_shared<Model>("Primative Sphere"
@@ -804,7 +808,7 @@ namespace pathtracex {
 			, min_cords);
 	}
 	std::shared_ptr<Model> Model::createPlane() {
-		std::vector<ModelVertex> tmp_vertices{};
+		std::vector<Vertex> tmp_vertices{};
 		std::vector<uint32_t> indices{};
 
 		tmp_vertices.push_back({ float3(-5.f, 0.0f, -5.f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0) });
@@ -823,7 +827,7 @@ namespace pathtracex {
 		mesh.m_start_index = 0;
 		mesh.m_number_of_vertices = indices.size();
 		
-		std::vector<ModelVertex> vertecies;
+		std::vector<Vertex> vertecies;
 		size_t idx;
 		for (size_t i = 0; i < indices.size(); i++) {
 			idx = indices.at(i);
@@ -832,19 +836,16 @@ namespace pathtracex {
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
 
-		float3 max_cords(vertecies.at(0).position);
-		float3 min_cords(vertecies.at(0).position);
+		float3 max_cords(vertecies.at(0).pos);
+		float3 min_cords(vertecies.at(0).pos);
 		for (size_t i = 1; i < vertecies.size(); i++) {
-			max_cords = max_cords.Max(max_cords, vertecies.at(0).position);
-			min_cords = max_cords.Min(min_cords, vertecies.at(0).position);
+			max_cords = max_cords.Max(max_cords, vertecies.at(0).pos);
+			min_cords = max_cords.Min(min_cords, vertecies.at(0).pos);
 		}
-		std::vector<Vertex> dx_vertecies;
-		for (auto v : vertecies)
-			dx_vertecies.push_back({ v.position, v.color });
 
-		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(dx_vertecies);
+		DXVertexBuffer*	vertex_buffer = new DXVertexBuffer(vertecies);
 		std::vector<DWORD> indecies;
-		for (size_t i = 0; i < dx_vertecies.size(); i++)
+		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
 		DXIndexBuffer* index_buffer = new DXIndexBuffer(indecies);
 
