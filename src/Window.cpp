@@ -3,6 +3,7 @@
 #include "StringUtil.h"
 
 #include "backends/imgui_impl_win32.h"
+#include "Logger.h"
 
 #define WINDOW_STYLING (WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU)
 
@@ -18,8 +19,10 @@ namespace pathtracex {
 		, windowHandle(nullptr)
 		
 	{
+		LOG_INFO("Creating window");
 		registerClass();
 		configureWindow();
+		LOG_INFO("Window created");
 	}
 	
 	Window::~Window() {
@@ -117,6 +120,7 @@ namespace pathtracex {
 		);
 
 		if (windowHandle == nullptr) {
+			LOG_FATAL("Failed to create window");
 			throw std::runtime_error("unluko");
 		}
 		

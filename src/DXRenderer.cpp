@@ -11,6 +11,7 @@
 
 #include "backends/imgui_impl_dx12.h"
 #include <stdexcept>
+#include "Logger.h"
 
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
@@ -28,6 +29,7 @@ namespace pathtracex
 		hr = commandList->Close();
 		if (FAILED(hr))
 		{
+			LOG_ERROR("Error executing command list, executeCommandList()");
 			throw std::runtime_error("Error, executeCommandList()");
 		}
 
@@ -44,11 +46,15 @@ namespace pathtracex
 		hr = commandAllocator[frameIndex]->Reset();
 		if (FAILED(hr))
 		{
+			LOG_ERROR("Error resetting command allocator, resetCommandList()");
+			throw std::runtime_error("Error, resetCommandList()");
 		}
 
 		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
 		if (FAILED(hr))
 		{
+			LOG_ERROR("Error resetting command list, resetCommandList()");
+			throw std::runtime_error("Error, resetCommandList()");
 		}
 	}
 
@@ -59,12 +65,14 @@ namespace pathtracex
 		hr = commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
 		if (FAILED(hr))
 		{
+			LOG_ERROR("Error signaling current frame and incrementing fence, signalCurrentFrameAndIncrementFence()");
 			throw std::runtime_error("Error, signalCurrentFrameAndIncrementFence()");
 		}
 	}
 
 	bool DXRenderer::init(Window *window)
 	{
+		LOG_INFO("Initializing DXRenderer");
 		this->window = window;
 		hwnd = window->windowHandle;
 
@@ -127,6 +135,8 @@ namespace pathtracex
 							DXGI_FORMAT_R8G8B8A8_UNORM, srvHeap,
 							srvHeap->GetCPUDescriptorHandleForHeapStart(),
 							srvHeap->GetGPUDescriptorHandleForHeapStart());
+
+		LOG_INFO("DXRenderer initialized");
 		return true;
 	}
 
@@ -160,31 +170,6 @@ namespace pathtracex
 		// TODO
 	}
 
-	void DXRenderer::Update(RenderSettings &renderSettings)
-	{
-		// update app logic, such as moving the camera or figuring out what objects are in view
-
-		// create translation matrix for cube 1 from cube 1's position vector
-		DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&cube1Position));
-
-		// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-		DirectX::XMMATRIX worldMat = translationMat;
-
-		// store cube1's world matrix
-		DirectX::XMStoreFloat4x4(&cube1WorldMat, worldMat);
-
-		// update constant buffer for cube1
-		// create the wvp matrix and store in constant buffer
-		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
-		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
-		DirectX::XMMATRIX wvpMat = DirectX::XMLoadFloat4x4(&cube1WorldMat) * viewMat * projMat;								// create wvp matrix
-		DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
-		DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);															// store transposed wvp matrix in constant buffer
-
-		// copy our ConstantBuffer instance to the mapped constant buffer resource
-		memcpy(cbvGPUAddress[frameIndex], &cbPerObject, sizeof(cbPerObject));
-	}
-
 	void DXRenderer::UpdatePipeline(RenderSettings &renderSettings, Scene &scene)
 	{
 		HRESULT hr;
@@ -197,6 +182,7 @@ namespace pathtracex
 		hr = commandAllocator[frameIndex]->Reset();
 		if (FAILED(hr))
 		{
+
 		}
 
 		// reset the command list. by resetting the command list we are putting it into
@@ -243,16 +229,6 @@ namespace pathtracex
 		int i = 0;
 		for (auto model : scene.models)
 		{
-			// create translation matrix for cube 1 from cube 1's position vector
-			//	DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(XMLoadFloat4(&model->trans.getPosition()));
-
-			// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-			//	DirectX::XMMATRIX worldMat = translationMat;
-
-			// store cube1's world matrix
-			//	DirectX::XMStoreFloat4x4(&cube1WorldMat, worldMat);
-
-			// update constant buffer for cube1
 			// create the wvp matrix and store in constant buffer
 			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
 			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
@@ -273,16 +249,6 @@ namespace pathtracex
 
 			i++;
 		}
-		//	commandList->IASetVertexBuffers(0, 1, &(scene.models[0]->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
-		//	commandList->IASetIndexBuffer(&scene.models[0]->indexBuffer->indexBufferView);
-
-		// first cube
-
-		// set cube1's constant buffer
-		//		commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress());
-
-		// draw first cube
-		//	commandList->DrawIndexedInstanced(scene.models[0]->indexBuffer->numCubeIndices, 1, 0, 0, 0);
 
 		commandList->SetDescriptorHeaps(1, &srvHeap);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -331,12 +297,15 @@ namespace pathtracex
 
 	bool DXRenderer::createFactory()
 	{
+		LOG_TRACE("Creating DirectX12 factory");
 		HRESULT hr;
 		hr = CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error creating factory, createFactory()");
 			return false;
 		}
+		LOG_TRACE("DirectX12 factory created");
 		return true;
 	}
 
@@ -347,6 +316,7 @@ namespace pathtracex
 
 	bool DXRenderer::createDevice()
 	{
+		LOG_TRACE("Creating DirectX12 device");
 		HRESULT hr;
 		IDXGIAdapter1 *adapter; // adapters are the graphics card (this includes the embedded graphics on the motherboard)
 
@@ -388,12 +358,14 @@ namespace pathtracex
 			adapter,
 			D3D_FEATURE_LEVEL_11_0,
 			IID_PPV_ARGS(&device));
-
+		
+		LOG_TRACE("DirectX12 device created");
 		return !FAILED(hr);
 	}
 
 	bool DXRenderer::createCommandQueue()
 	{
+		LOG_TRACE("Creating DirectX12 command queue");
 		HRESULT hr;
 		// -- Create the Command Queue -- //
 
@@ -403,11 +375,13 @@ namespace pathtracex
 
 		hr = device->CreateCommandQueue(&cqDesc, IID_PPV_ARGS(&commandQueue)); // create the command queue
 
+		LOG_TRACE("DirectX12 command queue created");
 		return !FAILED(hr);
 	}
 
 	bool DXRenderer::createSwapChain()
 	{
+		LOG_TRACE("Creating DirectX12 swap chain");
 		HRESULT hr;
 		int width, height;
 		window->getSize(width, height);
@@ -443,10 +417,13 @@ namespace pathtracex
 
 		frameIndex = swapChain->GetCurrentBackBufferIndex();
 
+		LOG_TRACE("DirectX12 swap chain created");
 		return true;
 	}
 	bool DXRenderer::createDescriptorHeaps()
 	{
+		LOG_TRACE("Creating DirectX12 descriptor heaps");
+
 		HRESULT hr;
 		// -- Create the Back Buffers (render target views) Descriptor Heap -- //
 
@@ -461,6 +438,7 @@ namespace pathtracex
 		hr = device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error creating descriptor heap, createDescriptorHeaps()");
 			return false;
 		}
 
@@ -492,6 +470,7 @@ namespace pathtracex
 			hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
 			if (FAILED(hr))
 			{
+				LOG_FATAL("Error creating render target, createDescriptorHeaps()");
 				return false;
 			}
 
@@ -502,11 +481,15 @@ namespace pathtracex
 			rtvHandle.Offset(1, rtvDescriptorSize);
 		}
 
+		LOG_TRACE("DirectX12 descriptor heaps created");
+
 		return true;
 	}
 
 	bool DXRenderer::createCommandAllocators()
 	{
+		LOG_TRACE("Creating DirectX12 command allocators");
+
 		HRESULT hr;
 		// -- Create the Command Allocators -- //
 
@@ -515,15 +498,20 @@ namespace pathtracex
 			hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator[i]));
 			if (FAILED(hr))
 			{
+				LOG_FATAL("Error creating command allocator, createCommandAllocators()");
 				return false;
 			}
 		}
+
+		LOG_TRACE("DirectX12 command allocators created");
 
 		return true;
 	}
 
 	bool DXRenderer::createRootSignature()
 	{
+		LOG_TRACE("Creating DirectX12 root signature");
+
 		HRESULT hr;
 		// create a root descriptor, which explains where to find the data for this root parameter
 		D3D12_ROOT_DESCRIPTOR rootCBVDescriptor;
@@ -551,20 +539,25 @@ namespace pathtracex
 		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error serializing root signature, createRootSignature()");
 			return false;
 		}
 
 		hr = device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error creating root signature, createRootSignature()");
 			return false;
 		}
+
+		LOG_TRACE("DirectX12 root signature created");
 
 		return true;
 	}
 
 	bool DXRenderer::createPipeline()
 	{
+		LOG_TRACE("Creating DirectX12 pipeline");
 
 		HRESULT hr;
 		// create vertex and pixel shaders
@@ -590,6 +583,7 @@ namespace pathtracex
 								&errorBuff);
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error compiling vertex shader, createPipeline()");
 			OutputDebugStringA((char *)errorBuff->GetBufferPointer());
 			return false;
 		}
@@ -613,6 +607,7 @@ namespace pathtracex
 								&errorBuff);
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error compiling pixel shader, createPipeline()");
 			OutputDebugStringA((char *)errorBuff->GetBufferPointer());
 			return false;
 		}
@@ -669,27 +664,36 @@ namespace pathtracex
 		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject));
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error creating pipeline state object, createPipeline()");
 			return false;
 		}
+
+		LOG_TRACE("DirectX12 pipeline created");
 
 		return true;
 	}
 
 	bool DXRenderer::createCommandList()
 	{
+		LOG_TRACE("Creating DirectX12 command list");
+
 		HRESULT hr;
 
 		hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator[frameIndex], NULL, IID_PPV_ARGS(&commandList));
 		if (FAILED(hr))
 		{
+			LOG_FATAL("Error creating command list, createCommandList()");
 			return false;
 		}
+
+		LOG_TRACE("DirectX12 command list created");
 
 		return true;
 	}
 
 	bool DXRenderer::createFencesAndEvents()
 	{
+		LOG_TRACE("Creating DirectX12 fences and events");
 		HRESULT hr;
 		// -- Create a Fence & Fence Event -- //
 
@@ -699,6 +703,7 @@ namespace pathtracex
 			hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence[i]));
 			if (FAILED(hr))
 			{
+				LOG_FATAL("Error creating fence, createFencesAndEvents()");
 				return false;
 			}
 			fenceValue[i] = 0; // set the initial fence value to 0
@@ -708,8 +713,11 @@ namespace pathtracex
 		fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		if (fenceEvent == nullptr)
 		{
+			LOG_FATAL("Error creating fence event, createFencesAndEvents()");
 			return false;
 		}
+
+		LOG_TRACE("DirectX12 fences and events created");
 
 		return true;
 	}
@@ -800,18 +808,6 @@ namespace pathtracex
 		executeCommandList();
 
 		incrementFenceAndSignalCurrentFrame();
-
-		// build projection and view matrix
-		DirectX::XMMATRIX tmpMat;
-
-		// set starting cubes position
-		// first cube
-		cube1Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // set cube 1's position
-		DirectX::XMVECTOR posVec = XMLoadFloat4(&cube1Position);   // create xmvector for cube1's position
-
-		tmpMat = DirectX::XMMatrixTranslationFromVector(posVec);	// create translation matrix from cube1's position vector
-		XMStoreFloat4x4(&cube1RotMat, DirectX::XMMatrixIdentity()); // initialize cube1's rotation matrix to identity matrix
-		XMStoreFloat4x4(&cube1WorldMat, tmpMat);					// store cube1's world matrix
 
 		return true;
 	}

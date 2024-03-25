@@ -15,6 +15,8 @@ namespace pathtracex {
 	};
 }
 
+#define ENABLE_TRACE_LOGGING
+
 #if defined(_DEBUG) && defined(ENABLE_TRACE_LOGGING)
 #define LOG_TRACE(...) Logger::getLogger()->trace("Trace: " __VA_ARGS__ ) // Only log trace in debug mode
 #else

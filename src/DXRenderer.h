@@ -161,39 +161,11 @@ namespace pathtracex {
 
 		UINT8* cbvGPUAddress[frameBufferCount]; // this is a pointer to each of the constant buffer resource heaps
 
-		DirectX::XMFLOAT4X4 cameraProjMat; // this will store our projection matrix
-		DirectX::XMFLOAT4X4 cameraViewMat; // this will store our view matrix
-
-		DirectX::XMFLOAT4 cameraPosition; // this is our cameras position vector
-		DirectX::XMFLOAT4 cameraTarget; // a vector describing the point in space our camera is looking at
-		DirectX::XMFLOAT4 cameraUp; // the worlds up vector
-
-		DirectX::XMFLOAT4X4 cube1WorldMat; // our first cubes world matrix (transformation matrix)
-		DirectX::XMFLOAT4X4 cube1RotMat; // this will keep track of our rotation for the first cube
-		DirectX::XMFLOAT4 cube1Position; // our first cubes position in space
-
-		DirectX::XMFLOAT4X4 cube2WorldMat; // our first cubes world matrix (transformation matrix)
-		DirectX::XMFLOAT4X4 cube2RotMat; // this will keep track of our rotation for the second cube
-		DirectX::XMFLOAT4 cube2PositionOffset; // our second cube will rotate around the first cube, so this is the position offset from the first cube
-
-		int numCubeIndices; // the number of indices to draw the cube
-
-
-
-		// function declarations
-
-
-
-
 		void UpdatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
-
-
 
 		void Cleanup(); // release com ojects and clean up memory
 
 		void WaitForPreviousFrame(); // wait until gpu is finished with command list
-
-
 
 		bool createFactory();
 		bool createDebugController();
