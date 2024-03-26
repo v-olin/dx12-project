@@ -323,9 +323,10 @@ namespace pathtracex {
 							}
 							else
 							{
-								m_texture_coordinates[vertices_so_far + j] = float2(
-									attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 0],
-									attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 1]);
+								float u = (attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 0]) ;
+								//This "-1) *-1" hack will fuck us if we load textures that use tex coords outside [0,1]
+								float v = (attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 1] - 1) *-1; 
+								m_texture_coordinates[vertices_so_far + j] = float2(u,v);
 							}
 						}
 						vertices_so_far += 3;
@@ -359,10 +360,6 @@ namespace pathtracex {
 		}
 		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
 		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
-
-
-
-	
 		std::cout << "done.\n";
 	}
 

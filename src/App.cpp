@@ -34,7 +34,7 @@ namespace pathtracex {
 
 
 		std::shared_ptr<Model> space_ship = std::make_shared<Model>("../../assets/chopper.obj");
-		space_ship->trans.setPosition({ 1, -5, 20 });
+		space_ship->trans.setPosition({ 1, 1, 5 });
 		scene.models.push_back(space_ship);
 
 

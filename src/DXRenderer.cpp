@@ -248,6 +248,8 @@ namespace pathtracex
 			//commandList->DrawIndexedInstanced(model->indexBuffer->numCubeIndices, 1, 0, 0, 0);
 			for (auto mesh : model->meshes) {
 				// set the descriptor heap
+				//we need to add more uniforms so that we know if there are color textures and so on, 
+				// all textures that are valid should be send down and used
 				auto col_tex = model->materials[mesh.materialIdx].colorTexture;
 				ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
 				commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -670,8 +672,8 @@ namespace pathtracex
 		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
 		{
 			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-			{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-			{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 } };
+			{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+			{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 } };
 
 		// fill out an input layout description structure
 		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};

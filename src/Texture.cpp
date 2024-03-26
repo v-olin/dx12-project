@@ -131,6 +131,7 @@ namespace pathtracex {
 		delete imageData;
 
 
+		valid = true;
 		return true;
 	}
 	// get the dxgi format equivilent of a wic format
