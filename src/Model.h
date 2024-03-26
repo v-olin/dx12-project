@@ -23,8 +23,6 @@
 #include "DXVertexBuffer.h"
 #include "Vertex.h"
 
-#include "Vertex.h"
-
 #include "DXVertexBuffer.h"
 #include "DXIndexBuffer.h"
 
@@ -62,6 +60,7 @@ namespace pathtracex {
 			, std::vector<Vertex> vertices
 			, std::vector<uint32_t> indices);
 		~Model();
+
 		static std::shared_ptr<Model> createPrimative(PrimitiveModelType type);
 
 		std::string getName() override { return name; };
@@ -90,6 +89,15 @@ namespace pathtracex {
 		// Buffers on GPU
 		std::unique_ptr<DXVertexBuffer> vertexBuffer;
 		std::unique_ptr<DXIndexBuffer> indexBuffer;
+
+		std::vector<SerializableVariable> getSerializableVariables() override
+		{
+			return 
+			{
+				{SerializableType::STRING, "Name", "The name of the model", &name},
+				{SerializableType::MATRIX4X4, "TransformMatrix", "The transform matrix of the model", &trans.transformMatrix}
+			};
+		};
 	private:
 	
 		static std::shared_ptr<Model> createCube();

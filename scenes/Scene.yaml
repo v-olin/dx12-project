@@ -1,0 +1,9 @@
+Models:
+  - Name: Primative Cube
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1]
+  - Name: Primative plane
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, -1, 0, 1]
+  - Name: Primative Sphere
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2.5, 1, 0, 1]
+  - Name: space-ship
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, -5, 80, 1]

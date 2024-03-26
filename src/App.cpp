@@ -41,7 +41,6 @@ namespace pathtracex {
 		Serializer serializer{};
 		serializer.serializeScene(scene);
 
-
 		while(true) {
 			const auto ecode = Window::processMessages();
 			if (ecode) {
