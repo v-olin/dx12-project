@@ -1,15 +1,18 @@
 #pragma once
 
+#include "Event.h"
 #include "PathWin.h"
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "GUI.h"
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 
 namespace pathtracex {
+	
 	class Window {
 	public:
 		Window(int width, int height, const std::string& title) noexcept;
@@ -24,10 +27,10 @@ namespace pathtracex {
 		Mouse mouse;
 		HWND windowHandle;
 		void getSize(int& width, int& height) const;
+
 	private:
 		int width, height;
 		std::string title;
-
 
 		HINSTANCE _hInstance; // i tink program instance?
 		static constexpr LPCSTR _wndClassName = "pathtracex::window";

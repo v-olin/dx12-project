@@ -4,20 +4,34 @@
 #include "GUI.h"
 #include "DXRenderer.h"
 #include "RenderSettings.h"
+#include "Event.h"
 
 #include <memory>
+#include <vector>
 
 namespace pathtracex {
+	using EventCallbackFn = std::function<void(Event&)>;
 
 	class App {
 	public:
-		App();
-		
+		static App& getInstance() {
+			static App instance;
+			return instance;
+		}
+
+		App(App const&) = delete;
+		void operator=(App const&) = delete;
+
 		int run();
+		static void registerEventListener(IEventListener* listener);
+		static void raiseEvent(Event& e);
 
 	private:
+		App();
 		void everyFrame();
 		void cleanup();
+		void onEvent(Event& e);
+		EventCallbackFn callback;
 
 		Scene scene{};
 		GUI gui{scene};
@@ -25,6 +39,8 @@ namespace pathtracex {
 		DXRenderer* renderer = nullptr;
 		Camera defaultCamera{};
 		RenderSettings defaultRenderSettings{ 0, 0, defaultCamera };
+
+		std::vector<IEventListener*> listeners{};
 	};
 
 }
