@@ -1,9 +1,17 @@
 Models:
   - Name: Primative Cube
+    Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1]
-  - Name: Primative plane
+    PrimativeType: Cube
+  - Name: Primative Plane
+    Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, -1, 0, 1]
+    PrimativeType: Plane
   - Name: Primative Sphere
+    Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2.5, 1, 0, 1]
+    PrimativeType: Sphere
   - Name: space-ship
+    Filename: space-ship.obj
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, -5, 80, 1]
+    PrimativeType: None

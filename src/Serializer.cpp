@@ -86,6 +86,7 @@ namespace pathtracex {
 		for (auto model : scene.models) {
 			out << YAML::BeginMap;
 			serializeSerializable(model.get(), out);
+			out << YAML::Key << "PrimativeType" << YAML::Value << Model::primitiveModelTypeToString(model->primativeType);
 			out << YAML::EndMap;
 		}
 
@@ -93,14 +94,68 @@ namespace pathtracex {
 		out << YAML::EndSeq;
 	}
 
-	Scene Serializer::deserializeScene(const std::string& sceneName, Scene& scene)
+	void Serializer::deserializeScene(const std::string& sceneName, Scene& scene)
 	{
 		LOG_TRACE("Deserializing scene: {}", sceneName);
 		std::string scenePath = SCENE_FOLDER_PATH + sceneName + SCENE_FILE_EXTENSION;
-		LOG_TRACE("Loading file: " + gameStateFilePath);
+		LOG_TRACE("Loading file: " + scenePath);
 		YAML::Node state = YAML::LoadFile(scenePath);
+		deserializeModels(state, scene);
+	}
 
-		return Scene();
+	// Deserializes the given serializable from the given YAML node
+// The given node should be the components node of a game object
+	void Serializer::deserializeSerializable(YAML::Node node, Serializable* serializable)
+	{
+		// TODO: improve complexity, currently does unnecessary iterations
+		for (YAML::const_iterator it = node.begin(); it != node.end(); ++it)
+		{
+			std::string nodeName = it->first.as<std::string>();
+			for (auto serializableVariable : serializable->getSerializableVariables())
+			{
+				if (nodeName == serializableVariable.name)
+				{
+					if (serializableVariable.type == SerializableType::FLOAT)
+					{
+						*static_cast<float*>(serializableVariable.data) = it->second.as<float>();
+					}
+					else if (serializableVariable.type == SerializableType::VECTOR3 || serializableVariable.type == SerializableType::COLOR)
+					{
+						std::vector<float> vec3 = it->second.as<std::vector<float>>();
+						std::copy(vec3.begin(), vec3.end(), static_cast<float*>(serializableVariable.data));
+					}
+					else if (serializableVariable.type == SerializableType::VECTOR4)
+					{
+						std::vector<float> vec4 = it->second.as<std::vector<float>>();
+						std::copy(vec4.begin(), vec4.end(), static_cast<float*>(serializableVariable.data));
+					}
+					else if (serializableVariable.type == SerializableType::BOOLEAN)
+					{
+						*static_cast<bool*>(serializableVariable.data) = it->second.as<bool>();
+					}
+					else if (serializableVariable.type == SerializableType::STRING)
+					{
+						*static_cast<std::string*>(serializableVariable.data) = it->second.as<std::string>();
+					}
+					else if (serializableVariable.type == SerializableType::INT)
+					{
+						*static_cast<int*>(serializableVariable.data) = it->second.as<int>();
+					}
+					else if (serializableVariable.type == SerializableType::MATRIX4X4)
+					{
+						std::vector<float> mat4 = it->second.as<std::vector<float>>();
+						DirectX::XMMATRIX matrix;
+						std::copy(mat4.begin(), mat4.end(), matrix.r->m128_f32);
+						*static_cast<DirectX::XMMATRIX*>(serializableVariable.data) = matrix;
+					}
+					else
+					{
+						LOG_ERROR("Failed to deserialize serializable because of unknown serializable type");
+					}
+
+				}
+			}
+		}
 	}
 
 	void Serializer::deserializeModels(YAML::Node node, Scene& scene)
@@ -119,6 +174,24 @@ namespace pathtracex {
 		for (YAML::const_iterator it = modelsNode.begin(); it != modelsNode.end(); ++it)
 		{
 			YAML::Node modelNode = *it;
+			std::string primativeType = modelNode["PrimativeType"].as<std::string>();
+			PrimitiveModelType type = Model::stringToPrimitiveModelType(primativeType);
+			std::string filename = modelNode["Filename"].as<std::string>();
+			
+			std::shared_ptr<Model> model;
+
+			if (type != PrimitiveModelType::NONE)
+			{
+				model = Model::createPrimative(type);
+			}
+			else
+			{
+				model = std::make_shared<Model>(filename);
+			}
+
+			deserializeSerializable(modelNode, model.get());
+			scene.models.push_back(model);
+
 			//std::string filename = textureNode["fileName"].as<std::string>();
 			//Texture* texture = Texture::create(filename);
 			//deserializeTexture(*it, game, texture);

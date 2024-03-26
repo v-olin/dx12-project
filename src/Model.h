@@ -49,7 +49,7 @@ namespace pathtracex {
 
 	class Model : public Selectable {
 	public:
-		Model(std::string path);
+		Model(std::string filenameWithExtension);
 		//Model(std::shared_ptr<Model> src);
 		Model(std::string name
 			, std::vector<Material> materials
@@ -65,14 +65,17 @@ namespace pathtracex {
 
 		std::string getName() override { return name; };
 
+		static std::string primitiveModelTypeToString(PrimitiveModelType type);
+		static PrimitiveModelType stringToPrimitiveModelType(std::string type);
+
 		Transform trans;
 
-
+		PrimitiveModelType primativeType = PrimitiveModelType::NONE;
 
 		// The name of the whole model
 		std::string name;
 		// The filename of this model
-		std::string filename;
+		std::string filename = "";
 		// The materials
 		std::vector<Material> materials;
 		// A model will contain one or more "Meshes"
@@ -95,6 +98,7 @@ namespace pathtracex {
 			return 
 			{
 				{SerializableType::STRING, "Name", "The name of the model", &name},
+				{SerializableType::STRING, "Filename", "The filename of the model obj file", &filename},
 				{SerializableType::MATRIX4X4, "TransformMatrix", "The transform matrix of the model", &trans.transformMatrix}
 			};
 		};

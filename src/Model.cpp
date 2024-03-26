@@ -1,10 +1,17 @@
 #include "Model.h"
 #include <iostream>
 #include <algorithm>
+#include "Logger.h"
+
 // DON'T REMOVE DEFINES, AND DON'T DEFINE ANYWHERE ELSE!!!!!!!!!!!!!
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../../vendor/tinyobjloader/tiny_obj_loader.h"
+
+
 namespace pathtracex {
+	
+#define PATH_TO_ASSETS "../../assets/"
+
 	namespace file_util {
 
 		std::string normalise(const std::string& file_name);
@@ -212,17 +219,21 @@ namespace pathtracex {
 	}
 
 
-	Model::Model(std::string path)
+	Model::Model(std::string filenameWithExtension)
 		//TODO: This could be fucked
 		: maxCords(-INFINITE)
 		, minCords(INFINITE)
 	{
 		std::string filename, extension, directory;
 
+		std::string path = PATH_TO_ASSETS + filenameWithExtension;
+
 		filename = file_util::normalise(path);
 		directory = file_util::parent_path(path);
 		filename = file_util::file_stem(path);
 		extension = file_util::file_extension(path);
+
+		this->filename = filename + extension;
 
 
 		if (extension != ".obj")
@@ -247,7 +258,11 @@ namespace pathtracex {
 			std::cerr << err << std::endl;
 
 		if (!ret)
-			exit(1);
+		{
+			LOG_FATAL("loadModelFromOBJ(): Failed to load model: {0}", path);
+			abort();
+		}
+			
 
 		name = filename;
 		filename = path;
@@ -471,6 +486,46 @@ namespace pathtracex {
 		}
 	}
 
+	std::string Model::primitiveModelTypeToString(PrimitiveModelType type)
+	{
+		switch (type)
+		{
+		case pathtracex::CUBE:
+			return "Cube";
+			break;
+		case pathtracex::SPHERE:
+			return "Sphere";
+			break;
+		case pathtracex::CYLINDER:
+			return "Cylinder";
+			break;
+		case pathtracex::PLANE:
+			return "Plane";
+			break;
+		case pathtracex::NONE:
+			return "None";
+			break;
+		default:
+			break;
+		}
+	}
+
+	PrimitiveModelType Model::stringToPrimitiveModelType(std::string type)
+	{
+		if (type == "Plane")
+			return PrimitiveModelType::PLANE;
+		else if (type == "Cube")
+			return PrimitiveModelType::CUBE;
+		else if (type == "Cylinder")
+			return PrimitiveModelType::CYLINDER;
+		else if (type == "Sphere")
+			return PrimitiveModelType::SPHERE;
+		else
+		{
+			return PrimitiveModelType::NONE;
+		}
+	}
+
 	std::shared_ptr<Model> Model::createCube() {
 		std::vector<Vertex> tmp_vertices{};
 		std::vector<Vertex> vertecies;
@@ -652,14 +707,18 @@ namespace pathtracex {
 			for (size_t i = 0; i < mesh.numberOfVertices; i++)
 				indecies.push_back(i + mesh.startIndex);
 		}
-		return std::make_shared<Model>("Primative Cube"
-			, materials
-			, meshes
-			, false
-			, max_cords
-			, min_cords
-			, vertecies
-			, indecies);
+
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Cube"
+					, materials
+					, meshes
+					, false
+					, max_cords
+					, min_cords
+					, vertecies
+					, indecies);
+		model->primativeType = PrimitiveModelType::CUBE;	
+
+		return model;
 	}
 	std::shared_ptr<Model> Model::createSphere(int stacks, int slices) {
 		std::vector<Vertex> tmp_vertices{};
@@ -746,14 +805,18 @@ namespace pathtracex {
 		std::vector<uint32_t> indecies;
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
-		return std::make_shared<Model>("Primative Sphere"
-			, materials
-			, meshes
-			, false
-			, max_cords
-			, min_cords
-			, vertecies
-			, indecies);
+
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Sphere"
+					, materials
+					, meshes
+					, false
+					, max_cords
+					, min_cords
+					, vertecies
+					, indecies);
+		model->primativeType = PrimitiveModelType::SPHERE;
+
+		return model;
 	}
 	std::shared_ptr<Model> Model::createPlane() {
 		std::vector<Vertex> tmp_vertices{};
@@ -795,14 +858,18 @@ namespace pathtracex {
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
 
-		return std::make_shared<Model>("Primative plane"
-			, materials
-			, meshes
-			, false
-			, max_cords
-			, min_cords
-			, vertecies
-			, indecies);
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Plane"
+					, materials
+					, meshes
+					, false
+					, max_cords
+					, min_cords
+					, vertecies
+					, indecies);
+		model->primativeType = PrimitiveModelType::PLANE;
+
+
+		return model;
 	}
 
 

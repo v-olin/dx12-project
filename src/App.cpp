@@ -20,7 +20,10 @@ namespace pathtracex {
 			cleanup();
 			return 1;
 		}
+		Serializer serializer{};
+		serializer.deserializeScene("Scene", scene);
 
+		/*
 		std::shared_ptr<Model> cube = Model::createPrimative(PrimitiveModelType::CUBE);
 		cube->trans.setPosition({ 0, 1, 0 });
 		scene.models.push_back(cube);
@@ -37,9 +40,9 @@ namespace pathtracex {
 		std::shared_ptr<Model> space_ship = std::make_shared<Model>("../../assets/space-ship.obj");
 		space_ship->trans.setPosition({ 1, -5, 80 });
 		scene.models.push_back(space_ship);
-
-		Serializer serializer{};
-		serializer.serializeScene(scene);
+		*/
+	//	Serializer serializer{};
+	//	serializer.serializeScene(scene);
 
 		while(true) {
 			const auto ecode = Window::processMessages();
