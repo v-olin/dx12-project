@@ -1,11 +1,16 @@
 #include "Keyboard.h"
 
+#include "App.h"
+#include "KeyEvent.h"
+#include <Window.h>
+
 namespace pathtracex {
 
 	bool Keyboard::keyIsPressed(unsigned char keycode) const noexcept {
 		return keyStates[keycode];
 	}
 
+	/* unused after updated events
 	std::optional<Keyboard::Event> Keyboard::readKey() noexcept {
 		if (keyBuffer.size() > 0u)
 		{
@@ -13,8 +18,9 @@ namespace pathtracex {
 			keyBuffer.pop();
 			return e;
 		}
-		return {};
+		return std::nullopt;
 	}
+	*/
 
 	bool Keyboard::keyIsEmpty() const noexcept {
 		return keyBuffer.empty();
@@ -27,7 +33,7 @@ namespace pathtracex {
 			charBuffer.pop();
 			return charcode;
 		}
-		return {};
+		return std::nullopt;
 	}
 
 	bool Keyboard::charIsEmpty() const noexcept {
@@ -61,14 +67,18 @@ namespace pathtracex {
 
 	void Keyboard::onKeyPressed(unsigned char keycode) noexcept {
 		keyStates[keycode] = true;
-		keyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Press, keycode));
-		TrimBuffer(keyBuffer);
+		
+		KeyPressedEvent kpe(keycode, false);
+		App::raiseEvent(kpe);
+		
+		//keyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Press, keycode));
+		//TrimBuffer(keyBuffer);
 	}
 
 	void Keyboard::onKeyReleased(unsigned char keycode) noexcept {
 		keyStates[keycode] = false;
-		keyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Release, keycode));
-		TrimBuffer(keyBuffer);
+		//keyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Release, keycode));
+		//TrimBuffer(keyBuffer);
 	}
 
 	void Keyboard::onChar(char c) noexcept {

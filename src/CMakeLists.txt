@@ -51,6 +51,9 @@ target_sources(PathTracerX PRIVATE
 	../vendor/ImGuizmo/ImGuizmo.cpp
 	Logger.h
 	Logger.cpp
+	Event.h
+	KeyEvent.h
+	MouseEvent.h
 )
 
 source_group("DX" FILES

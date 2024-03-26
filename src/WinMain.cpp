@@ -22,7 +22,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	try {
 		AllocConsole();
 		pathtracex::Logger::init();
-		return pathtracex::App{}.run();
+		return pathtracex::App::getInstance().run();
 	}
 	catch (const pathtracex::HRException ex) {
 		MessageBox(nullptr, ex.what(), ex.getType(), MB_OK | MB_ICONEXCLAMATION);
