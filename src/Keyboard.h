@@ -1,34 +1,21 @@
 #pragma once
 
+#include "Event.h"
+
 #include <bitset>
 #include <optional>
 #include <queue>
 
 namespace pathtracex {
 	class Keyboard {
-		friend class Window;
+		friend class Window; // this is useless???
 	public:
-		class Event {
-		public:
-			enum Type { Press, Release, Invalid };
-
-			Event() : type(Type::Invalid), code(0u) {}
-			Event(Type type, unsigned char code) : type(type), code(code) {}
-
-			bool operator==(const Event& other) const {
-				return this->code == other.code && this->type == other.type;
-			}
-
-			Type type;
-			unsigned char code;
-		};
-
 		Keyboard() = default;
 		Keyboard(const Keyboard&) = delete;
 		void operator=(const Keyboard&) = delete;
 
 		bool keyIsPressed(unsigned char keycode) const noexcept;
-		std::optional<Event> readKey() noexcept;
+		//std::optional<Event> readKey() noexcept;
 		bool keyIsEmpty() const noexcept;
 		void flushKey() noexcept;
 
