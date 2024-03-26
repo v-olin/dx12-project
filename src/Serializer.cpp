@@ -4,13 +4,13 @@
 #include "Logger.h"
 
 namespace pathtracex {
-#define SCENE_PATH "../../scenes/"
+#define SCENE_FOLDER_PATH "../../scenes/"
 #define SCENE_FILE_EXTENSION ".yaml"
 
 	void Serializer::serializeScene(Scene& scene)
 	{
 		// Create yaml file
-		createYAMLFile(SCENE_PATH, scene.sceneName);
+		createYAMLFile(SCENE_FOLDER_PATH, scene.sceneName);
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -19,7 +19,7 @@ namespace pathtracex {
 
 		out << YAML::EndMap;
 
-		std::ofstream fout(SCENE_PATH + scene.sceneName + SCENE_FILE_EXTENSION);
+		std::ofstream fout(SCENE_FOLDER_PATH + scene.sceneName + SCENE_FILE_EXTENSION);
 		fout << out.c_str();
 	}
 
@@ -91,6 +91,38 @@ namespace pathtracex {
 
 
 		out << YAML::EndSeq;
+	}
+
+	Scene Serializer::deserializeScene(const std::string& sceneName, Scene& scene)
+	{
+		LOG_TRACE("Deserializing scene: {}", sceneName);
+		std::string scenePath = SCENE_FOLDER_PATH + sceneName + SCENE_FILE_EXTENSION;
+		LOG_TRACE("Loading file: " + gameStateFilePath);
+		YAML::Node state = YAML::LoadFile(scenePath);
+
+		return Scene();
+	}
+
+	void Serializer::deserializeModels(YAML::Node node, Scene& scene)
+	{
+		YAML::Node modelsNode;
+		try
+		{
+			modelsNode = node["Models"];
+		}
+		catch (const std::exception& e)
+		{
+			LOG_ERROR("Failed to deserialize Models: " + std::string(e.what()));
+			return;
+		}
+
+		for (YAML::const_iterator it = modelsNode.begin(); it != modelsNode.end(); ++it)
+		{
+			YAML::Node modelNode = *it;
+			//std::string filename = textureNode["fileName"].as<std::string>();
+			//Texture* texture = Texture::create(filename);
+			//deserializeTexture(*it, game, texture);
+		}
 	}
 
 }

@@ -13,5 +13,8 @@ namespace pathtracex {
 		void serializeModels(Scene& scene, YAML::Emitter& out);
 
 		void serializeSerializable(Serializable* serializable, YAML::Emitter& out);
+
+		void deserializeScene(const std::string& sceneName, Scene& scene);
+		void deserializeModels(YAML::Node node, Scene& scene);
 	};
 }
