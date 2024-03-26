@@ -251,9 +251,11 @@ namespace pathtracex
 				//we need to add more uniforms so that we know if there are color textures and so on, 
 				// all textures that are valid should be send down and used
 				auto col_tex = model->materials[mesh.materialIdx].colorTexture;
-				ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
-				commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-				commandList->SetGraphicsRootDescriptorTable(1, col_tex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+				if (col_tex.valid) { //Something like this but also fill out the input to the shaders
+					ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
+					commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+					commandList->SetGraphicsRootDescriptorTable(1, col_tex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+				}
 				//here also set all uniforms for each mesh
 				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
 			}
