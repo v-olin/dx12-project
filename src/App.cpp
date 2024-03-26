@@ -20,21 +20,21 @@ namespace pathtracex {
 			return 1;
 		}
 
-		std::shared_ptr<Model> cube = Model::createPrimative(PrimitiveModelType::CUBE);
-		cube->trans.setPosition({ 0, 1, 0 });
-		scene.models.push_back(cube);
+		//std::shared_ptr<Model> cube = Model::createPrimative(PrimitiveModelType::CUBE);
+		//cube->trans.setPosition({ 0, 1, 0 });
+		//scene.models.push_back(cube);
 
-		std::shared_ptr<Model> plane = Model::createPrimative(PrimitiveModelType::PLANE);
-		plane->trans.setPosition({ 1, -1, 0 });
-		scene.models.push_back(plane);
+		//std::shared_ptr<Model> plane = Model::createPrimative(PrimitiveModelType::PLANE);
+		//plane->trans.setPosition({ 1, -1, 0 });
+		//scene.models.push_back(plane);
 
-		std::shared_ptr<Model> sphere = Model::createPrimative(PrimitiveModelType::SPHERE);
-		sphere->trans.setPosition({ 2.5, 1, 0 });
-		scene.models.push_back(sphere);
+		//std::shared_ptr<Model> sphere = Model::createPrimative(PrimitiveModelType::SPHERE);
+		//sphere->trans.setPosition({ 2.5, 1, 0 });
+		//scene.models.push_back(sphere);
 
 
-		std::shared_ptr<Model> space_ship = std::make_shared<Model>("../../assets/space-ship.obj");
-		space_ship->trans.setPosition({ 1, -5, 80 });
+		std::shared_ptr<Model> space_ship = std::make_shared<Model>("../../assets/chopper.obj");
+		space_ship->trans.setPosition({ 1, -5, 20 });
 		scene.models.push_back(space_ship);
 
 

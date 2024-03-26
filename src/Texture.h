@@ -25,8 +25,7 @@ namespace pathtracex {
 		std::string directory;
 		bool valid;
 		ID3D12Resource* textureBuffer; // the resource heap containing our texture
-		ID3D12Resource* textureBufferUploadHeap;
-
+		ID3D12DescriptorHeap* mainDescriptorHeap;
 
 		bool load(const std::string& directory, const std::string& filename, int n);
 		void free();
