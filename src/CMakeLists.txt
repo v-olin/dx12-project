@@ -28,6 +28,7 @@ target_sources(PathTracerX PRIVATE
 	Model.cpp
 	Material.h
 	Texture.h
+	Texture.cpp
 	Camera.h
 	Camera.cpp
 	Transform.h

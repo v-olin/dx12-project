@@ -7,12 +7,6 @@
 namespace pathtracex {
 	namespace file_util {
 
-		std::string normalise(const std::string& file_name);
-		std::string parent_path(const std::string& file_name);
-		std::string file_stem(const std::string& file_name);
-		std::string file_extension(const std::string& file_name);
-		std::string change_extension(const std::string& file_name, const std::string& ext);
-
 		std::string normalise(const std::string& file_name)
 		{
 			std::string nname;
@@ -89,87 +83,6 @@ namespace pathtracex {
 		}
 
 	}	
-	void Texture::free()
-	{
-	/*	if (data)
-		{
-			stbi_image_free(data);
-			data = nullptr;
-		}
-		if (gl_id_internal)
-		{
-			glDeleteTextures(1, &gl_id_internal);
-			gl_id_internal = 0;
-		}*/
-	}
-
-	bool Texture::load(const std::string& _directory, const std::string& _filename, int _components)
-	{
-		filename = file_util::normalise(_filename);
-		directory = file_util::normalise(_directory);
-		valid = true;
-		int components;
-		//TODO figure out how to load textures with directX
-		/*stbi_set_flip_vertically_on_load(true);
-		data = stbi_load((directory + filename).c_str(), &width, &height, &components, _components);
-		if (data == nullptr)
-		{
-			Logger::log("ERROR: loadModelFromOBJ(): Failed to load texture: " + filename + " in " + directory, LOG_LEVEL_FATAL);
-		}
-		glGenTextures(1, &gl_id_internal);
-		gl_id = gl_id_internal;
-		glBindTexture(GL_TEXTURE_2D, gl_id_internal);
-		GLenum format, internal_format;
-		n_components = _components;
-		if (_components == 1)
-		{
-			format = GL_R;
-			internal_format = GL_R8;
-		}
-		else if (_components == 3)
-		{
-			format = GL_RGB;
-			internal_format = GL_RGB;
-		}
-		else if (_components == 4)
-		{
-			format = GL_RGBA;
-			internal_format = GL_RGBA;
-		}
-		else
-		{
-			Logger::log("Texture loading not implemented for this number of compenents.\n", LOG_LEVEL_FATAL);
-		}
-		glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-		stbi_image_free(data);
-		glBindTexture(GL_TEXTURE_2D, 0);*/
-		return true;
-	}
-
-	float4 Texture::sample(float2 uv) const
-	{
-		int x = int(uv.x * width + 0.5) % width;
-		int y = int(uv.y * height + 0.5) % height;
-		if (n_components == 4)
-		{
-			return float4(data[(y * width + x) * 4 + 0], data[(y * width + x) * 4 + 1],
-				data[(y * width + x) * 4 + 2], data[(y * width + x) * 4 + 3])
-				/ 255.f;
-		}
-		else
-		{
-			// Just return one channel
-			return float4(data[(y * width + x) * n_components + 0], data[(y * width + x) * n_components + 0],
-				data[(y * width + x) * n_components + 0], data[(y * width + x) * n_components + 0])
-				/ 255.f;
-		}
-	}
 	Model::~Model()
 	{
 		for (auto& material : materials)
