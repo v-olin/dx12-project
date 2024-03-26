@@ -1,5 +1,6 @@
 #include "App.h"
 #include <Windows.h>
+#include "Serializer.h"
 
 namespace pathtracex {
 	App::App() : window(1280, 720, "PathTracer")
@@ -37,6 +38,8 @@ namespace pathtracex {
 		space_ship->trans.setPosition({ 1, -5, 80 });
 		scene.models.push_back(space_ship);
 
+		Serializer serializer{};
+		serializer.serializeScene(scene);
 
 
 		while(true) {

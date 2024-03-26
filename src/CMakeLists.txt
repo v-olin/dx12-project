@@ -43,6 +43,8 @@ target_sources(PathTracerX PRIVATE
 	DXIndexBuffer.cpp
 	Exceptions.h
 	Exceptions.cpp
+	Serializer.h
+	Serializer.cpp
 	../vendor/d3dx12/d3dx12.h
 	../vendor/ImGuizmo/ImGuizmo.h
 	../vendor/ImGuizmo/ImGuizmo.cpp
