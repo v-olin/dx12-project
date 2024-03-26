@@ -52,9 +52,10 @@ namespace pathtracex {
 	public:
 		EventDispatcher(Event& event) : event(event) { }
 
+		// compiler will deduce F
 		template<typename T, typename F>
 		bool dispatch(const F& func) {
-			if (event.getType() == T::getStaticType()) {
+			if (event.getEventType() == T::getStaticType()) {
 				event.Handled |= func(static_cast<T&>(event));
 			}
 		}

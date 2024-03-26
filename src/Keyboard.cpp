@@ -1,5 +1,6 @@
 #include "Keyboard.h"
 
+#include "App.h"
 #include "KeyEvent.h"
 #include <Window.h>
 
@@ -68,7 +69,7 @@ namespace pathtracex {
 		keyStates[keycode] = true;
 		
 		KeyPressedEvent kpe(keycode, false);
-		Window::raiseEvent(kpe);
+		App::raiseEvent(kpe);
 		
 		//keyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Press, keycode));
 		//TrimBuffer(keyBuffer);

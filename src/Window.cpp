@@ -38,14 +38,6 @@ namespace pathtracex {
 		}
 	}
 
-	void Window::setCallbackFn(EventCallbackFn callback) {
-		callbackFunc = callback;
-	}
-
-	void Window::raiseEvent(Event& e) {
-		callbackFunc(e);
-	}
-
 	std::optional<int> Window::processMessages() {
 		MSG msg;
 

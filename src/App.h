@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace pathtracex {
+	using EventCallbackFn = std::function<void(Event&)>;
 
 	class App {
 	public:
@@ -23,12 +24,14 @@ namespace pathtracex {
 
 		int run();
 		static void registerEventListener(IEventListener* listener);
+		static void raiseEvent(Event& e);
 
 	private:
 		App();
 		void everyFrame();
 		void cleanup();
 		void onEvent(Event& e);
+		EventCallbackFn callback;
 
 		Scene scene{};
 		GUI gui{scene};

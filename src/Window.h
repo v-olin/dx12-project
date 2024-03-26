@@ -1,16 +1,17 @@
 #pragma once
 
+#include "Event.h"
 #include "PathWin.h"
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "GUI.h"
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 
 namespace pathtracex {
-	using EventCallbackFn = std::function<void(Event&)>;
 	
 	class Window {
 	public:
@@ -26,13 +27,10 @@ namespace pathtracex {
 		Mouse mouse;
 		HWND windowHandle;
 		void getSize(int& width, int& height) const;
-		void setCallbackFn(EventCallbackFn callback);
-		static void raiseEvent(Event& e);
+
 	private:
 		int width, height;
 		std::string title;
-
-		static EventCallbackFn callbackFunc;
 
 		HINSTANCE _hInstance; // i tink program instance?
 		static constexpr LPCSTR _wndClassName = "pathtracex::window";

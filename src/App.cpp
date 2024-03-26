@@ -1,14 +1,16 @@
 #include "App.h"
 
-#include "PathWin.h"
+#include "Event.h"
 #include "Logger.h"
+#include "PathWin.h"
+#include "Window.h"
 
 namespace pathtracex {
 	App::App() : window(1280, 720, "PathTracer")
 	{
 		gui.window = &window;
 
-		window.setCallbackFn(BIND_EVENT_FN(App::onEvent));
+		callback = BIND_EVENT_FN(App::onEvent);
 
 		// Initialize renderer
 		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
@@ -41,19 +43,19 @@ namespace pathtracex {
 
 			everyFrame();
 		}
-
-
 	}
 
 	void App::registerEventListener(IEventListener* listener) {
 		getInstance().listeners.push_back(listener);
 	}
 
+	void App::raiseEvent(Event& e) {
+		getInstance().callback(e);
+	}
+
 	void App::onEvent(Event& e) {
 		EventDispatcher dispatcher(e);
 
-		LOG_INFO("Event handled!!!!!");
-		
 		for (auto listener : listeners) {
 			if (e.Handled) {
 				break;
@@ -71,8 +73,6 @@ namespace pathtracex {
 
 	void App::everyFrame() {
 		gui.drawGUI(defaultRenderSettings);
-	//	window.pRenderer->onUpdate();
-	//	window.pRenderer->onRender();
 
 		// Update render settings
 		int width, height;
