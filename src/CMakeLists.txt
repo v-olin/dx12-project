@@ -51,6 +51,8 @@ target_sources(PathTracerX PRIVATE
 	Event.h
 	KeyEvent.h
 	MouseEvent.h
+	WindowEvent.h
+	TimedEvent.h
 )
 
 source_group("DX" FILES

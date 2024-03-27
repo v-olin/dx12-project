@@ -16,14 +16,19 @@ namespace pathtracex {
 		MouseMoved,
 		MousePressed,
 		MouseReleased,
-		MouseScrolled
+		MouseScrolled,
+		WindowResize,
+		WindowClose,
+		TimeElapsed
 	};
 
 	enum EventCategory {
 		None = 0,
 		EventCategoryApp = BIT(0),
 		EventCategoryKeyboard = BIT(1),
-		EventCategoryMouse = BIT(2)
+		EventCategoryMouse = BIT(2),
+		EventCategoryWindow = BIT(3),
+		EventCategoryTime = BIT(4)
 	};
 
 #define EVENT_CLASS_TYPE(type) static EventType getStaticType() { return EventType::type; }\
@@ -57,7 +62,9 @@ namespace pathtracex {
 		bool dispatch(const F& func) {
 			if (event.getEventType() == T::getStaticType()) {
 				event.Handled |= func(static_cast<T&>(event));
+				return true;
 			}
+			return false;
 		}
 
 	private:

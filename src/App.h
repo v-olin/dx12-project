@@ -7,6 +7,7 @@
 #include "Event.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace pathtracex {
@@ -25,13 +26,15 @@ namespace pathtracex {
 		int run();
 		static void registerEventListener(IEventListener* listener);
 		static void raiseEvent(Event& e);
+		static void raiseTimeEvent(Event& e);
 
 	private:
 		App();
 		void everyFrame();
 		void cleanup();
 		void onEvent(Event& e);
-		EventCallbackFn callback;
+		void raiseTimedEvents();
+		std::optional<EventCallbackFn> callback;
 
 		Scene scene{};
 		GUI gui{scene};
@@ -41,6 +44,7 @@ namespace pathtracex {
 		RenderSettings defaultRenderSettings{ 0, 0, defaultCamera };
 
 		std::vector<IEventListener*> listeners{};
+		std::vector<Event> timedEvents{};
 	};
 
 }

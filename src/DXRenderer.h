@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PathWin.h"
+#include "Event.h"
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -32,7 +33,7 @@ namespace pathtracex {
 	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
 	#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
-	class DXRenderer : GraphicsAPI {
+	class DXRenderer : public GraphicsAPI, public IEventListener {
 	public:
 		~DXRenderer() = default;
 		DXRenderer(const DXRenderer&) = delete;
@@ -52,10 +53,13 @@ namespace pathtracex {
 		void Update(RenderSettings& renderSettings); // update the game logic
 
 		static DXRenderer* getInstance() {
+			/*
 			if (!instance) {
 				instance = new DXRenderer();
 			}
-			return instance;
+			*/
+			static DXRenderer instance;
+			return &instance;
 		}
 
 		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
@@ -71,16 +75,18 @@ namespace pathtracex {
 
 		void incrementFenceAndSignalCurrentFrame();
 
+		virtual void onEvent(Event& e) override;
+
 	private:
 		DXRenderer();
 
 
 		HWND hwnd;
-		bool useWarpDevice; // ???
+		bool useWarpDevice = false; // ???
+		bool resizeOnNextFrame = false;
+		UINT resizedWidth = 0, resizedHeight = 0;
 
 		Window* window = nullptr;
-
-		inline static DXRenderer* instance;
 
 		// direct3d stuff
  // number of buffers we want, 2 for double buffering, 3 for tripple buffering
@@ -178,7 +184,10 @@ namespace pathtracex {
 		bool createPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
-		bool createBuffers();
+		bool createBuffers(bool createDepthBufferOnly = false);
+
+		bool onWindowResizeEvent(WindowResizeEvent& wre);
+		void handleDeviceRemoved();
 
 		void destroyDevice();
 	};
