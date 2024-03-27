@@ -15,6 +15,11 @@ namespace pathtracex {
 
 		vBufferSize = sizeof(Vertex) * vertices.size();
 
+		renderer->resetCommandList();
+
+	//	renderer->resetCommandList();
+
+
 		// create default heap
 		// default heap is memory on the GPU. Only the GPU has access to this memory
 		// To get data into this heap, we will have to upload the data using
@@ -67,7 +72,10 @@ namespace pathtracex {
 		vertexBufferView.StrideInBytes = sizeof(Vertex);
 		vertexBufferView.SizeInBytes = vBufferSize;
 
+		renderer->finishedRecordingCommandList();
+
 		renderer->executeCommandList();
+
 		// We make sure the index buffer is uploaded to the GPU before the renderer uses it
 		renderer->incrementFenceAndSignalCurrentFrame();
 	}

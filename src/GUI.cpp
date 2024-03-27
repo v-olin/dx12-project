@@ -6,6 +6,8 @@
 #include "../../vendor/ImGuizmo/ImGuizmo.h"
 #include <DirectXMath.h>
 #include <imgui_internal.h>
+#include "ResourceManager.h"
+#include "Serializer.h"
 
 namespace pathtracex {
 
@@ -62,9 +64,16 @@ namespace pathtracex {
 		{
 			for (auto model : scene.models)
 			{
-				if (ImGui::Selectable(model->getName().c_str())) {
-
+				bool pushedStyle = false;
+				if (selectedSelectable.lock() == model) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+					pushedStyle = true;
+				}
+				if (ImGui::Selectable((model->getName() + "##" + model->id).c_str())) {
 					selectedSelectable = model;
+				}
+				if (pushedStyle) {
+					ImGui::PopStyleColor();
 				}
 			}
 		}
@@ -223,7 +232,7 @@ namespace pathtracex {
 			}
 			if (ImGui::MenuItem("Save scene"))
 			{
-
+				Serializer::serializeScene(scene);
 			}
 			ImGui::EndMenu();
 		}
@@ -232,11 +241,26 @@ namespace pathtracex {
 		{
 			if (ImGui::MenuItem("Add model from obj file"))
 			{
-
+				char fileFilter[64] = "obj files: .obj\0*.obj*\0\0";
+				std::string filename = ResourceManager::addFileFromWindowsExplorerToAssets(fileFilter);
+				std::shared_ptr<Model> model = std::make_shared<Model>(filename);
+				scene.models.push_back(model);
 			}
-			if (ImGui::MenuItem("Add model primative"))
+			if (ImGui::BeginMenu("Create Model Primative"))
 			{
-
+				if (ImGui::MenuItem("Cube"))
+				{
+					scene.models.push_back(Model::createPrimative(PrimitiveModelType::CUBE));
+				}
+				if (ImGui::MenuItem("Sphere"))
+				{
+					scene.models.push_back(Model::createPrimative(PrimitiveModelType::SPHERE));
+				}
+				if (ImGui::MenuItem("Plane"))
+				{
+					scene.models.push_back(Model::createPrimative(PrimitiveModelType::PLANE));
+				}
+				ImGui::EndMenu();
 			}
 			ImGui::EndMenu();
 		}
