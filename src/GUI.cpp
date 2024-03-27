@@ -6,6 +6,7 @@
 #include "../../vendor/ImGuizmo/ImGuizmo.h"
 #include <DirectXMath.h>
 #include <imgui_internal.h>
+#include "ResourceManager.h"
 
 namespace pathtracex {
 
@@ -232,7 +233,10 @@ namespace pathtracex {
 		{
 			if (ImGui::MenuItem("Add model from obj file"))
 			{
-
+				char fileFilter[64] = "obj files: .obj\0*.obj*\0\0";
+				std::string filename = ResourceManager::addFileFromWindowsExplorerToAssets(fileFilter);
+				std::shared_ptr<Model> model = std::make_shared<Model>(filename);
+				scene.models.push_back(model);
 			}
 			if (ImGui::MenuItem("Add model primative"))
 			{

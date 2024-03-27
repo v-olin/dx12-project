@@ -5,26 +5,36 @@
 #include <d3d12.h>
 #include "../vendor/d3dx12/d3dx12.h"
 #include "DXRenderer.h"
+#include "Logger.h"
 
 namespace pathtracex {
 	DXIndexBuffer::DXIndexBuffer(std::vector<uint32_t> indices)
 	{
 		DXRenderer* renderer = DXRenderer::getInstance();
 
+		renderer->resetCommandList();
+
 		iBufferSize = sizeof(uint32_t) * indices.size();
 
 		numCubeIndices = indices.size();
+	//	renderer->resetCommandList();
 
+		HRESULT hr;
 		// create default heap to hold index buffer
 		CD3DX12_HEAP_PROPERTIES iHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 		CD3DX12_RESOURCE_DESC iResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(iBufferSize);
-		renderer->device->CreateCommittedResource(
+		hr = renderer->device->CreateCommittedResource(
 			&iHeapProperties, // a default heap
 			D3D12_HEAP_FLAG_NONE, // no flags
 			&iResourceDesc, // resource description for a buffer
 			D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
 			nullptr, // optimized clear value must be null for this type of resource
 			IID_PPV_ARGS(&indexBuffer));
+
+		if (FAILED(hr))
+		{
+			LOG_ERROR("FAILED TO CREATE INDEX BUFFER");
+		}
 
 		// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
 		indexBuffer->SetName(L"Index Buffer Resource Heap");
@@ -62,8 +72,10 @@ namespace pathtracex {
 		indexBufferView.SizeInBytes = iBufferSize;
 
 
-
+		renderer->finishedRecordingCommandList();
 		renderer->executeCommandList();
+
+
 
 		renderer->incrementFenceAndSignalCurrentFrame();
 

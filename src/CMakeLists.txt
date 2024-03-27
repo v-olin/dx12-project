@@ -46,6 +46,8 @@ target_sources(PathTracerX PRIVATE
 	Serializer.h
 	Serializer.cpp
 	Serializable.h
+	ResourceManager.h
+	ResourceManager.cpp
 	../vendor/d3dx12/d3dx12.h
 	../vendor/ImGuizmo/ImGuizmo.h
 	../vendor/ImGuizmo/ImGuizmo.cpp
