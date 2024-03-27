@@ -7,6 +7,7 @@
 #include <DirectXMath.h>
 #include <imgui_internal.h>
 #include "ResourceManager.h"
+#include "Serializer.h"
 
 namespace pathtracex {
 
@@ -231,7 +232,7 @@ namespace pathtracex {
 			}
 			if (ImGui::MenuItem("Save scene"))
 			{
-
+				Serializer::serializeScene(scene);
 			}
 			ImGui::EndMenu();
 		}

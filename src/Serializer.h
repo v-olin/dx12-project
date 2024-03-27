@@ -5,17 +5,17 @@
 namespace pathtracex {
 	class Serializer {
 	public:
-		void serializeScene(Scene& scene);
-		void deserializeScene(const std::string& sceneName, Scene& scene);
+		static void serializeScene(Scene& scene);
+		static void deserializeScene(const std::string& sceneName, Scene& scene);
 	private:
-		void createYAMLFile(const std::string& fileFolder, const std::string& fileName);
+		static void createYAMLFile(const std::string& fileFolder, const std::string& fileName);
 
-		void serializeModels(Scene& scene, YAML::Emitter& out);
+		static void serializeModels(Scene& scene, YAML::Emitter& out);
 
-		void serializeSerializable(Serializable* serializable, YAML::Emitter& out);
+		static void serializeSerializable(Serializable* serializable, YAML::Emitter& out);
 
-		void deserializeModels(YAML::Node node, Scene& scene);
+		static void deserializeModels(YAML::Node node, Scene& scene);
 
-		void deserializeSerializable(YAML::Node node, Serializable* serializable);
+		static void deserializeSerializable(YAML::Node node, Serializable* serializable);
 	};
 }

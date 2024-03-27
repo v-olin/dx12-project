@@ -828,7 +828,7 @@ namespace pathtracex
 		finishedRecordingCommandList();
 
 		executeCommandList();
-
+ 
 
 		incrementFenceAndSignalCurrentFrame();
 
