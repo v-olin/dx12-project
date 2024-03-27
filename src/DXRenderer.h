@@ -188,7 +188,11 @@ namespace pathtracex {
 		bool createBuffers(bool createDepthBufferOnly = false);
 
 		bool onWindowResizeEvent(WindowResizeEvent& wre);
-		void handleDeviceRemoved();
+		void onResizeUpdatePipeline();
+		void onResizeUpdateRenderTargets();
+		void onResizeUpdateBackBuffers();
+		void onResizeUpdateDescriptorHeaps();
+		void waitForTotalGPUCompletion();
 
 		void destroyDevice();
 	};

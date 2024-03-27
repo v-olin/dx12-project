@@ -96,13 +96,6 @@ namespace pathtracex
 	}
 	*/
 
-	void App::raiseTimedEvents() {
-		for (auto timedEvent : timedEvents) {
-			// if timedEvent.shouldFire()
-			//		raise(timedEvent)
-		}
-	}
-
 	void App::onEvent(Event &e)
 	{
 		EventDispatcher dispatcher(e);
