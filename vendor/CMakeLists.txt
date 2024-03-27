@@ -1,4 +1,5 @@
 add_subdirectory(spdlog)
+add_subdirectory(yaml-cpp)
 add_subdirectory ( ${CMAKE_SOURCE_DIR}/vendor/imgui-cmake ${CMAKE_CURRENT_BINARY_DIR}/imgui )
 set_target_properties(imgui PROPERTIES FOLDER external)
 
@@ -16,4 +17,5 @@ add_library(vendor INTERFACE)
 
 target_link_libraries(vendor INTERFACE 
 	spdlog::spdlog
+	yaml-cpp
 )

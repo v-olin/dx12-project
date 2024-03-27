@@ -23,7 +23,7 @@ namespace pathtracex {
 
 	DXRenderer::DXRenderer() {}
 
-	void DXRenderer::executeCommandList()
+	void DXRenderer::finishedRecordingCommandList()
 	{
 		HRESULT hr;
 		hr = commandList->Close();
@@ -32,16 +32,24 @@ namespace pathtracex {
 			LOG_ERROR("Error executing command list, executeCommandList()");
 			THROW_IF_FAILED(hr);
 		}
+	
+	}
 
+	void DXRenderer::executeCommandList()
+	{
+		
 		ID3D12CommandList *ppCommandLists[] = {commandList};
 		commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 		// This is maybe sus
-		resetCommandList();
+	//	resetCommandList();
 	}
 
 	void DXRenderer::resetCommandList()
 	{
+		// We have to wait for the gpu to finish with the command allocator before we reset it
+		WaitForPreviousFrame();
+
 		HRESULT hr;
 		hr = commandAllocator[frameIndex]->Reset();
 		if (FAILED(hr))
@@ -49,7 +57,7 @@ namespace pathtracex {
 			LOG_ERROR("Error resetting command allocator, resetCommandList()");
 			THROW_IF_FAILED(hr);
 		}
-
+		
 		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
 		if (FAILED(hr))
 		{
@@ -1011,7 +1019,10 @@ namespace pathtracex {
 			memcpy(cbvGPUAddress[i] + ConstantBufferPerObjectAlignedSize, &cbPerObject, sizeof(cbPerObject)); // cube2's constant buffer data
 		}
 
+		finishedRecordingCommandList();
+
 		executeCommandList();
+ 
 
 		incrementFenceAndSignalCurrentFrame();
 

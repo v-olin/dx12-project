@@ -68,7 +68,8 @@ namespace pathtracex {
 
 		ID3D12CommandQueue* commandQueue; // container for command lists
 
-		
+		void finishedRecordingCommandList();
+
 		void executeCommandList();
 
 		void resetCommandList();
@@ -76,6 +77,8 @@ namespace pathtracex {
 		void incrementFenceAndSignalCurrentFrame();
 
 		virtual void onEvent(Event& e) override;
+
+		void WaitForPreviousFrame(); // wait until gpu is finished with command list
 
 	private:
 		DXRenderer();
@@ -170,8 +173,6 @@ namespace pathtracex {
 		void UpdatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
 
 		void Cleanup(); // release com ojects and clean up memory
-
-		void WaitForPreviousFrame(); // wait until gpu is finished with command list
 
 		bool createFactory();
 		bool createDebugController();
