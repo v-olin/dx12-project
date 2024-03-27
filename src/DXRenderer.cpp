@@ -1,5 +1,6 @@
 #include "DXRenderer.h"
 
+#include "App.h"
 #include "Exceptions.h"
 #include "Helper.h"
 
@@ -16,8 +17,7 @@
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
 
-namespace pathtracex
-{
+namespace pathtracex {
 
 #define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), IID_PPV_ARGS_Helper(ppType)
 
@@ -29,8 +29,8 @@ namespace pathtracex
 		hr = commandList->Close();
 		if (FAILED(hr))
 		{
-			LOG_ERROR("Error closing command list, recordCommandList()");
-			throw std::runtime_error("Error, recordCommandList()");
+			LOG_ERROR("Error executing command list, executeCommandList()");
+			THROW_IF_FAILED(hr);
 		}
 	
 	}
@@ -55,14 +55,14 @@ namespace pathtracex
 		if (FAILED(hr))
 		{
 			LOG_ERROR("Error resetting command allocator, resetCommandList()");
-			throw std::runtime_error("Error, resetCommandList()");
+			THROW_IF_FAILED(hr);
 		}
 		
 		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
 		if (FAILED(hr))
 		{
 			LOG_ERROR("Error resetting command list, resetCommandList()");
-			throw std::runtime_error("Error, resetCommandList()");
+			THROW_IF_FAILED(hr);
 		}
 	}
 
@@ -74,12 +74,75 @@ namespace pathtracex
 		if (FAILED(hr))
 		{
 			LOG_ERROR("Error signaling current frame and incrementing fence, signalCurrentFrameAndIncrementFence()");
-			throw std::runtime_error("Error, signalCurrentFrameAndIncrementFence()");
+			THROW_IF_FAILED(hr);
 		}
+	}
+
+	void DXRenderer::onEvent(Event& e) {
+		EventDispatcher dispatcher{ e };
+
+		if (e.getEventType() == EventType::WindowResize) {
+			dispatcher.dispatch<WindowResizeEvent>(BIND_EVENT_FN(DXRenderer::onWindowResizeEvent));
+		}
+	}
+
+	bool DXRenderer::onWindowResizeEvent(WindowResizeEvent& wre) {
+		/* OLD IMPL
+		WaitForPreviousFrame();
+
+		resetCommandList();
+
+		auto backBuffIdx = swapChain->GetCurrentBackBufferIndex();
+		for (int i = 0; i < frameBufferCount; i++) {
+			renderTargets[i]->Release();
+			renderTargets[i] = nullptr;
+			//fenceValue[i] = fenceValue[backBuffIdx];
+		}
+
+		HRESULT hr;
+		THROW_IF_FAILED(swapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0u));
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+		for (int i = 0; i < frameBufferCount; i++) {
+			THROW_IF_FAILED(swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
+
+			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+			rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+			device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
+		}
+
+		frameIndex = swapChain->GetCurrentBackBufferIndex();
+
+		bool createOnlyDepthStencilBuffer = true;
+		createBuffers(createOnlyDepthStencilBuffer); // create new stencil buffer
+
+		viewport.Width = wre.getWidth();
+		viewport.Height = wre.getHeight();
+		viewport.MinDepth = D3D12_MIN_DEPTH;
+		viewport.MaxDepth = D3D12_MAX_DEPTH;
+
+		scissorRect.right = wre.getWidth();
+		scissorRect.bottom = wre.getHeight();
+
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
+		//THROW_IF_FAILED(swapChain->Present(0, 0));
+
+		*/
+		
+		resizeOnNextFrame = true;
+		resizedWidth = wre.getWidth();
+		resizedHeight = wre.getHeight();
+		
+		return true;
 	}
 
 	bool DXRenderer::init(Window *window)
 	{
+		App::registerEventListener(this);
+
 		LOG_INFO("Initializing DXRenderer");
 		this->window = window;
 		hwnd = window->windowHandle;
@@ -178,19 +241,176 @@ namespace pathtracex
 		// TODO
 	}
 
+	void DXRenderer::onResizeUpdatePipeline() {
+		resizeOnNextFrame = false;
+		HRESULT hr;
+
+		// step 1: yeet all the old framebuffers because they are of the old
+		// resolution and worthless
+		onResizeUpdateRenderTargets();
+
+		// step 2: resize the whole fucking swapchain
+		THROW_IF_FAILED(swapChain->ResizeBuffers(frameBufferCount, resizedWidth, resizedHeight, DXGI_FORMAT_UNKNOWN, 0u));
+		frameIndex = swapChain->GetCurrentBackBufferIndex();
+
+		// step 3: create new back buffers with the new size given by the updated swapchain
+		onResizeUpdateBackBuffers();
+
+		// step 4: update all heap bullshit for imgui
+		onResizeUpdateDescriptorHeaps();
+
+		// step 5: update viewport and scissor
+		viewport.Width = resizedWidth;
+		viewport.Height = resizedHeight;
+
+		scissorRect.right = resizedWidth;
+		scissorRect.bottom = resizedHeight;
+
+		// step 6: reset imgui
+		ImGui_ImplDX12_InvalidateDeviceObjects();
+		ImGui_ImplDX12_CreateDeviceObjects();
+	}
+
+	void DXRenderer::onResizeUpdateRenderTargets() {
+		auto bbi = swapChain->GetCurrentBackBufferIndex();
+		for (int i = 0; i < frameBufferCount; i++) {
+			renderTargets[i]->Release();
+			renderTargets[i] = nullptr;
+			fenceValue[i] = fenceValue[bbi];
+		}
+	}
+
+	void DXRenderer::onResizeUpdateBackBuffers() {
+		HRESULT hr;
+		// create desc
+		D3D12_DESCRIPTOR_HEAP_DESC rtvd{};
+		ZeroMemory(&rtvd, sizeof(rtvd));
+		rtvd.NumDescriptors = frameBufferCount;
+		rtvd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		rtvd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+		// release old heap and create new one
+		rtvDescriptorHeap->Release();
+		THROW_IF_FAILED(device->CreateDescriptorHeap(&rtvd, IID_PPV_ARGS(&rtvDescriptorHeap)));
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+		D3D12_DESCRIPTOR_HEAP_DESC srvd{};
+		ZeroMemory(&srvd, sizeof(srvd));
+		srvd.NumDescriptors = 1;
+		srvd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		srvd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+		srvHeap->Release();
+		THROW_IF_FAILED(device->CreateDescriptorHeap(&srvd, IID_PPV_ARGS(&srvHeap)));
+
+		rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		for (int i = 0; i < frameBufferCount; i++) {
+			THROW_IF_FAILED(swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
+			device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
+			rtvHandle.Offset(1, rtvDescriptorSize);
+		}
+	}
+
+	void DXRenderer::onResizeUpdateDescriptorHeaps() {
+		HRESULT hr;
+
+		D3D12_DESCRIPTOR_HEAP_DESC dsvd{};
+		ZeroMemory(&dsvd, sizeof(dsvd));
+		dsvd.NumDescriptors = 1;
+		dsvd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		dsvd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+		dsDescriptorHeap->Release();
+		THROW_IF_FAILED(device->CreateDescriptorHeap(&dsvd, IID_PPV_ARGS(&dsDescriptorHeap)));
+
+		D3D12_DEPTH_STENCIL_VIEW_DESC dstvd{};
+		ZeroMemory(&dstvd, sizeof(dstvd));
+		dstvd.Format = DXGI_FORMAT_D32_FLOAT;
+		dstvd.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		dstvd.Flags = D3D12_DSV_FLAG_NONE;
+
+		D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+		depthOptimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+		depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+		depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+		int Width, Height;
+		window->getSize(Width, Height);
+
+		CD3DX12_HEAP_PROPERTIES heapPropertiesDefault(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC depthStencilResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, Width, Height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+
+		depthStencilBuffer->Release();
+		device->CreateCommittedResource(
+			&heapPropertiesDefault,
+			D3D12_HEAP_FLAG_NONE,
+			&depthStencilResourceDesc,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&depthOptimizedClearValue,
+			IID_PPV_ARGS(&depthStencilBuffer));
+		dsDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
+
+		device->CreateDepthStencilView(depthStencilBuffer, &dstvd, dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+		for (int i = 0; i < frameBufferCount; i++) {
+			CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
+			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64); // allocate a 64KB buffer
+			constantBufferUploadHeaps[i]->Release();
+			hr = device->CreateCommittedResource(
+				&heapUpload,					   // this heap will be used to upload the constant buffer data
+				D3D12_HEAP_FLAG_NONE,			   // no flags
+				&cbResourceDesc,				   // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+				D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
+				nullptr,						   // we do not have use an optimized clear value for constant buffers
+				IID_PPV_ARGS(&constantBufferUploadHeaps[i]));
+			constantBufferUploadHeaps[i]->SetName(L"Constant Buffer Upload Resource Heap");
+
+			ZeroMemory(&cbPerObject, sizeof(cbPerObject));
+
+			CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU. (so end is less than or equal to begin)
+
+			// map the resource heap to get a gpu virtual address to the beginning of the heap
+			hr = constantBufferUploadHeaps[i]->Map(0, &readRange, reinterpret_cast<void**>(&cbvGPUAddress[i]));
+
+			// Because of the constant read alignment requirements, constant buffer views must be 256 bit aligned. Our buffers are smaller than 256 bits,
+			// so we need to add spacing between the two buffers, so that the second buffer starts at 256 bits from the beginning of the resource heap.
+			memcpy(cbvGPUAddress[i], &cbPerObject, sizeof(cbPerObject));									  // cube1's constant buffer data
+			memcpy(cbvGPUAddress[i] + ConstantBufferPerObjectAlignedSize, &cbPerObject, sizeof(cbPerObject)); // cube2's constant buffer data
+		}
+	}
+
+	void DXRenderer::waitForTotalGPUCompletion() {
+		for (int i = 0; i < frameBufferCount; i++) {
+			UINT64 fenceValueForSignal = ++fenceValue[i];
+			commandQueue->Signal(fence[i], fenceValueForSignal);
+			if (fence[i]->GetCompletedValue() < fenceValue[i]) {
+				fence[i]->SetEventOnCompletion(fenceValueForSignal, fenceEvent);
+				WaitForSingleObject(fenceEvent, INFINITE);
+			}
+		}
+
+		frameIndex = 0;
+	}
+
 	void DXRenderer::UpdatePipeline(RenderSettings &renderSettings, Scene &scene)
 	{
 		HRESULT hr;
 
 		// We have to wait for the gpu to finish with the command allocator before we reset it
-		WaitForPreviousFrame();
+		if (resizeOnNextFrame) [[unlikely]] {
+			waitForTotalGPUCompletion();
+		}
+		else {
+			WaitForPreviousFrame();
+		}
+
 
 		// we can only reset an allocator once the gpu is done with it
 		// resetting an allocator frees the memory that the command list was stored in
 		hr = commandAllocator[frameIndex]->Reset();
-		if (FAILED(hr))
-		{
-
+		if (FAILED(hr)) {
+			THROW_IF_FAILED(hr);
 		}
 
 		// reset the command list. by resetting the command list we are putting it into
@@ -204,11 +424,17 @@ namespace pathtracex
 		// anything but an initial default pipeline, which is what we get by setting
 		// the second parameter to NULL
 		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
+			THROW_IF_FAILED(hr);
 		}
 
+
 		// here we start recording commands into the commandList (which all the commands will be stored in the commandAllocator)
+
+		if (resizeOnNextFrame) [[unlikely]] {
+			onResizeUpdatePipeline();
+		}
+
 
 		// transition the "frameIndex" render target from the present state to the render target state so the command list draws to it starting from here
 		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -281,7 +507,6 @@ namespace pathtracex
 		HRESULT hr;
 
 		//	Update(renderSettings);
-
 		UpdatePipeline(renderSettings, scene); // update the pipeline by sending commands to the commandqueue
 
 		// create an array of command lists (only one command list here)
@@ -296,14 +521,15 @@ namespace pathtracex
 		hr = commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
 		if (FAILED(hr))
 		{
-			throw std::runtime_error("Error, render()");
+			THROW_IF_FAILED(hr);
 		}
 
 		// present the current backbuffer
 		hr = swapChain->Present(0, 0);
 		if (FAILED(hr))
 		{
-			throw std::runtime_error("Error, render()");
+			HRESULT reason = device->GetDeviceRemovedReason();
+			THROW_IF_FAILED(reason);
 		}
 	}
 
@@ -440,6 +666,7 @@ namespace pathtracex
 		LOG_TRACE("DirectX12 swap chain created");
 		return true;
 	}
+
 	bool DXRenderer::createDescriptorHeaps()
 	{
 		LOG_TRACE("Creating DirectX12 descriptor heaps");
@@ -645,7 +872,7 @@ namespace pathtracex
 		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
 			{
 				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
+				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
 
 		// fill out an input layout description structure
 		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
@@ -679,6 +906,7 @@ namespace pathtracex
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);					// a default blent state.
 		psoDesc.NumRenderTargets = 1;											// we are only binding one render target
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);	// a default depth stencil state
+		psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
 		// create the pso
 		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject));
@@ -742,7 +970,7 @@ namespace pathtracex
 		return true;
 	}
 
-	bool DXRenderer::createBuffers()
+	bool DXRenderer::createBuffers(bool createDepthBufferOnly)
 	{
 		HRESULT hr;
 
@@ -880,7 +1108,7 @@ namespace pathtracex
 			hr = fence[frameIndex]->SetEventOnCompletion(fenceValue[frameIndex], fenceEvent);
 			if (FAILED(hr))
 			{
-				throw std::runtime_error("Error");
+				THROW_IF_FAILED(hr);
 			}
 
 			// We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value

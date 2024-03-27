@@ -26,6 +26,10 @@ namespace pathtracex {
 		ImGui::DestroyContext();
 	}
 
+	void GUI::resetContext() {
+
+	}
+
 	void GUI::drawGUI(RenderSettings& renderSettings)
 	{
 		ImGui_ImplDX12_NewFrame();

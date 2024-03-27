@@ -10,11 +10,16 @@ namespace pathtracex
 	App::App() : window(1280, 720, "PathTracer")
 	{
 		gui.window = &window;
+		window.setInitialized();
 
 		callback = BIND_EVENT_FN(App::onEvent);
 
 		// Initialize renderer
-		defaultRenderSettings.camera.transform.setPosition({1, 0, -4});
+		int width, height;
+		window.getSize(width, height);
+		defaultRenderSettings.width = width;
+		defaultRenderSettings.height = height;
+		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
 	}
 
 	int App::run()
@@ -44,14 +49,13 @@ namespace pathtracex
 		sphere->trans.setPosition({ 2.5, 1, 0 });
 		scene.models.push_back(sphere);
 
-
-		std::shared_ptr<Model> space_ship = std::make_shared<Model>("space-ship.obj");
+		/*
+		std::shared_ptr<Model> space_ship = std::make_shared<Model>("../../assets/space-ship.obj");
 		space_ship->trans.setPosition({ 1, -5, 80 });
 		scene.models.push_back(space_ship);
+		*/
 
-
-		while (true)
-		{
+		while(true) {
 			const auto ecode = Window::processMessages();
 			if (ecode)
 			{
@@ -67,10 +71,30 @@ namespace pathtracex
 		getInstance().listeners.push_back(listener);
 	}
 
-	void App::raiseEvent(Event &e)
-	{
-		getInstance().callback(e);
+	void App::raiseEvent(Event& e) {
+		App& inst = getInstance();
+
+		if (!inst.callback.has_value()) [[unlikely]] {
+			LOG_ERROR("Event callback handler not set!! Very bad!!");
+			return;
+		}
+
+		(*inst.callback)(e);
 	}
+
+	/*
+	void App::raiseTimeEvent(Event& e) {
+		// this will make a copy but that's fine
+		getInstance().timedEvents.push_back(e);
+	}
+
+	void App::raiseTimedEvents() {
+		for (auto timedEvent : timedEvents) {
+			// if timedEvent.shouldFire()
+			//		raise(timedEvent)
+		}
+	}
+	*/
 
 	void App::onEvent(Event &e)
 	{
@@ -93,15 +117,23 @@ namespace pathtracex
 	{
 	}
 
-	void App::everyFrame()
-	{
-		gui.drawGUI(defaultRenderSettings);
+	void App::everyFrame() {
+		if (window.windowHasBeenResized()) {
+			auto newSize = window.getNewWindowSize();
+			WindowResizeEvent wre{ newSize.first, newSize.second };
+			window.updateWindowSize();
+			App::raiseEvent(wre);
+			//gui.resetContext();
+		}
+
 
 		// Update render settings
 		int width, height;
 		window.getSize(width, height);
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
+
+		gui.drawGUI(defaultRenderSettings);
 
 		renderer->Render(defaultRenderSettings, scene);
 

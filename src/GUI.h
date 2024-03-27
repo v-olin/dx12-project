@@ -12,8 +12,7 @@ namespace pathtracex {
 		~GUI();
 
 		void drawGUI(RenderSettings& renderSettings);
-
-
+		void resetContext();
 
 		Window* window = nullptr;
 	private:

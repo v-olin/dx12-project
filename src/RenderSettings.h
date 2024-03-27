@@ -17,5 +17,14 @@ namespace pathtracex {
 			useRayTracing(false),
 			rayBounces(10),
 			camera(camera) { }
+
+		void operator=(const RenderSettings& rs) {
+			this->width = rs.width;
+			this->height = rs.height;
+			this->useMultiSampling = rs.useMultiSampling;
+			this->useRayTracing = rs.useRayTracing;
+			this->rayBounces = rs.rayBounces;
+			this->camera = rs.camera;
+		}
 	};	
 }
