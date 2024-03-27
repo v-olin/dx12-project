@@ -22,6 +22,7 @@
 #include "DXIndexBuffer.h"
 #include "DXVertexBuffer.h"
 #include "Vertex.h"
+#include "StringUtil.h"
 
 #include "DXVertexBuffer.h"
 #include "DXIndexBuffer.h"
@@ -102,6 +103,8 @@ namespace pathtracex {
 				{SerializableType::MATRIX4X4, "TransformMatrix", "The transform matrix of the model", &trans.transformMatrix}
 			};
 		};
+
+		std::string id = StringUtil::generateRandomString(10);
 	private:
 	
 		static std::shared_ptr<Model> createCube();
