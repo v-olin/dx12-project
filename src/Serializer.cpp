@@ -6,6 +6,9 @@
 namespace pathtracex {
 #define SCENE_FOLDER_PATH "../../scenes/"
 #define SCENE_FILE_EXTENSION ".yaml"
+#define CONFIG_FILE_PATH "../../config.yaml"
+#define BASE_FOLDER_PATH "../../"
+#define CONFIG_FILE_NAME "config"
 
 	void Serializer::serializeScene(Scene& scene)
 	{
@@ -23,7 +26,7 @@ namespace pathtracex {
 		fout << out.c_str();
 	}
 
-	void Serializer::createYAMLFile(const std::string& fileFolder, const std::string& fileName)
+	void Serializer::createYAMLFile(const std::string fileFolder, const std::string fileName)
 	{
 		std::string filePath = fileFolder + fileName + SCENE_FILE_EXTENSION;
 		std::ofstream outfile(filePath);
@@ -101,6 +104,32 @@ namespace pathtracex {
 		LOG_TRACE("Loading file: " + scenePath);
 		YAML::Node state = YAML::LoadFile(scenePath);
 		deserializeModels(state, scene);
+	}
+
+	void Serializer::serializeConfig(AppConfig& config)
+	{
+		createYAMLFile(BASE_FOLDER_PATH, CONFIG_FILE_NAME);
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+
+		serializeSerializable(&config, out);
+
+		out << YAML::EndMap;
+		// Why the fuck are these defines pointers??????????
+		std::ofstream fout(CONFIG_FILE_PATH);
+		fout << out.c_str();
+	}
+
+	AppConfig Serializer::deserializeConfig()
+	{
+		AppConfig appConfig{};
+
+		LOG_TRACE("Deserializing config:");
+		YAML::Node state = YAML::LoadFile(CONFIG_FILE_PATH);
+		deserializeSerializable(state, &appConfig);
+
+		return appConfig;
 	}
 
 	// Deserializes the given serializable from the given YAML node

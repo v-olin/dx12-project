@@ -13,6 +13,21 @@
 namespace pathtracex {
 	using EventCallbackFn = std::function<void(Event&)>;
 
+	class AppConfig : public Serializable {
+	public:
+		int initialWindowWidth = 1280;
+		int initialWindowHeight = 720;
+		std::string startupSceneName = "Default";
+
+		std::vector<SerializableVariable> getSerializableVariables() override {
+			return {
+				{ SerializableType::INT, "Initial Window Width", "The initial width of the window", &initialWindowWidth },
+				{ SerializableType::INT, "Initial Window Height", "The initial height of the window", &initialWindowHeight },
+				{ SerializableType::STRING, "Startup Scene Name", "The name of the scene that will be loaded on startup", &startupSceneName }
+			};
+		}
+	};
+
 	class App {
 	public:
 		static App& getInstance() {
@@ -47,6 +62,8 @@ namespace pathtracex {
 
 		std::vector<IEventListener*> listeners{};
 		std::vector<Event> timedEvents{};
+
+		AppConfig config;
 	};
 
 }

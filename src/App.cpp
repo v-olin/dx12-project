@@ -33,7 +33,10 @@ namespace pathtracex
 			return 1;
 		}
 
+		config = Serializer::deserializeConfig();
 
+		/*
+	
 		//Serializer serializer{};
 		//serializer.deserializeScene("Scene", scene);
 
@@ -49,11 +52,13 @@ namespace pathtracex
 		sphere->trans.setPosition({ 2.5, 1, 0 });
 		scene.models.push_back(sphere);
 
-		/*
+		
 		std::shared_ptr<Model> space_ship = std::make_shared<Model>("../../assets/space-ship.obj");
 		space_ship->trans.setPosition({ 1, -5, 80 });
 		scene.models.push_back(space_ship);
+		
 		*/
+		Serializer::deserializeScene(config.startupSceneName, scene);
 
 		while(running) {
 			const auto ecode = Window::processMessages();
@@ -64,6 +69,9 @@ namespace pathtracex
 
 			everyFrame();
 		}
+
+		Serializer::serializeScene(scene);
+		Serializer::serializeConfig(config);
 
 		cleanup();
 	}

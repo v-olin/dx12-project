@@ -61,6 +61,7 @@ namespace pathtracex {
 		windowFlags |= ImGuiWindowFlags_NoTitleBar;
 		windowFlags |= ImGuiWindowFlags_NoMove;
 		windowFlags |= ImGuiWindowFlags_NoScrollbar;
+		windowFlags |= ImGuiWindowFlags_NoResize;
 
 		ImGui::Begin("Model selection", nullptr, windowFlags);
 
@@ -114,6 +115,7 @@ namespace pathtracex {
 		windowFlags |= ImGuiWindowFlags_NoTitleBar;
 		windowFlags |= ImGuiWindowFlags_NoMove;
 		windowFlags |= ImGuiWindowFlags_NoScrollbar;
+		windowFlags |= ImGuiWindowFlags_NoResize;
 
 		ImGui::Begin("RightWindow", nullptr, windowFlags);
 

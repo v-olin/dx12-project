@@ -17,5 +17,5 @@ Models:
     PrimativeType: None
   - Name: Primative Sphere
     Filename: ""
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0.942981482, 0, 0, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.911895335, 0, 0, 1]
     PrimativeType: Sphere
