@@ -80,6 +80,9 @@ namespace pathtracex {
 
 		void WaitForPreviousFrame(); // wait until gpu is finished with command list
 
+
+		void Cleanup(); // release com ojects and clean up memory
+
 	private:
 		DXRenderer();
 
@@ -172,7 +175,6 @@ namespace pathtracex {
 
 		void UpdatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
 
-		void Cleanup(); // release com ojects and clean up memory
 
 		bool createFactory();
 		bool createDebugController();

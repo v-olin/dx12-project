@@ -43,6 +43,8 @@ namespace pathtracex {
 		Camera defaultCamera{};
 		RenderSettings defaultRenderSettings{ 0, 0, defaultCamera };
 
+		bool running = true;
+
 		std::vector<IEventListener*> listeners{};
 		std::vector<Event> timedEvents{};
 	};

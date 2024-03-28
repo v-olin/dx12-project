@@ -55,7 +55,7 @@ namespace pathtracex
 		scene.models.push_back(space_ship);
 		*/
 
-		while(true) {
+		while(running) {
 			const auto ecode = Window::processMessages();
 			if (ecode)
 			{
@@ -64,6 +64,8 @@ namespace pathtracex
 
 			everyFrame();
 		}
+
+		cleanup();
 	}
 
 	void App::registerEventListener(IEventListener *listener)
@@ -96,6 +98,7 @@ namespace pathtracex
 	}
 	*/
 
+	// TODO: This should be in a separate class
 	void App::onEvent(Event &e)
 	{
 		EventDispatcher dispatcher(e);
@@ -108,6 +111,11 @@ namespace pathtracex
 			}
 
 			listener->onEvent(e);
+		}
+
+		if (e.getEventType() == EventType::WindowClose)
+		{
+			running = false;
 		}
 
 		e.Handled = true;
