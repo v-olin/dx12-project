@@ -228,7 +228,6 @@ namespace pathtracex {
 			const POINTS pt = MAKEPOINTS(lparam);
 			// if in client region -> log everything
 			if (pt.x >= 0 && pt.x < width && pt.y >= 0 && pt.y < height) {
-				LOG_INFO("WM_MOUSEMOVE CLIENT REGION");
 				mouse.onMouseMove(pt.x, pt.y);
 				if (!mouse.isInWindow()) {
 					SetCapture(windowHandle);

@@ -1,0 +1,5 @@
+Models:
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    PrimativeType: Cube

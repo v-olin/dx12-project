@@ -228,13 +228,28 @@ namespace pathtracex {
 
 		if (ImGui::BeginMenu("File"))
 		{
-			if (ImGui::MenuItem("Change scene"))
+			if (ImGui::BeginMenu("Change scene"))
 			{
+				for (auto& file : ResourceManager::getAllSceneNames())
+				{
+					if (ImGui::MenuItem(file.c_str()))
+					{
+						// Save the current scene
+						Serializer::serializeScene(scene);
 
+						Serializer::deserializeScene(file, scene);
+					}
+				}
+				ImGui::EndMenu();
 			}
 			if (ImGui::MenuItem("Create new scene"))
 			{
-
+				// Save the current scene
+				Serializer::serializeScene(scene);
+				Scene newScene{};
+				// TODO: Should check for name clashes
+				scene = newScene;
+				scene.sceneName = "New Scene";
 			}
 			if (ImGui::MenuItem("Save scene"))
 			{

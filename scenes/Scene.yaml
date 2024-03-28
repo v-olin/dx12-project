@@ -13,7 +13,7 @@ Models:
     PrimativeType: Sphere
   - Name: space-ship
     Filename: space-ship.obj
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -29.9068089, -5, 80, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -29.9068089, -5, 190.094116, 1]
     PrimativeType: None
   - Name: Primative Sphere
     Filename: ""

@@ -99,11 +99,15 @@ namespace pathtracex {
 
 	void Serializer::deserializeScene(const std::string& sceneName, Scene& scene)
 	{
+		// Clear the scene
+		scene = Scene{};
+		scene.sceneName = sceneName;
 		LOG_TRACE("Deserializing scene: {}", sceneName);
 		std::string scenePath = SCENE_FOLDER_PATH + sceneName + SCENE_FILE_EXTENSION;
 		LOG_TRACE("Loading file: " + scenePath);
 		YAML::Node state = YAML::LoadFile(scenePath);
 		deserializeModels(state, scene);
+		LOG_TRACE("Deserialized scene: {}", sceneName);
 	}
 
 	void Serializer::serializeConfig(AppConfig& config)
