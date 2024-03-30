@@ -8,6 +8,7 @@
 #include <imgui_internal.h>
 #include "ResourceManager.h"
 #include "Serializer.h"
+#include "Logger.h"
 
 namespace pathtracex {
 
@@ -87,9 +88,17 @@ namespace pathtracex {
 		{
 			for (auto light : scene.lights)
 			{
+				bool pushedStyle = false;
+				if (selectedSelectable.lock() == light) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+					pushedStyle = true;
+				}
 				if (ImGui::Selectable(light->name.c_str())) {
 
 					selectedSelectable = light;
+				}
+				if (pushedStyle) {
+					ImGui::PopStyleColor();
 				}
 			}
 		}
@@ -141,6 +150,11 @@ namespace pathtracex {
 				shouldDrawGizmos = true;
 				modelMatrixPtr = &(lockedModel->trans.transformMatrix.r->m128_f32[0]);
 			}
+			else if (auto lockedLight = std::dynamic_pointer_cast<Light>(lockedSelectedSelectable))
+			{
+				shouldDrawGizmos = true;
+				modelMatrixPtr = &(lockedLight->transform.transformMatrix.r->m128_f32[0]);
+			}
 		}
 
 		if (shouldDrawGizmos)
@@ -175,29 +189,35 @@ namespace pathtracex {
 
 	void GUI::drawSelectableSettings()
 	{
-		
-		drawSelectedModelSettings();
-	}
-
-	void GUI::drawSelectedModelSettings()
-	{
 		if (auto lockedModel = std::dynamic_pointer_cast<Model>(selectedSelectable.lock()))
 		{
 			if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-
-				float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-				//DirectX::XMMatrixDecompose(matrixTranslation)
-				ImGuizmo::DecomposeMatrixToComponents(&(lockedModel->trans.transformMatrix.r->m128_f32[0]), matrixTranslation, matrixRotation, matrixScale);
-
-				ImGui::InputFloat3("Translation", matrixTranslation);
-				ImGui::InputFloat3("Rotation", matrixRotation);
-				ImGui::InputFloat3("Scale", matrixScale);
-
-				ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, &(lockedModel->trans.transformMatrix.r->m128_f32[0]));
+				drawTransformSettings(lockedModel->trans);
+				drawSerializableVariables(lockedModel.get());
 			}
 		}
+		else if (auto lockedLight = std::dynamic_pointer_cast<Light>(selectedSelectable.lock()))
+		{
+			if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				drawTransformSettings(lockedLight->transform);
+				drawSerializableVariables(lockedLight.get());
+			}
+		}
+	}
 
+	void GUI::drawTransformSettings(Transform& transform)
+	{
+		float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+		//DirectX::XMMatrixDecompose(matrixTranslation)
+		ImGuizmo::DecomposeMatrixToComponents(&(transform.transformMatrix.r->m128_f32[0]), matrixTranslation, matrixRotation, matrixScale);
+
+		ImGui::InputFloat3("Translation", matrixTranslation);
+		ImGui::InputFloat3("Rotation", matrixRotation);
+		ImGui::InputFloat3("Scale", matrixScale);
+
+		ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, &(transform.transformMatrix.r->m128_f32[0]));
 	}
 
 	void GUI::drawViewport(RenderSettings& renderSettings)
@@ -292,7 +312,7 @@ namespace pathtracex {
 		{
 			if (ImGui::MenuItem("Add new light"))
 			{
-
+				scene.lights.push_back(std::make_shared<Light>());
 			}
 
 			ImGui::EndMenu();
@@ -300,4 +320,81 @@ namespace pathtracex {
 
 		ImGui::EndMainMenuBar();
 	}
+
+	void GUI::drawSerializableVariables(Serializable* serializable)
+	{
+		for (auto seralizableVariable : serializable->getSerializableVariables())
+		{
+			if (seralizableVariable.data == nullptr)
+			{
+				ImGui::Text((seralizableVariable.name + ":").c_str());
+
+				continue;
+			}
+
+			if (seralizableVariable.type == SerializableType::STRING)
+			{
+				std::string data = *static_cast<std::string*>(seralizableVariable.data);
+				ImGui::Text((seralizableVariable.name + ":").c_str());
+				ImGui::SameLine();
+				char name[64];
+				memcpy(name, data.c_str(), 64);
+				ImGui::InputText(("##" + seralizableVariable.name).c_str(), name, IM_ARRAYSIZE(name));
+				*static_cast<std::string*>(seralizableVariable.data) = name;
+			}
+			else if (seralizableVariable.type == SerializableType::INT)
+			{
+				ImGui::InputInt(seralizableVariable.name.c_str(), (int*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::FLOAT)
+			{
+				ImGui::InputFloat(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::BOOLEAN)
+			{
+				ImGui::Checkbox(seralizableVariable.name.c_str(), (bool*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::DOUBLE)
+			{
+				ImGui::InputDouble(seralizableVariable.name.c_str(), (double*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::VECTOR2)
+			{
+				ImGui::InputFloat2(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::VECTOR3)
+			{
+				ImGui::InputFloat3(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::COLOR)
+			{
+				ImGui::ColorEdit3(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::VECTOR4)
+			{
+				ImGui::InputFloat4(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
+			}
+			else
+			{
+				LOG_WARN("Cannot serialize variable type: name: {}", seralizableVariable.name);
+				return;
+			}
+
+			ImGui::SameLine();
+			drawHelpMarker(seralizableVariable.description.c_str());
+		}
+	}
+
+	void GUI::drawHelpMarker(const char* desc)
+	{
+		ImGui::TextDisabled("(?)");
+		if (ImGui::BeginItemTooltip())
+		{
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(desc);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	}
+
 }
