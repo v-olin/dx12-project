@@ -24,7 +24,7 @@ namespace pathtracex {
 
 	GUI::~GUI() {
 		ImGui::DestroyContext();
-	}
+	} 
 
 	void GUI::resetContext() {
 
@@ -247,9 +247,12 @@ namespace pathtracex {
 				// Save the current scene
 				Serializer::serializeScene(scene);
 				Scene newScene{};
-				// TODO: Should check for name clashes
+				// I am lazy so we will just randomize the name ending to avoid name clashes
+				newScene.sceneName = "New Scene " + StringUtil::generateRandomString(5);
 				scene = newScene;
-				scene.sceneName = "New Scene";
+
+				// Serialize the new scene
+				Serializer::serializeScene(scene);
 			}
 			if (ImGui::MenuItem("Save scene"))
 			{
