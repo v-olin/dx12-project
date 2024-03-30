@@ -194,16 +194,16 @@ namespace pathtracex {
 			if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				drawTransformSettings(lockedModel->trans);
-				drawSerializableVariables(lockedModel.get());
 			}
+			drawSerializableVariables(lockedModel.get());
 		}
 		else if (auto lockedLight = std::dynamic_pointer_cast<Light>(selectedSelectable.lock()))
 		{
 			if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				drawTransformSettings(lockedLight->transform);
-				drawSerializableVariables(lockedLight.get());
 			}
+			drawSerializableVariables(lockedLight.get());
 		}
 	}
 
@@ -374,9 +374,7 @@ namespace pathtracex {
 			{
 				ImGui::InputFloat4(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
 			}
-			else
-			{
-				LOG_WARN("Cannot serialize variable type: name: {}", seralizableVariable.name);
+			else {
 				return;
 			}
 

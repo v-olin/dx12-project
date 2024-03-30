@@ -15,10 +15,12 @@ namespace pathtracex {
 		static void createYAMLFile(const std::string fileFolder, const std::string fileName);
 
 		static void serializeModels(Scene& scene, YAML::Emitter& out);
+		static void serializeLights(Scene& scene, YAML::Emitter& out);
 
 		static void serializeSerializable(Serializable* serializable, YAML::Emitter& out);
 
 		static void deserializeModels(YAML::Node node, Scene& scene);
+		static void deserializeLights(YAML::Node node, Scene& scene);
 
 		static void deserializeSerializable(YAML::Node node, Serializable* serializable);
 	};

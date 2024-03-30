@@ -19,6 +19,8 @@ namespace pathtracex {
 		out << YAML::BeginMap;
 
 		serializeModels(scene, out);
+		serializeLights(scene, out);
+
 
 		out << YAML::EndMap;
 
@@ -97,6 +99,20 @@ namespace pathtracex {
 		out << YAML::EndSeq;
 	}
 
+	void Serializer::serializeLights(Scene& scene, YAML::Emitter& out)
+	{
+		out << YAML::Key << "Lights";
+		out << YAML::Value << YAML::BeginSeq;
+
+		for (auto light : scene.lights) {
+			out << YAML::BeginMap;
+			serializeSerializable(light.get(), out);
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
+	}
+
 	void Serializer::deserializeScene(const std::string& sceneName, Scene& scene)
 	{
 		// Clear the scene
@@ -107,6 +123,7 @@ namespace pathtracex {
 		LOG_TRACE("Loading file: " + scenePath);
 		YAML::Node state = YAML::LoadFile(scenePath);
 		deserializeModels(state, scene);
+		deserializeLights(state, scene);
 		LOG_TRACE("Deserialized scene: {}", sceneName);
 	}
 
@@ -228,6 +245,28 @@ namespace pathtracex {
 			//std::string filename = textureNode["fileName"].as<std::string>();
 			//Texture* texture = Texture::create(filename);
 			//deserializeTexture(*it, game, texture);
+		}
+	}
+
+	void Serializer::deserializeLights(YAML::Node node, Scene& scene)
+	{
+		YAML::Node lightsNode;
+		try
+		{
+			lightsNode = node["Lights"];
+		}
+		catch (const std::exception& e)
+		{
+			LOG_ERROR("Failed to deserialize Lights: " + std::string(e.what()));
+			return;
+		}
+
+		for (YAML::const_iterator it = lightsNode.begin(); it != lightsNode.end(); ++it)
+		{
+			YAML::Node lightNode = *it;
+			std::shared_ptr<Light> light = std::make_shared<Light>();
+			deserializeSerializable(lightNode, light.get());
+			scene.lights.push_back(light);
 		}
 	}
 
