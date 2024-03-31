@@ -13,11 +13,13 @@ struct VS_OUTPUT
 cbuffer ConstantBuffer : register(b0)
 {
     float4x4 wvpMat;
+    int pointLightCount;
 };
 
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
+
     output.pos = mul(input.pos, wvpMat);
     output.color = input.color;
     return output;

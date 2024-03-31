@@ -21,15 +21,6 @@
 namespace pathtracex {
 	const int frameBufferCount = 3;
 
-	// Must align to 256 bytes
-	struct ConstantBuffer
-	{
-		float4x4 wvpMat;
-
-		// now pad the constant buffer to be 256 byte aligned
-		float4 padding[48];
-	};
-
 	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
 	#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
@@ -143,9 +134,6 @@ namespace pathtracex {
 		ID3D12DescriptorHeap* mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
 		ID3D12Resource* constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
 
-		ConstantBuffer cbColorMultiplierData; // this is the constant buffer data we will send to the gpu 
-		// (which will be placed in the resource we created above)
-
 		UINT8* cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
 
 
@@ -153,6 +141,7 @@ namespace pathtracex {
 		// this is the structure of our constant buffer.
 		struct ConstantBufferPerObject {
 			DirectX::XMFLOAT4X4 wvpMat;
+			int pointLightCount;
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.

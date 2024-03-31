@@ -19,3 +19,5 @@ Models:
     Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.911895335, 0, 0, 1]
     PrimativeType: Sphere
+Lights:
+  []
