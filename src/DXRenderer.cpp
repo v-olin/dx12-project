@@ -472,6 +472,10 @@ namespace pathtracex {
 
 			cbPerObject.pointLightCount = 1;
 
+			PointLight pointLights[10];
+			pointLights[0] = { {0,0,0} };
+			memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
+
 			// copy our ConstantBuffer instance to the mapped constant buffer resource
 			memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
 

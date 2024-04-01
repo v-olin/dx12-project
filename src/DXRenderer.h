@@ -24,6 +24,11 @@ namespace pathtracex {
 	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
 	#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
+	struct PointLight
+	{
+		float3 position;
+	};
+
 	class DXRenderer : public GraphicsAPI, public IEventListener {
 	public:
 		~DXRenderer() = default;
@@ -142,6 +147,7 @@ namespace pathtracex {
 		struct ConstantBufferPerObject {
 			DirectX::XMFLOAT4X4 wvpMat;
 			int pointLightCount;
+			PointLight pointLights[10];
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
