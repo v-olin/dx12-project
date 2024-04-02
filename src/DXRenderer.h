@@ -143,11 +143,14 @@ namespace pathtracex {
 
 
 
-		// this is the structure of our constant buffer.
+		// The constant buffer can't be bigger than 256 bytes
 		struct ConstantBufferPerObject {
-			DirectX::XMFLOAT4X4 wvpMat;
-			int pointLightCount;
-			PointLight pointLights[10];
+			DirectX::XMFLOAT4X4 wvpMat; // 64 bytes
+			DirectX::XMFLOAT4X4 modelMatrix; // 64 bytes
+			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
+			PointLight pointLights[4]; // 48 bytes
+			int pointLightCount; // 4 bytes
+			// Total: 244 bytes
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.

@@ -468,12 +468,22 @@ namespace pathtracex {
 			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
 			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
-			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);															// store transposed wvp matrix in constant buffer
+			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
+			DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.transformMatrix);
+			DirectX::XMMATRIX transposed2 = modelMatrix;
+			DirectX::XMStoreFloat4x4(&cbPerObject.modelMatrix, transposed2);	// store the model matrix in the constant buffer
+			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, model->trans.transformMatrix));
+			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
+			
+			int k = 0;
+			PointLight pointLights[4];
+			for (auto light : scene.lights) {
+				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z}};
+				k++;
+			}
 
-			cbPerObject.pointLightCount = 1;
+			cbPerObject.pointLightCount = k;
 
-			PointLight pointLights[10];
-			pointLights[0] = { {0,0,0} };
 			memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
 			// copy our ConstantBuffer instance to the mapped constant buffer resource
@@ -877,7 +887,10 @@ namespace pathtracex {
 		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
 			{
 				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
+				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		};
 
 		// fill out an input layout description structure
 		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};

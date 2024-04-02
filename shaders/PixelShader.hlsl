@@ -2,6 +2,9 @@ struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;
     float4 color : COLOR;
+    float2 texCoord : TEXCOORD;
+    float4 worldNormal : WORLDNORMAL;
+    float4 worldPos : WORLDPOS;
 };
 
 struct PointLight
@@ -11,9 +14,11 @@ struct PointLight
 
 cbuffer ConstantBuffer : register(b0)
 {
-    float4x4 wvpMat;
-    int pointLightCount;
-    PointLight pointLights[10];
+    float4x4 wvpMat; // 64 bytes
+    float4x4 modelMatrix; // 64 bytes
+    float4x4 normalMatrix;
+    PointLight pointLights[4]; // 48 bytes
+    int pointLightCount; // 4 bytes
 };
 
 float3 calculatePointLight(PointLight light, float3 normal, float3 position)
@@ -22,20 +27,27 @@ float3 calculatePointLight(PointLight light, float3 normal, float3 position)
     float distance = length(lightDir);
     lightDir /= distance;
     
-    float intensity = max(dot(normal, lightDir), 0.0f);
+    float intensity = max(dot(lightDir, normal), 0.0f);
     
     return intensity;
 }
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
-    if (pointLightCount > 0)
+    if (pointLightCount == 0)
+    {
+   //     return input.color;
+    }
+    
+    if (input.worldNormal.y > 0.9f)
     {
         return float4(1.0f, 0.0f, 0.0f, 1.0f);
     }
+
     
-    //float3 result = calculatePointLight(pointLights[0], float3(0.0f, 0.0f, 1.0f), float3(0.0f, 0.0f, 0.0f));
     
+    float3 result = calculatePointLight(pointLights[0], input.worldNormal.xyz, input.worldPos.xyz);
+    float4 color = float4(result, 1.0f);
     // return interpolated color
-    return input.color;
+    return color;
 }
