@@ -8,7 +8,7 @@ struct VS_INPUT
 
 struct PointLight
 {
-    float3 position;
+    float4 position;
 };
 
 struct VS_OUTPUT
@@ -25,7 +25,7 @@ cbuffer ConstantBuffer : register(b0)
     float4x4 wvpMat;
     float4x4 modelMatrix;
     float4x4 normalMatrix;
-    PointLight pointLights[4];
+    PointLight pointLights[3];
     int pointLightCount;
 };
 

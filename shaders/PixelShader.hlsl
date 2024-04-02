@@ -9,15 +9,15 @@ struct VS_OUTPUT
 
 struct PointLight
 {
-    float3 position;
+    float4 position;
 };
 
 cbuffer ConstantBuffer : register(b0)
 {
     float4x4 wvpMat; // 64 bytes
     float4x4 modelMatrix; // 64 bytes
-    float4x4 normalMatrix;
-    PointLight pointLights[4]; // 48 bytes
+    float4x4 normalMatrix; // 64 bytes
+    PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
 };
 
@@ -36,15 +36,8 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 {
     if (pointLightCount == 0)
     {
-   //     return input.color;
+        return input.color;
     }
-    
-    if (input.worldNormal.y > 0.9f)
-    {
-        return float4(1.0f, 0.0f, 0.0f, 1.0f);
-    }
-
-    
     
     float3 result = calculatePointLight(pointLights[0], input.worldNormal.xyz, input.worldPos.xyz);
     float4 color = float4(result, 1.0f);

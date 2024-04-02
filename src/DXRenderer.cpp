@@ -476,9 +476,9 @@ namespace pathtracex {
 			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
 			
 			int k = 0;
-			PointLight pointLights[4];
+			PointLight pointLights[3];
 			for (auto light : scene.lights) {
-				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z}};
+				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0}};
 				k++;
 			}
 

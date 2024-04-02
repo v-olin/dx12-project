@@ -26,7 +26,7 @@ namespace pathtracex {
 
 	struct PointLight
 	{
-		float3 position;
+		float4 position; // using float4 to avoid packing issues
 	};
 
 	class DXRenderer : public GraphicsAPI, public IEventListener {
@@ -148,7 +148,7 @@ namespace pathtracex {
 			DirectX::XMFLOAT4X4 wvpMat; // 64 bytes
 			DirectX::XMFLOAT4X4 modelMatrix; // 64 bytes
 			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
-			PointLight pointLights[4]; // 48 bytes
+			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
 			// Total: 244 bytes
 		};
