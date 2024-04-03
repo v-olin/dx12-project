@@ -5,6 +5,7 @@
 #include <locale>
 #include <codecvt>
 #include <string>
+#include <random>
 
 namespace pathtracex {
 
@@ -27,9 +28,14 @@ namespace pathtracex {
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 				"abcdefghijklmnopqrstuvwxyz";
 
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
+
 			for (int i = 0; i < length; ++i) {
-				str += alphanum[rand() % (sizeof(alphanum) - 1)];
+				str += alphanum[dis(gen)];
 			}
+
 			return str;
 		}
 	};

@@ -7,7 +7,7 @@
 
 namespace pathtracex
 {
-	App::App() : window(1280, 720, "PathTracer")
+	App::App() : config(Serializer::deserializeConfig()), window(config.initialWindowWidth, config.initialWindowHeight, "PathTracer")
 	{
 		gui.window = &window;
 		window.setInitialized();
@@ -33,29 +33,9 @@ namespace pathtracex
 			return 1;
 		}
 
+		Serializer::deserializeScene(config.startupSceneName, scene);
 
-		//Serializer serializer{};
-		//serializer.deserializeScene("Scene", scene);
-
-		std::shared_ptr<Model> cube = Model::createPrimative(PrimitiveModelType::CUBE);
-		cube->trans.setPosition({ 0, 1, 0 });
-		scene.models.push_back(cube);
-
-		std::shared_ptr<Model> plane = Model::createPrimative(PrimitiveModelType::PLANE);
-		plane->trans.setPosition({ 1, -1, 0 });
-		scene.models.push_back(plane);
-
-		std::shared_ptr<Model> sphere = Model::createPrimative(PrimitiveModelType::SPHERE);
-		sphere->trans.setPosition({ 2.5, 1, 0 });
-		scene.models.push_back(sphere);
-
-		/*
-		std::shared_ptr<Model> space_ship = std::make_shared<Model>("../../assets/space-ship.obj");
-		space_ship->trans.setPosition({ 1, -5, 80 });
-		scene.models.push_back(space_ship);
-		*/
-
-		while(true) {
+		while(running) {
 			const auto ecode = Window::processMessages();
 			if (ecode)
 			{
@@ -64,6 +44,11 @@ namespace pathtracex
 
 			everyFrame();
 		}
+
+		Serializer::serializeScene(scene);
+		Serializer::serializeConfig(config);
+
+		cleanup();
 	}
 
 	void App::registerEventListener(IEventListener *listener)
@@ -96,6 +81,7 @@ namespace pathtracex
 	}
 	*/
 
+	// TODO: This should be in a separate class
 	void App::onEvent(Event &e)
 	{
 		EventDispatcher dispatcher(e);
@@ -108,6 +94,11 @@ namespace pathtracex
 			}
 
 			listener->onEvent(e);
+		}
+
+		if (e.getEventType() == EventType::WindowClose)
+		{
+			running = false;
 		}
 
 		e.Handled = true;

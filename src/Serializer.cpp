@@ -6,6 +6,9 @@
 namespace pathtracex {
 #define SCENE_FOLDER_PATH "../../scenes/"
 #define SCENE_FILE_EXTENSION ".yaml"
+#define CONFIG_FILE_PATH "../../config.yaml"
+#define BASE_FOLDER_PATH "../../"
+#define CONFIG_FILE_NAME "config"
 
 	void Serializer::serializeScene(Scene& scene)
 	{
@@ -16,6 +19,8 @@ namespace pathtracex {
 		out << YAML::BeginMap;
 
 		serializeModels(scene, out);
+		serializeLights(scene, out);
+
 
 		out << YAML::EndMap;
 
@@ -23,7 +28,7 @@ namespace pathtracex {
 		fout << out.c_str();
 	}
 
-	void Serializer::createYAMLFile(const std::string& fileFolder, const std::string& fileName)
+	void Serializer::createYAMLFile(const std::string fileFolder, const std::string fileName)
 	{
 		std::string filePath = fileFolder + fileName + SCENE_FILE_EXTENSION;
 		std::ofstream outfile(filePath);
@@ -94,13 +99,58 @@ namespace pathtracex {
 		out << YAML::EndSeq;
 	}
 
+	void Serializer::serializeLights(Scene& scene, YAML::Emitter& out)
+	{
+		out << YAML::Key << "Lights";
+		out << YAML::Value << YAML::BeginSeq;
+
+		for (auto light : scene.lights) {
+			out << YAML::BeginMap;
+			serializeSerializable(light.get(), out);
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
+	}
+
 	void Serializer::deserializeScene(const std::string& sceneName, Scene& scene)
 	{
+		// Clear the scene
+		scene = Scene{};
+		scene.sceneName = sceneName;
 		LOG_TRACE("Deserializing scene: {}", sceneName);
 		std::string scenePath = SCENE_FOLDER_PATH + sceneName + SCENE_FILE_EXTENSION;
 		LOG_TRACE("Loading file: " + scenePath);
 		YAML::Node state = YAML::LoadFile(scenePath);
 		deserializeModels(state, scene);
+		deserializeLights(state, scene);
+		LOG_TRACE("Deserialized scene: {}", sceneName);
+	}
+
+	void Serializer::serializeConfig(AppConfig& config)
+	{
+		createYAMLFile(BASE_FOLDER_PATH, CONFIG_FILE_NAME);
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+
+		serializeSerializable(&config, out);
+
+		out << YAML::EndMap;
+		// Why the fuck are these defines pointers??????????
+		std::ofstream fout(CONFIG_FILE_PATH);
+		fout << out.c_str();
+	}
+
+	AppConfig Serializer::deserializeConfig()
+	{
+		AppConfig appConfig{};
+
+		LOG_TRACE("Deserializing config:");
+		YAML::Node state = YAML::LoadFile(CONFIG_FILE_PATH);
+		deserializeSerializable(state, &appConfig);
+
+		return appConfig;
 	}
 
 	// Deserializes the given serializable from the given YAML node
@@ -195,6 +245,28 @@ namespace pathtracex {
 			//std::string filename = textureNode["fileName"].as<std::string>();
 			//Texture* texture = Texture::create(filename);
 			//deserializeTexture(*it, game, texture);
+		}
+	}
+
+	void Serializer::deserializeLights(YAML::Node node, Scene& scene)
+	{
+		YAML::Node lightsNode;
+		try
+		{
+			lightsNode = node["Lights"];
+		}
+		catch (const std::exception& e)
+		{
+			LOG_ERROR("Failed to deserialize Lights: " + std::string(e.what()));
+			return;
+		}
+
+		for (YAML::const_iterator it = lightsNode.begin(); it != lightsNode.end(); ++it)
+		{
+			YAML::Node lightNode = *it;
+			std::shared_ptr<Light> light = std::make_shared<Light>();
+			deserializeSerializable(lightNode, light.get());
+			scene.lights.push_back(light);
 		}
 	}
 

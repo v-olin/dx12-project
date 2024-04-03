@@ -16,6 +16,7 @@ namespace fs = std::filesystem;
 namespace pathtracex {
 #define WIN32_API_ERROR_CODE_FILE_ALREADY_EXISTS 80
 #define PATH_TO_ASSETS_FOLDER "../../assets/"
+#define SCENE_FOLDER_PATH "../../scenes/"
 
 	// copies file from file explorer to subdirectory and returns the file name
 	// if no file is selected, returns empty string
@@ -93,5 +94,17 @@ namespace pathtracex {
 		// Unknown error
 		LOG_ERROR("Error copying file from file explorer to assets: " + destinationPath);
 		return "";
+	}
+	std::vector<std::string> ResourceManager::getAllSceneNames()
+	{
+		std::vector<std::string> sceneNames;
+		for (const auto& entry : fs::directory_iterator(SCENE_FOLDER_PATH))
+		{
+			std::string sceneNameWithExtension = entry.path().filename().string();
+			std::string sceneName = sceneNameWithExtension.substr(0, sceneNameWithExtension.find_last_of("."));
+			sceneNames.push_back(sceneName);
+		}
+
+		return sceneNames;
 	}
 }

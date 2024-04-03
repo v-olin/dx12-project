@@ -21,17 +21,13 @@
 namespace pathtracex {
 	const int frameBufferCount = 3;
 
-	// Must align to 256 bytes
-	struct ConstantBuffer
-	{
-		float4x4 wvpMat;
-
-		// now pad the constant buffer to be 256 byte aligned
-		float4 padding[48];
-	};
-
 	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
 	#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
+
+	struct PointLight
+	{
+		float4 position; // using float4 to avoid packing issues
+	};
 
 	class DXRenderer : public GraphicsAPI, public IEventListener {
 	public:
@@ -79,6 +75,9 @@ namespace pathtracex {
 		virtual void onEvent(Event& e) override;
 
 		void WaitForPreviousFrame(); // wait until gpu is finished with command list
+
+
+		void Cleanup(); // release com ojects and clean up memory
 
 	private:
 		DXRenderer();
@@ -140,16 +139,18 @@ namespace pathtracex {
 		ID3D12DescriptorHeap* mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
 		ID3D12Resource* constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
 
-		ConstantBuffer cbColorMultiplierData; // this is the constant buffer data we will send to the gpu 
-		// (which will be placed in the resource we created above)
-
 		UINT8* cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
 
 
 
-		// this is the structure of our constant buffer.
+		// The constant buffer can't be bigger than 256 bytes
 		struct ConstantBufferPerObject {
-			DirectX::XMFLOAT4X4 wvpMat;
+			DirectX::XMFLOAT4X4 wvpMat; // 64 bytes
+			DirectX::XMFLOAT4X4 modelMatrix; // 64 bytes
+			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
+			PointLight pointLights[3]; // 48 bytes
+			int pointLightCount; // 4 bytes
+			// Total: 244 bytes
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
@@ -172,7 +173,6 @@ namespace pathtracex {
 
 		void UpdatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
 
-		void Cleanup(); // release com ojects and clean up memory
 
 		bool createFactory();
 		bool createDebugController();
