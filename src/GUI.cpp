@@ -128,6 +128,8 @@ namespace pathtracex {
 
 		ImGui::Begin("RightWindow", nullptr, windowFlags);
 
+		ImGui::Text(scene.sceneName.c_str());
+
 		ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
 
 		if (selectedSelectable.expired())
