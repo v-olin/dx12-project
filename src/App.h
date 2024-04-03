@@ -51,6 +51,8 @@ namespace pathtracex {
 		void raiseTimedEvents();
 		std::optional<EventCallbackFn> callback;
 
+		AppConfig config;
+
 		Scene scene{};
 		GUI gui{scene};
 		Window window;
@@ -62,8 +64,6 @@ namespace pathtracex {
 
 		std::vector<IEventListener*> listeners{};
 		std::vector<Event> timedEvents{};
-
-		AppConfig config;
 	};
 
 }

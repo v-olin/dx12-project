@@ -7,7 +7,7 @@
 
 namespace pathtracex
 {
-	App::App() : window(1280, 720, "PathTracer")
+	App::App() : config(Serializer::deserializeConfig()), window(config.initialWindowWidth, config.initialWindowHeight, "PathTracer")
 	{
 		gui.window = &window;
 		window.setInitialized();
@@ -33,7 +33,6 @@ namespace pathtracex
 			return 1;
 		}
 
-		config = Serializer::deserializeConfig();
 		Serializer::deserializeScene(config.startupSceneName, scene);
 
 		while(running) {
