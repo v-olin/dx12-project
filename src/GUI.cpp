@@ -187,6 +187,8 @@ namespace pathtracex {
 		ImGui::SliderFloat("Near Plane", &renderSettings.camera.nearPlane, 0.1, 50);
 		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 5000);
 
+		drawTransformSettings(renderSettings.camera.transform);
+
 	}
 
 	void GUI::drawSelectableSettings()

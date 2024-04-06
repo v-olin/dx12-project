@@ -1,7 +1,7 @@
 Models:
   - Name: Primative Cube2
     Filename: ""
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.1696496, -3.68767881, 8.50154781, 1]
+    TransformMatrix: [2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]
     PrimativeType: Cube
 Lights:
   - Name: Light

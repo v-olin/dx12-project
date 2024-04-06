@@ -14,7 +14,8 @@ namespace pathtracex
 
 		procedualWorldModels.clear();
 
-		std::pair<int, int> cord = { 0, 0 };
+		std::pair<int, int> cord = { -1, 0 };
+/*
 
 		if (procedualWorldModelMap.find(cord) != procedualWorldModelMap.end())
 			procedualWorldModels.push_back(procedualWorldModelMap[cord]);
@@ -22,17 +23,18 @@ namespace pathtracex
 			createProcedualWorldModel(cord);
 
 		return;
+		*/
 
-
-		for (int x = -settings.chunkRenderDistance; x < settings.chunkRenderDistance; x++)
+		int renderDistanceInChunks = settings.chunkRenderDistance / settings.chunkSideLength;
+		for (int x = -renderDistanceInChunks; x < renderDistanceInChunks; x++)
 		{
-			for (int z = -settings.chunkRenderDistance; z < settings.chunkRenderDistance; z++)
+			for (int z = -renderDistanceInChunks; z < renderDistanceInChunks; z++)
 			{
 				std::pair<int, int> chunkCoordinates = std::pair<int, int>(x, z);
-				if (procedualWorldModelMap.find(chunkCoordinates) == procedualWorldModelMap.end())
+				if (procedualWorldModelMap.find(chunkCoordinates) != procedualWorldModelMap.end())
 					procedualWorldModels.push_back(procedualWorldModelMap[chunkCoordinates]);
-
-				createProcedualWorldModel(chunkCoordinates);
+				else 
+					createProcedualWorldModel(chunkCoordinates);
 			}
 		}
 	}
@@ -45,11 +47,12 @@ namespace pathtracex
 		return std::pair<int, int>(x, z);
 	}
 	
+	// The 0,0 chunk is placed from 0,0 to chunkSideLength, chunkSideLength
 	void ProcedualWorldManager::createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates)
 	{	
 		std::shared_ptr<Model> model = Model::createPrimative(PrimitiveModelType::PLANE);
 		model->trans.setScale(float3(settings.chunkSideLength, 1, settings.chunkSideLength));
-		model->trans.setPosition(float3(chunkCoordinates.first * settings.chunkSideLength, 0, chunkCoordinates.second * settings.chunkSideLength));
+		model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength + settings.chunkSideLength / 2, 0, (chunkCoordinates.second) * settings.chunkSideLength + settings.chunkSideLength / 2));
 
 		procedualWorldModels.push_back(model);
 		procedualWorldModelMap[chunkCoordinates] = model;

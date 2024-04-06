@@ -822,10 +822,10 @@ namespace pathtracex {
 		std::vector<Vertex> tmp_vertices{};
 		std::vector<uint32_t> indices{};
 
-		tmp_vertices.push_back({ float3(-5.f, 0.0f, -5.f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0) });
-		tmp_vertices.push_back({ float3(5.f, 0.0f, -5.f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0) });
-		tmp_vertices.push_back({ float3(5.f, 0.0f, 5.f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1) });
-		tmp_vertices.push_back({ float3(-5.f, 0.0f, 5.f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.0f, -0.5f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0) });
+		tmp_vertices.push_back({ float3(0.5f, 0.0f, -0.5f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0) });
+		tmp_vertices.push_back({ float3(0.5f, 0.0f, 0.5f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1) });
+		tmp_vertices.push_back({ float3(-0.5f, 0.0f, 0.5f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1) });
 
 		indices.push_back(0); indices.push_back(1); indices.push_back(2);
 		indices.push_back(2); indices.push_back(3); indices.push_back(0);
