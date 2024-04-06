@@ -461,7 +461,13 @@ namespace pathtracex {
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
 
 		int i = 0;
-		for (auto model : scene.models)
+		std::vector<std::shared_ptr<Model>> models = scene.models;
+		// Add the procedual models to the list of models
+		for (auto model : scene.proceduralModels) {
+			models.push_back(model);
+		}
+
+		for (auto model : models)
 		{
 			// create the wvp matrix and store in constant buffer
 			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix

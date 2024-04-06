@@ -19,7 +19,8 @@ namespace pathtracex
 		window.getSize(width, height);
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
-		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
+		defaultRenderSettings.camera.transform.setPosition({ 0, 10, 0 });
+		defaultRenderSettings.camera.transform.transformMatrix = DirectX::XMMatrixLookAtRH(defaultRenderSettings.camera.transform.getPosition(), DirectX::XMVectorSet(0, 0, 0, 0), DirectX::XMVectorSet(0, 1, 0, 0));
 	}
 
 	int App::run()
@@ -109,6 +110,9 @@ namespace pathtracex
 	}
 
 	void App::everyFrame() {
+		worldManager.updateProcedualWorld(defaultCamera);
+		scene.proceduralModels = worldManager.procedualWorldModels;
+
 		if (window.windowHasBeenResized()) {
 			auto newSize = window.getNewWindowSize();
 			WindowResizeEvent wre{ newSize.first, newSize.second };

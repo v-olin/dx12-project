@@ -5,4 +5,4 @@ Models:
     PrimativeType: Cube
 Lights:
   - Name: Light
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.338814259, -0.0754416287, 1.03131127, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.338814259, 1.90246928, 1.03131127, 1]
