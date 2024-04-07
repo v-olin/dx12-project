@@ -1,5 +1,7 @@
 #include "Mouse.h"
 
+#include "App.h"
+#include "MouseEvent.h"
 #include "PathWin.h"
 
 namespace pathtracex {
@@ -100,11 +102,17 @@ namespace pathtracex {
 	}
 
 	void Mouse::onMouseMove(int newx, int newy) noexcept {
+		auto dx = newx - x;
+		auto dy = newy - y;
+
 		x = newx;
 		y = newy;
 
-		buffer.push(Mouse::Event(Mouse::Event::Type::Move, *this));
-		trimBuffer();
+		MouseMovedEvent mme{ float(x), float(y), float(dx), float(dy) };
+		App::raiseEvent(mme);
+
+		//buffer.push(Mouse::Event(Mouse::Event::Type::Move, *this));
+		//trimBuffer();
 	}
 
 	void Mouse::onMouseEnter() noexcept {
@@ -126,26 +134,30 @@ namespace pathtracex {
 
 	void Mouse::onLeftPressed(int x, int y) noexcept {
 		leftPressed = true;
-		buffer.push(Mouse::Event(Mouse::Event::Type::LPress, *this));
-		trimBuffer();
+		
+		MouseButtonPressedEvent mbpe{ MouseButtonType::LeftButton };
+		App::raiseEvent(mbpe);
 	}
 
 	void Mouse::onLeftReleased(int x, int y) noexcept {
 		leftPressed = false;
-		buffer.push(Mouse::Event(Mouse::Event::Type::LRelease, *this));
-		trimBuffer();
+		
+		MouseButtonReleasedEvent mbre{ MouseButtonType::LeftButton };
+		App::raiseEvent(mbre);
 	}
 
 	void Mouse::onRightPressed(int x, int y) noexcept {
 		rightPressed = true;
-		buffer.push(Mouse::Event(Mouse::Event::Type::RPress, *this));
-		trimBuffer();
+		
+		MouseButtonPressedEvent mbpe{ MouseButtonType::RightButton };
+		App::raiseEvent(mbpe);
 	}
 
 	void Mouse::onRightReleased(int x, int y) noexcept {
 		rightPressed = false;
-		buffer.push(Mouse::Event(Mouse::Event::Type::RRelease, *this));
-		trimBuffer();
+		
+		MouseButtonReleasedEvent mbre{ MouseButtonType::RightButton };
+		App::raiseEvent(mbre);
 	}
 
 	void Mouse::onWheelUp(int x, int y) noexcept {
