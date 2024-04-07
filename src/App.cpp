@@ -33,6 +33,8 @@ namespace pathtracex
 			return 1;
 		}
 
+		registerEventListener(&defaultCamera);
+
 		Serializer::deserializeScene(config.startupSceneName, scene);
 
 		while(running) {
