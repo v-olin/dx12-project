@@ -1,19 +1,13 @@
 #include "Keyboard.h"
 
+#include "App.h"
+#include "KeyEvent.h"
+#include <Window.h>
+
 namespace pathtracex {
 
 	bool Keyboard::keyIsPressed(unsigned char keycode) const noexcept {
 		return keyStates[keycode];
-	}
-
-	std::optional<Keyboard::Event> Keyboard::readKey() noexcept {
-		if (keyBuffer.size() > 0u)
-		{
-			Keyboard::Event e = keyBuffer.front();
-			keyBuffer.pop();
-			return e;
-		}
-		return {};
 	}
 
 	bool Keyboard::keyIsEmpty() const noexcept {
@@ -27,7 +21,7 @@ namespace pathtracex {
 			charBuffer.pop();
 			return charcode;
 		}
-		return {};
+		return std::nullopt;
 	}
 
 	bool Keyboard::charIsEmpty() const noexcept {
@@ -61,14 +55,16 @@ namespace pathtracex {
 
 	void Keyboard::onKeyPressed(unsigned char keycode) noexcept {
 		keyStates[keycode] = true;
-		keyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Press, keycode));
-		TrimBuffer(keyBuffer);
+		
+		KeyPressedEvent kpe{ keycode, false };
+		App::raiseEvent(kpe);
 	}
 
 	void Keyboard::onKeyReleased(unsigned char keycode) noexcept {
 		keyStates[keycode] = false;
-		keyBuffer.push(Keyboard::Event(Keyboard::Event::Type::Release, keycode));
-		TrimBuffer(keyBuffer);
+
+		KeyReleasedEvent kre{ keycode };
+		App::raiseEvent(kre);
 	}
 
 	void Keyboard::onChar(char c) noexcept {

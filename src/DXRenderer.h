@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PathWin.h"
+#include "Event.h"
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -20,19 +21,15 @@
 namespace pathtracex {
 	const int frameBufferCount = 3;
 
-	// Must align to 256 bytes
-	struct ConstantBuffer
-	{
-		float4x4 wvpMat;
-
-		// now pad the constant buffer to be 256 byte aligned
-		float4 padding[48];
-	};
-
 	// this will only call release if an object exists (prevents exceptions calling release on non existant objects)
 	#define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 
-	class DXRenderer : GraphicsAPI {
+	struct PointLight
+	{
+		float4 position; // using float4 to avoid packing issues
+	};
+
+	class DXRenderer : public GraphicsAPI, public IEventListener {
 	public:
 		~DXRenderer() = default;
 		DXRenderer(const DXRenderer&) = delete;
@@ -52,10 +49,13 @@ namespace pathtracex {
 		void Update(RenderSettings& renderSettings); // update the game logic
 
 		static DXRenderer* getInstance() {
+			/*
 			if (!instance) {
 				instance = new DXRenderer();
 			}
-			return instance;
+			*/
+			static DXRenderer instance;
+			return &instance;
 		}
 
 		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
@@ -64,23 +64,31 @@ namespace pathtracex {
 
 		ID3D12CommandQueue* commandQueue; // container for command lists
 
-		
+		void finishedRecordingCommandList();
+
 		void executeCommandList();
 
 		void resetCommandList();
 
 		void incrementFenceAndSignalCurrentFrame();
 
+		virtual void onEvent(Event& e) override;
+
+		void WaitForPreviousFrame(); // wait until gpu is finished with command list
+
+
+		void Cleanup(); // release com ojects and clean up memory
+
 	private:
 		DXRenderer();
 
 
 		HWND hwnd;
-		bool useWarpDevice; // ???
+		bool useWarpDevice = false; // ???
+		bool resizeOnNextFrame = false;
+		UINT resizedWidth = 0, resizedHeight = 0;
 
 		Window* window = nullptr;
-
-		inline static DXRenderer* instance;
 
 		// direct3d stuff
  // number of buffers we want, 2 for double buffering, 3 for tripple buffering
@@ -131,16 +139,18 @@ namespace pathtracex {
 		ID3D12DescriptorHeap* mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
 		ID3D12Resource* constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
 
-		ConstantBuffer cbColorMultiplierData; // this is the constant buffer data we will send to the gpu 
-		// (which will be placed in the resource we created above)
-
 		UINT8* cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
 
 
 
-		// this is the structure of our constant buffer.
+		// The constant buffer can't be bigger than 256 bytes
 		struct ConstantBufferPerObject {
-			DirectX::XMFLOAT4X4 wvpMat;
+			DirectX::XMFLOAT4X4 wvpMat; // 64 bytes
+			DirectX::XMFLOAT4X4 modelMatrix; // 64 bytes
+			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
+			PointLight pointLights[3]; // 48 bytes
+			int pointLightCount; // 4 bytes
+			// Total: 244 bytes
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
@@ -163,9 +173,6 @@ namespace pathtracex {
 
 		void UpdatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
 
-		void Cleanup(); // release com ojects and clean up memory
-
-		void WaitForPreviousFrame(); // wait until gpu is finished with command list
 
 		bool createFactory();
 		bool createDebugController();
@@ -178,7 +185,14 @@ namespace pathtracex {
 		bool createPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
-		bool createBuffers();
+		bool createBuffers(bool createDepthBufferOnly = false);
+
+		bool onWindowResizeEvent(WindowResizeEvent& wre);
+		void onResizeUpdatePipeline();
+		void onResizeUpdateRenderTargets();
+		void onResizeUpdateBackBuffers();
+		void onResizeUpdateDescriptorHeaps();
+		void waitForTotalGPUCompletion();
 
 		void destroyDevice();
 	};

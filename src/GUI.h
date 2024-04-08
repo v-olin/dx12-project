@@ -12,8 +12,7 @@ namespace pathtracex {
 		~GUI();
 
 		void drawGUI(RenderSettings& renderSettings);
-
-
+		void resetContext();
 
 		Window* window = nullptr;
 	private:
@@ -23,8 +22,10 @@ namespace pathtracex {
 		void drawGizmos(RenderSettings& renderSettings);
 		void drawRenderingSettings(RenderSettings& renderSettings);
 		void drawSelectableSettings();
-		void drawSelectedModelSettings();
+		void drawTransformSettings(Transform& transform);
 		void drawViewport(RenderSettings& renderSettings);
+		void drawSerializableVariables(Serializable* serializable);
+		void drawHelpMarker(const char* desc);
 
 		ImGuiContext* context;
 
