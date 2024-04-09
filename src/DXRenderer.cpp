@@ -501,11 +501,13 @@ namespace pathtracex {
 				// set the descriptor heap
 				//we need to add more uniforms so that we know if there are color textures and so on, 
 				// all textures that are valid should be send down and used
-				auto col_tex = model->materials[mesh.materialIdx].colorTexture;
-				if (col_tex.valid) { //Something like this but also fill out the input to the shaders
-					ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
-					commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-					commandList->SetGraphicsRootDescriptorTable(1, col_tex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+				if (model->materials.size() > 0) {
+					auto col_tex = model->materials[mesh.materialIdx].colorTexture;
+					if (col_tex.valid) { //Something like this but also fill out the input to the shaders
+						ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
+						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+						commandList->SetGraphicsRootDescriptorTable(1, col_tex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart()); 
+					}
 				}
 				//here also set all uniforms for each mesh
 				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
@@ -810,7 +812,7 @@ namespace pathtracex {
 		D3D12_ROOT_PARAMETER rootParameters[2];								 // only one parameter right now
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	 // this is a constant buffer view root descriptor
 		rootParameters[0].Descriptor = rootCBVDescriptor;					 // this is the root descriptor for this root parameter
-		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // our pixel shader will be the only shader accessing this parameter for now
+		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // our pixel shader will be the only shader accessing this parameter for now
 		// fill out the parameter for our descriptor table. Remember it's a good idea to sort parameters by frequency of change. Our constant
 		// buffer will be changed multiple times per frame, while our descriptor table will not be changed at all (in this tutorial)
 		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table

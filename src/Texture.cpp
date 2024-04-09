@@ -30,6 +30,7 @@ namespace pathtracex {
 		DXRenderer* renderer = DXRenderer::getInstance();
 		ID3D12Resource* textureBufferUploadHeap;
 
+		renderer->resetCommandList();
 		HRESULT hr;
 
 
@@ -65,6 +66,7 @@ namespace pathtracex {
 			IID_PPV_ARGS(&textureBuffer));
 		if (FAILED(hr))
 		{
+			auto reason = renderer->device->GetDeviceRemovedReason();
 			return false;
 		}
 		textureBuffer->SetName(L"Texture Buffer Resource Heap");
@@ -122,6 +124,7 @@ namespace pathtracex {
 		srvDesc.Texture2D.MipLevels = 1;
 		renderer->device->CreateShaderResourceView(textureBuffer, &srvDesc, mainDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
+		renderer->finishedRecordingCommandList();
 
 		renderer->executeCommandList();
 		// We make sure the index buffer is uploaded to the GPU before the renderer uses it

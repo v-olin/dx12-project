@@ -1,24 +1,8 @@
 Models:
-  - Name: Primative Cube
-    Filename: ""
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1.06742907, 0, 1]
-    PrimativeType: Cube
-  - Name: Primative Plane
-    Filename: ""
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.4413588, -1.26723766, 0, 1]
-    PrimativeType: Plane
-  - Name: Primative Sphere
-    Filename: ""
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2.28657961, 1, 0, 1]
-    PrimativeType: Sphere
-  - Name: space-ship
-    Filename: space-ship.obj
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -9.14279842, -3.94303513, 179.907059, 1]
+  - Name: Chopper
+    Filename: chopper.obj
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5.84838009, -5.1161375, 20.0639267, 1]
     PrimativeType: None
-  - Name: Primative Sphere
-    Filename: ""
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -8.11380672, 0, 20.0639286, 1]
-    PrimativeType: Sphere
 Lights:
   - Name: Light
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0.282995343, 0.191714883, -1.36403286, 1]
