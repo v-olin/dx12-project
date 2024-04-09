@@ -1132,6 +1132,175 @@ namespace pathtracex {
 		return true;
 	}
 
+	void DXRenderer::createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow) {
+		HRESULT hr;
+		
+		resetCommandList();
+
+		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			textureDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(textureBuffer)
+		));
+
+		(*textureBuffer)->SetName(L"Texture Buffer Resource Heap");
+
+		UINT64 uploadBufferSize = 0;
+		device->GetCopyableFootprints(textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &uploadBufferSize);
+
+		CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC uploadBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+		ID3D12Resource* textureBufferUploadHeap;
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&uploadBufferDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&textureBufferUploadHeap)
+		));
+		textureBufferUploadHeap->SetName(L"Texture Buffer Upload Resource Heap");
+
+		D3D12_SUBRESOURCE_DATA textureData{};
+		ZeroMemory(&textureData, sizeof(textureData));
+		textureData.pData = imageData; // &imageData[0];
+		textureData.RowPitch = bytesPerRow;
+		textureData.SlicePitch = bytesPerRow * textureDesc->Height;
+
+		UpdateSubresources(commandList, (*textureBuffer), textureBufferUploadHeap, 0, 0, 1, &textureData);
+
+		auto rb = CD3DX12_RESOURCE_BARRIER::Transition((*textureBuffer), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		commandList->ResourceBarrier(1, &rb);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = 1;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		THROW_IF_FAILED(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(descriptorHeap)));
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		ZeroMemory(&srvDesc, sizeof(srvDesc));
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = textureDesc->Format;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = 1;
+		device->CreateShaderResourceView((*textureBuffer), &srvDesc, (*descriptorHeap)->GetCPUDescriptorHandleForHeapStart());
+
+		finishedRecordingCommandList();
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
+	}
+
+	void DXRenderer::createIndexBuffer(ID3D12Resource** buffer, D3D12_INDEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* indexData) {
+		HRESULT hr;
+		
+		resetCommandList();
+
+		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(buffer)
+		));
+
+		(*buffer)->SetName(L"Index buffer");
+
+		CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC uploadResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		ID3D12Resource* uploadHeapBuffer;
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&uploadResourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&uploadHeapBuffer)
+		));
+
+		uploadHeapBuffer->SetName(L"Index buffer resource upload heap");
+
+		D3D12_SUBRESOURCE_DATA indexResourceData{};
+		ZeroMemory(&indexResourceData, sizeof(indexResourceData));
+		indexResourceData.pData = indexData;
+		indexResourceData.RowPitch = bufferSize;
+		indexResourceData.SlicePitch = bufferSize;
+
+		UpdateSubresources(commandList, (*buffer), uploadHeapBuffer, 0, 0, 1, &indexResourceData);
+
+		auto bufferRB = CD3DX12_RESOURCE_BARRIER::Transition((*buffer), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		commandList->ResourceBarrier(1, &bufferRB);
+
+		bufferView->BufferLocation = (*buffer)->GetGPUVirtualAddress();
+		bufferView->Format = DXGI_FORMAT_R32_UINT;
+		bufferView->SizeInBytes = bufferSize;
+
+		finishedRecordingCommandList();
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
+	}
+
+	void DXRenderer::createVertexBuffer(ID3D12Resource** buffer, D3D12_VERTEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* vertexData) {
+		HRESULT hr;
+
+		resetCommandList();
+
+		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(buffer)
+		));
+
+		(*buffer)->SetName(L"Vertex buffer");
+
+		CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC uploadResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		ID3D12Resource* uploadHeap;
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&uploadResourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&uploadHeap)
+		));
+
+		uploadHeap->SetName(L"Vertex buffer upload heap");
+
+		D3D12_SUBRESOURCE_DATA vertexResourceData{};
+		ZeroMemory(&vertexResourceData, sizeof(vertexResourceData));
+		vertexResourceData.pData = vertexData;
+		vertexResourceData.RowPitch = bufferSize;
+		vertexResourceData.SlicePitch = bufferSize;
+
+		UpdateSubresources(commandList, (*buffer), uploadHeap, 0, 0, 1, &vertexResourceData);
+
+		CD3DX12_RESOURCE_BARRIER bufferRB = CD3DX12_RESOURCE_BARRIER::Transition((*buffer), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		commandList->ResourceBarrier(1, &bufferRB);
+
+		bufferView->BufferLocation = (*buffer)->GetGPUVirtualAddress();
+		bufferView->StrideInBytes = sizeof(Vertex);
+		bufferView->SizeInBytes = bufferSize;
+
+		finishedRecordingCommandList();
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
+	}
+
 	void DXRenderer::Cleanup()
 	{
 		// wait for the gpu to finish all frames
