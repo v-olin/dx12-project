@@ -5,6 +5,7 @@ struct VS_OUTPUT
     float4 pos : SV_POSITION;
     float4 color : COLOR;
     float2 texCoord : TEXCOORD;
+    uint hasColTex : HASCOLTEX;
     float4 worldNormal : WORLDNORMAL;
     float4 worldPos : WORLDPOS;
 };
@@ -65,6 +66,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float4 color = float4(result, 1.0f);
     // return interpolated color
     //also sample texture if it exists, needs to be implemented and passed in
-    return t1.Sample(s1, input.texCoord);
-   // return input.color;
+    if(input.hasColTex != 0)
+        return t1.Sample(s1, input.texCoord);
+    return input.color;
 }
