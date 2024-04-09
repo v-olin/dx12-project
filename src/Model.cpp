@@ -375,8 +375,9 @@ namespace pathtracex {
 				indices.push_back(i + mesh.startIndex);
 				if (materials.size() == 0)
 					continue;
-				auto col_tex = materials.at(mesh.materialIdx);
-				vertices.at(i + mesh.startIndex).has_col_tex = col_tex.colorTexture.valid;
+				auto mat = materials.at(mesh.materialIdx);
+				vertices.at(i + mesh.startIndex).has_col_tex = mat.colorTexture.valid;
+				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
 			}
 		}
 		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
