@@ -119,7 +119,7 @@ namespace pathtracex {
     }
 
     bool Camera::mouseButtonPress(MouseButtonPressedEvent& e) {
-        if (e.getMouseButton() == MouseButtonType::LeftButton) {
+        if (e.getMouseButton() == MouseButtonType::RightButton) {
             movement.trackingMouse = true;
         }
 
@@ -127,7 +127,7 @@ namespace pathtracex {
     }
 
     bool Camera::mouseButtonRelease(MouseButtonReleasedEvent& e) {
-        if (e.getMouseButton() == MouseButtonType::LeftButton) {
+        if (e.getMouseButton() == MouseButtonType::RightButton) {
             movement.trackingMouse = false;
         }
 
