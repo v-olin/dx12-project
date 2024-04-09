@@ -21,23 +21,14 @@ namespace pathtracex {
 		in order to make all the calls using the commandList and the device 
 		maybe there should be a function in the renderer that can create textureBuffer
 		so that we can with every mesh change to the correct texture.
-		This can alos be usefull when loading objects in runtime, since then the model
-		itself can make sure that the trextures are created when its loaded!
+		This can also be useful when loading objects at runtime, since then the model
+		itself can make sure that the textures are created when its loaded!
 		Also we need to send a bool saying if the current mesh even has a texture, since the tutorial 
 		assumes that every vertexBuffer being drawn has a texture.
 		*/
 
-		DXRenderer* renderer = DXRenderer::getInstance();
-		ID3D12Resource* textureBufferUploadHeap;
 
-		renderer->resetCommandList();
-		HRESULT hr;
-
-
-
-		// load the image, create a texture resource and descriptor heap
-
-		   // Load the image from file
+		// Load the image from file
 		D3D12_RESOURCE_DESC textureDesc;
 		int imageBytesPerRow;
 		BYTE* imageData;
@@ -55,6 +46,10 @@ namespace pathtracex {
 			return false;
 		}
 
+		DXRenderer* renderer = DXRenderer::getInstance();
+		
+		// OLD IMPL
+			/*
 		// create a default heap where the upload heap will copy its contents into (contents being the texture)
 		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 		hr = renderer->device->CreateCommittedResource(
@@ -93,7 +88,7 @@ namespace pathtracex {
 		}
 		textureBufferUploadHeap->SetName(L"Texture Buffer Upload Resource Heap");
 
-		// store vertex buffer in upload heap
+		// store texture buffer in upload heap
 		D3D12_SUBRESOURCE_DATA textureData = {};
 		textureData.pData = &imageData[0]; // pointer to our image data
 		textureData.RowPitch = imageBytesPerRow; // size of all our triangle vertex data
@@ -129,6 +124,10 @@ namespace pathtracex {
 		renderer->executeCommandList();
 		// We make sure the index buffer is uploaded to the GPU before the renderer uses it
 		renderer->incrementFenceAndSignalCurrentFrame();
+		*/
+
+		// New impl
+		renderer->createTextureBuffer(&textureBuffer, &mainDescriptorHeap, &textureDesc, imageData, imageBytesPerRow);
 
 		// we are done with image data now that we've uploaded it to the gpu, so free it up
 		delete imageData;
@@ -245,7 +244,7 @@ namespace pathtracex {
 		if (wicFactory == NULL)
 		{
 			// Initialize the COM library
-			CoInitialize(NULL);
+			std::ignore = CoInitialize(NULL);
 
 			// create the WIC factory
 			hr = CoCreateInstance(

@@ -44,6 +44,7 @@ namespace pathtracex
 				return *ecode;
 			}
 
+			defaultCamera.updateMovement();
 			everyFrame();
 		}
 

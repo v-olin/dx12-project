@@ -49,37 +49,24 @@ namespace pathtracex {
 		void Update(RenderSettings& renderSettings); // update the game logic
 
 		static DXRenderer* getInstance() {
-			/*
-			if (!instance) {
-				instance = new DXRenderer();
-			}
-			*/
 			static DXRenderer instance;
 			return &instance;
 		}
 
-		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
 
-		ID3D12Device* device; // direct3d device
-
-		ID3D12CommandQueue* commandQueue; // container for command lists
-
-		void finishedRecordingCommandList();
-
-		void executeCommandList();
-
-		void resetCommandList();
-
-		void incrementFenceAndSignalCurrentFrame();
-
-		virtual void onEvent(Event& e) override;
-
-		void WaitForPreviousFrame(); // wait until gpu is finished with command list
-
+		void createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow);
+		void createIndexBuffer(ID3D12Resource** buffer, D3D12_INDEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* indexData);
+		void createVertexBuffer(ID3D12Resource** buffer, D3D12_VERTEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* vertexData);
 
 		void Cleanup(); // release com ojects and clean up memory
+		
+		virtual void onEvent(Event& e) override;
 
 	private:
+		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
+		ID3D12Device* device; // direct3d device
+		ID3D12CommandQueue* commandQueue; // container for command lists
+		
 		DXRenderer();
 
 
@@ -90,6 +77,11 @@ namespace pathtracex {
 
 		Window* window = nullptr;
 
+		void finishedRecordingCommandList();
+		void executeCommandList();
+		void resetCommandList();
+		void WaitForPreviousFrame(); // wait until gpu is finished with command list
+		void incrementFenceAndSignalCurrentFrame();
 		// direct3d stuff
  // number of buffers we want, 2 for double buffering, 3 for tripple buffering
 

@@ -20,7 +20,7 @@ namespace pathtracex {
 		, windowHandle(nullptr)
 		
 	{
-		kbd.enableAutorepeat();
+		//kbd.enableAutorepeat();
 		LOG_INFO("Creating window");
 		registerClass();
 		configureWindow();
