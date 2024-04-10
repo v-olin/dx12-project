@@ -3,7 +3,7 @@ struct VS_INPUT
     float4 pos : POSITION;
     float4 color : COLOR;
     float2 texCoord : TEXCOORD;
-    uint hasColTex : HASCOLTEX;
+    //uint hasColTex : HASCOLTEX;
     float3 normal : NORMAL;
 };
 
@@ -17,7 +17,7 @@ struct VS_OUTPUT
     float4 pos: SV_POSITION;
     float4 color : COLOR;
     float2 texCoord : TEXCOORD;
-    uint hasColTex : HASCOLTEX;
+    //uint hasColTex : HASCOLTEX;
     float4 worldNormal : WORLDNORMAL;
     float4 worldPos : WORLDPOS;
 };
@@ -29,6 +29,7 @@ cbuffer ConstantBuffer : register(b0)
     float4x4 normalMatrix;
     PointLight pointLights[3];
     int pointLightCount;
+    bool hasColTex;
 };
 
 VS_OUTPUT main(VS_INPUT input)
@@ -38,7 +39,8 @@ VS_OUTPUT main(VS_INPUT input)
     output.pos = mul(input.pos, wvpMat);
     output.color = input.color;
     output.texCoord = input.texCoord;
-    output.hasColTex = input.hasColTex;
+    //output.hasColTex = input.hasColTex;
+
     float4 normal = float4(input.normal, 0.0f);
     output.worldNormal = normalize(mul(normal, normalMatrix));
     output.worldPos = mul(input.pos, modelMatrix);

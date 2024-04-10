@@ -487,9 +487,7 @@ namespace pathtracex {
 
 			memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
-			// copy our ConstantBuffer instance to the mapped constant buffer resource
-			memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
-
+			
 			// set cube1's constant buffer
 			commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + ConstantBufferPerObjectAlignedSize * i);
 
@@ -502,14 +500,20 @@ namespace pathtracex {
 				// set the descriptor heap
 				//we need to add more uniforms so that we know if there are color textures and so on, 
 				// all textures that are valid should be send down and used
+
+				cbPerObject.hasTexCoord = false;
 				if (model->materials.size() > 0) {
 					auto col_tex = model->materials[mesh.materialIdx].colorTexture;
+					cbPerObject.hasTexCoord = col_tex.valid;
 					if (col_tex.valid) { //Something like this but also fill out the input to the shaders
+
 						ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
 						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 						commandList->SetGraphicsRootDescriptorTable(1, col_tex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart()); 
 					}
 				}
+				// // copy our ConstantBuffer instance to the mapped constant buffer resource
+				memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
 				//here also set all uniforms for each mesh
 				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
 			}

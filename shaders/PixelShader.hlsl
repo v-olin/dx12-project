@@ -5,7 +5,7 @@ struct VS_OUTPUT
     float4 pos : SV_POSITION;
     float4 color : COLOR;
     float2 texCoord : TEXCOORD;
-    uint hasColTex : HASCOLTEX;
+    //uint hasColTex : HASCOLTEX;
     float4 worldNormal : WORLDNORMAL;
     float4 worldPos : WORLDPOS;
 };
@@ -22,6 +22,7 @@ cbuffer ConstantBuffer : register(b0)
     float4x4 normalMatrix; // 64 bytes
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
+    bool hasColTex; // 1 bytes
 };
 
 float3 calculatePointLight(PointLight light, float3 normal, float3 position, float3 baseColor)
@@ -66,7 +67,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float4 color = float4(result, 1.0f);
     // return interpolated color
     //also sample texture if it exists, needs to be implemented and passed in
-    if(input.hasColTex != 0)
+    if(hasColTex)
         return t1.Sample(s1, input.texCoord);
     return input.color;
 }

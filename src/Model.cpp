@@ -366,7 +366,7 @@ namespace pathtracex {
 			float3 n = m_normals.at(i);
 			float4 col = { n.x, n.y, n.z, 1 };
 
-			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i), 0 };
+			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i)};
 			vertices.push_back(vert);
 		}
 
@@ -376,7 +376,7 @@ namespace pathtracex {
 				if (materials.size() == 0)
 					continue;
 				auto mat = materials.at(mesh.materialIdx);
-				vertices.at(i + mesh.startIndex).has_col_tex = mat.colorTexture.valid;
+				//vertices.at(i + mesh.startIndex).has_col_tex = mat.colorTexture.valid;
 				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
 			}
 		}
@@ -461,10 +461,10 @@ namespace pathtracex {
 
 
 		// Front
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 0, 0, 1), float3(0, 0, 1), float2(0, 0), 0  });
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(0, 0, 1), float2(1, 0), 0  });
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 0, 1), float2(1, 1), 0  });
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 0, 1), float2(0, 1), 0  });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 0, 0, 1), float3(0, 0, 1), float2(0, 0)});
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(0, 0, 1), float2(1, 0)});
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 0, 1), float2(1, 1)});
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 0, 1), float2(0, 1)});
 
 		indices.push_back(0); indices.push_back(1); indices.push_back(2);
 		indices.push_back(2); indices.push_back(3); indices.push_back(0);
@@ -485,10 +485,10 @@ namespace pathtracex {
 		}
 
 		// Back
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 0, -1), float2(0, 0), 0  });
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 0, -1), float2(1, 0), 0  });
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 0, 1, 1), float3(0, 0, -1), float2(1, 1), 0  });
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(0, 0, -1), float2(0, 1), 0  });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 0, -1), float2(0, 0)});
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 0, -1), float2(1, 0)});
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 0, 1, 1), float3(0, 0, -1), float2(1, 1)});
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(0, 0, -1), float2(0, 1)});
 
 		indices.push_back(6); indices.push_back(5); indices.push_back(4);
 		indices.push_back(4); indices.push_back(7); indices.push_back(6);
@@ -509,10 +509,10 @@ namespace pathtracex {
 		}
 
 		// Left
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(-1, 0, 0), float2(0, 0), 0});
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(-1, 0, 0), float2(1, 0), 0});
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(-1, 0, 0), float2(1, 1), 0 });
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(-1, 0, 0), float2(0, 1), 0 });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(-1, 0, 0), float2(0, 0)});
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(-1, 0, 0), float2(1, 0)});
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(-1, 0, 0), float2(1, 1)});
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(-1, 0, 0), float2(0, 1)});
 
 		indices.push_back(8); indices.push_back(9); indices.push_back(10);
 		indices.push_back(10); indices.push_back(11); indices.push_back(8);
@@ -534,10 +534,10 @@ namespace pathtracex {
 		}
 
 		// Right
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(1, 0, 0), float2(0, 0), 0 });
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(1, 0, 0), float2(1, 0), 0 });
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(1, 0, 0), float2(1, 1), 0 });
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(1, 0, 0), float2(0, 1), 0 });
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(1, 0, 0), float2(0, 0)});
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(1, 0, 0), float2(1, 0)});
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(1, 0, 0), float2(1, 1)});
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(1, 0, 0), float2(0, 1)});
 
 		indices.push_back(14); indices.push_back(13); indices.push_back(12);
 		indices.push_back(12); indices.push_back(15); indices.push_back(14);
@@ -560,10 +560,10 @@ namespace pathtracex {
 
 
 		// Top
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0), 0 });
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0) , false});
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1), 0 });
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1), 0 });
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0)});
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0)});
+		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1)});
+		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1)});
 
 		indices.push_back(18); indices.push_back(17); indices.push_back(16);
 		indices.push_back(16); indices.push_back(19); indices.push_back(18);
@@ -584,10 +584,10 @@ namespace pathtracex {
 		}
 
 		// Bottom
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, -1, 0), float2(0, 0), 0 });
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, -1, 0), float2(1, 0), 0  });
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, -1, 0), float2(1, 1), 0  });
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, -1, 0), float2(0, 1), 0  });
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, -1, 0), float2(0, 0)});
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, -1, 0), float2(1, 0)});
+		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, -1, 0), float2(1, 1)});
+		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, -1, 0), float2(0, 1)});
 
 		indices.push_back(20); indices.push_back(21); indices.push_back(22);
 		indices.push_back(22); indices.push_back(23); indices.push_back(20);
@@ -668,7 +668,7 @@ namespace pathtracex {
 				float2 uv = float2((float)j / slices, (float)i / stacks);
 
 				float4 col{ normal.x, normal.y, normal.z, 1 };
-				tmp_vertices.push_back({ float3(x, y, z), col, normal, uv, 0});
+				tmp_vertices.push_back({ float3(x, y, z), col, normal, uv});
 			}
 		}
 
@@ -739,10 +739,10 @@ namespace pathtracex {
 		std::vector<Vertex> tmp_vertices{};
 		std::vector<uint32_t> indices{};
 
-		tmp_vertices.push_back({ float3(-5.f, 0.0f, -5.f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0), 0 });
-		tmp_vertices.push_back({ float3(5.f, 0.0f, -5.f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0), 0 });
-		tmp_vertices.push_back({ float3(5.f, 0.0f, 5.f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1), 0 });
-		tmp_vertices.push_back({ float3(-5.f, 0.0f, 5.f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1), 0 });
+		tmp_vertices.push_back({ float3(-5.f, 0.0f, -5.f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0)});
+		tmp_vertices.push_back({ float3(5.f, 0.0f, -5.f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0)});
+		tmp_vertices.push_back({ float3(5.f, 0.0f, 5.f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1)});
+		tmp_vertices.push_back({ float3(-5.f, 0.0f, 5.f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1)});
 
 		indices.push_back(0); indices.push_back(1); indices.push_back(2);
 		indices.push_back(2); indices.push_back(3); indices.push_back(0);
