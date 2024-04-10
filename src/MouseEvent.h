@@ -7,11 +7,15 @@
 namespace pathtracex {
 	class MouseMovedEvent : public Event {
 	public:
-		MouseMovedEvent(const float x, const float y) :
-			posx(x), posy(y) { }
+		MouseMovedEvent(const float x, const float y, const float dx, const float dy) :
+			posx(x), posy(y),
+			diffx(dx), diffy(dy)
+		{ }
 
-		float getX() const { return posx; }
-		float getY() const { return posy; }
+		float getPosX() const { return posx; }
+		float getPosY() const { return posy; }
+		float getDiffX() const { return diffx; }
+		float getDiffY() const { return diffy; }
 
 		std::string toString() const override {
 			std::stringstream ss;
@@ -24,6 +28,7 @@ namespace pathtracex {
 
 	private:
 		float posx, posy;
+		float diffx, diffy;
 	};
 
 	enum MouseButtonType {

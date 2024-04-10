@@ -15,6 +15,8 @@ namespace pathtracex {
 
 		vBufferSize = sizeof(Vertex) * vertices.size();
 
+		// Old impl
+		/*
 		renderer->resetCommandList();
 
 	//	renderer->resetCommandList();
@@ -78,6 +80,11 @@ namespace pathtracex {
 
 		// We make sure the index buffer is uploaded to the GPU before the renderer uses it
 		renderer->incrementFenceAndSignalCurrentFrame();
+		*/
+
+		// New impl
+		BYTE* vertexData = reinterpret_cast<BYTE*>(vertices.data());
+		renderer->createVertexBuffer(&vertexBuffer, &vertexBufferView, vBufferSize, vertexData);
 	}
 
 	DXVertexBuffer::~DXVertexBuffer()

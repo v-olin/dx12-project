@@ -5,22 +5,37 @@
 #include <vector>
 
 #include <memory>
+#include "PathWin.h"
 
+#include <d3d12.h>
+#include <dxgi1_4.h>
 #include "Helper.h"
+
+#include <string>
+#include <vector>
+#include <wrl.h>
+
+#include <wincodec.h>
+#include "Helper.h"
+#include "../vendor/d3dx12/d3dx12.h"
 namespace pathtracex {
 	class Texture {
 	public:
-		bool valid = false;
-		uint32_t gl_id = 0;
-		uint32_t gl_id_internal = 0;
 		std::string filename;
 		std::string directory;
-		int width, height;
-		uint8_t* data;
-		uint8_t n_components = 4;
+		bool valid{ false };
+		ID3D12Resource* textureBuffer; // the resource heap containing our texture
+		ID3D12DescriptorHeap* mainDescriptorHeap;
 
-		bool load(const std::string& directory, const std::string& filename, int nof_component);
-		float4 sample(float2 uv) const;
+		bool load(const std::string& directory, const std::string& filename, int n);
 		void free();
+	private:
+		DXGI_FORMAT GetDXGIFormatFromWICFormat(WICPixelFormatGUID& wicFormatGUID);
+		WICPixelFormatGUID GetConvertToWICFormat(WICPixelFormatGUID& wicFormatGUID);
+		int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat);
+		int LoadImageDataFromFile(BYTE** imageData, D3D12_RESOURCE_DESC& resourceDescription, LPCWSTR filename, int& bytesPerRow);
+
+
+
 	};
 }

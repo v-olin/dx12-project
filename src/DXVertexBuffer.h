@@ -17,6 +17,6 @@ namespace pathtracex {
 
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{}; // a structure containing a pointer to the vertex data in gpu memory
 
-		int vBufferSize;
+		size_t vBufferSize;
 	};
 }

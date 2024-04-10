@@ -18,6 +18,6 @@ namespace pathtracex {
 
 		D3D12_INDEX_BUFFER_VIEW indexBufferView; // a structure holding information about the index buffer
 
-		int iBufferSize;
+		size_t iBufferSize;
 	};
 }

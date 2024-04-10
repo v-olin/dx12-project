@@ -19,6 +19,10 @@ Models:
     Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -8.11380672, 0, 20.0639286, 1]
     PrimativeType: Sphere
+  - Name: Chopper
+    Filename: chopper.obj
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10.465889, -1.03468919, 17.1972103, 1]
+    PrimativeType: None
 Lights:
   - Name: Light
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0.282995343, 0.191714883, -1.36403286, 1]

@@ -12,13 +12,15 @@ namespace pathtracex {
 	{
 		DXRenderer* renderer = DXRenderer::getInstance();
 
-		renderer->resetCommandList();
 
 		iBufferSize = sizeof(uint32_t) * indices.size();
 
 		numCubeIndices = indices.size();
-	//	renderer->resetCommandList();
+		//	renderer->resetCommandList();
 
+		// OLD impl
+		/* 
+		renderer->resetCommandList();
 		HRESULT hr;
 		// create default heap to hold index buffer
 		CD3DX12_HEAP_PROPERTIES iHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
@@ -49,7 +51,7 @@ namespace pathtracex {
 			&iResourceDescUpload, // resource description for a buffer
 			D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
 			nullptr,
-			IID_PPV_ARGS(&iBufferUploadHeap));
+			IID_PPV_ARGS(&iBuf ferUploadHeap));
 		//		vBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
 
 				// store vertex buffer in upload heap
@@ -78,7 +80,11 @@ namespace pathtracex {
 
 
 		renderer->incrementFenceAndSignalCurrentFrame();
+		*/
 
+		// New impl
+		BYTE* indexData = reinterpret_cast<BYTE*>(indices.data());
+		renderer->createIndexBuffer(&indexBuffer, &indexBufferView, iBufferSize, indexData);
 	}
 	DXIndexBuffer::~DXIndexBuffer()
 	{

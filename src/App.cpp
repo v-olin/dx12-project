@@ -36,6 +36,8 @@ namespace pathtracex
 			return 1;
 		}
 
+		registerEventListener(&defaultCamera);
+
 		Serializer::deserializeScene(config.startupSceneName, scene);
 
 		while(running) {
@@ -45,6 +47,7 @@ namespace pathtracex
 				return *ecode;
 			}
 
+			defaultCamera.updateMovement();
 			everyFrame();
 		}
 

@@ -1,3 +1,5 @@
+Texture2D t1 : register(t0);
+SamplerState s1 : register(s0);
 struct VS_OUTPUT
 {
     float4 pos : SV_POSITION;
@@ -19,6 +21,7 @@ cbuffer ConstantBuffer : register(b0)
     float4x4 normalMatrix; // 64 bytes
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
+    bool hasColTex; // 1 bytes
 };
 
 float3 calculatePointLight(PointLight light, float3 normal, float3 position, float3 baseColor)
@@ -62,5 +65,8 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
     float4 color = float4(result, 1.0f);
     // return interpolated color
-    return color;
+    //also sample texture if it exists, needs to be implemented and passed in
+    if(hasColTex)
+        return t1.Sample(s1, input.texCoord);
+    return input.color;
 }

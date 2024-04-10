@@ -475,7 +475,8 @@ namespace pathtracex {
 			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
 			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
 			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
-			DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.transformMatrix);
+			//DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.transformMatrix);
+			DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.getModelMatrix());
 			DirectX::XMMATRIX transposed2 = modelMatrix;
 			DirectX::XMStoreFloat4x4(&cbPerObject.modelMatrix, transposed2);	// store the model matrix in the constant buffer
 			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, model->trans.transformMatrix));
@@ -492,9 +493,7 @@ namespace pathtracex {
 
 			memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
-			// copy our ConstantBuffer instance to the mapped constant buffer resource
-			memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
-
+			
 			// set cube1's constant buffer
 			commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + ConstantBufferPerObjectAlignedSize * i);
 
@@ -503,6 +502,24 @@ namespace pathtracex {
 			commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
 			//commandList->DrawIndexedInstanced(model->indexBuffer->numCubeIndices, 1, 0, 0, 0);
 			for (auto mesh : model->meshes) {
+
+				// set the descriptor heap
+				//we need to add more uniforms so that we know if there are color textures and so on, 
+				// all textures that are valid should be send down and used
+
+				cbPerObject.hasTexCoord = false;
+				if (model->materials.size() > 0) {
+					auto col_tex = model->materials[mesh.materialIdx].colorTexture;
+					cbPerObject.hasTexCoord = col_tex.valid;
+					if (col_tex.valid) { //Something like this but also fill out the input to the shaders
+
+						ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
+						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+						commandList->SetGraphicsRootDescriptorTable(1, col_tex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart()); 
+					}
+				}
+				// // copy our ConstantBuffer instance to the mapped constant buffer resource
+				memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
 				//here also set all uniforms for each mesh
 				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
 			}
@@ -787,21 +804,58 @@ namespace pathtracex {
 		rootCBVDescriptor.RegisterSpace = 0;
 		rootCBVDescriptor.ShaderRegister = 0;
 
+		// create a descriptor range (descriptor table) and fill it out
+		// this is a range of descriptors inside a descriptor heap
+		D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
+		descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // this is a range of shader resource views (descriptors)
+		descriptorTableRanges[0].NumDescriptors = 1; // we only have one texture right now, so the range is only 1
+		descriptorTableRanges[0].BaseShaderRegister = 0; // start index of the shader registers in the range
+		descriptorTableRanges[0].RegisterSpace = 0; // space 0. can usually be zero
+		descriptorTableRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // this appends the range to the end of the root signature descriptor tables
+
+		// create a descriptor table
+		D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
+		descriptorTable.NumDescriptorRanges = _countof(descriptorTableRanges); // we only have one range
+		descriptorTable.pDescriptorRanges = &descriptorTableRanges[0]; // the pointer to the beginning of our ranges array
+
+
 		// create a root parameter and fill it out
-		D3D12_ROOT_PARAMETER rootParameters[1];								 // only one parameter right now
+		D3D12_ROOT_PARAMETER rootParameters[2];								 // only one parameter right now
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	 // this is a constant buffer view root descriptor
 		rootParameters[0].Descriptor = rootCBVDescriptor;					 // this is the root descriptor for this root parameter
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // our pixel shader will be the only shader accessing this parameter for now
+		// fill out the parameter for our descriptor table. Remember it's a good idea to sort parameters by frequency of change. Our constant
+		// buffer will be changed multiple times per frame, while our descriptor table will not be changed at all (in this tutorial)
+		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
+		rootParameters[1].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
+		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // our pixel shader will be the only shader accessing this parameter for now
+
+		// create a static sampler
+		D3D12_STATIC_SAMPLER_DESC sampler = {};
+		sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+		sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		sampler.MipLODBias = 0;
+		sampler.MaxAnisotropy = 0;
+		sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+		sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+		sampler.MinLOD = 0.0f;
+		sampler.MaxLOD = D3D12_FLOAT32_MAX;
+		sampler.ShaderRegister = 0;
+		sampler.RegisterSpace = 0;
+		sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init(_countof(rootParameters), // we have 1 root parameter
+		rootSignatureDesc.Init(_countof(rootParameters), // we have 2 root parameters
 							   rootParameters,			 // a pointer to the beginning of our root parameters array
-							   0,
-							   nullptr,
+							   1,						 // we have one sampler
+							   &sampler,				 // pointer to our sampler
 							   D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // we can deny shader stages here for better performance
 								   D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 								   D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 								   D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS);
+								   //D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
 
 		ID3DBlob *signature;
 		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
@@ -895,6 +949,7 @@ namespace pathtracex {
 				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"HASCOLTEX", 0, DXGI_FORMAT_R32G32B32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 		};
 
@@ -1086,6 +1141,175 @@ namespace pathtracex {
 		incrementFenceAndSignalCurrentFrame();
 
 		return true;
+	}
+
+	void DXRenderer::createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow) {
+		HRESULT hr;
+		
+		resetCommandList();
+
+		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			textureDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(textureBuffer)
+		));
+
+		(*textureBuffer)->SetName(L"Texture Buffer Resource Heap");
+
+		UINT64 uploadBufferSize = 0;
+		device->GetCopyableFootprints(textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &uploadBufferSize);
+
+		CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC uploadBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+		ID3D12Resource* textureBufferUploadHeap;
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&uploadBufferDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&textureBufferUploadHeap)
+		));
+		textureBufferUploadHeap->SetName(L"Texture Buffer Upload Resource Heap");
+
+		D3D12_SUBRESOURCE_DATA textureData{};
+		ZeroMemory(&textureData, sizeof(textureData));
+		textureData.pData = imageData; // &imageData[0];
+		textureData.RowPitch = bytesPerRow;
+		textureData.SlicePitch = bytesPerRow * textureDesc->Height;
+
+		UpdateSubresources(commandList, (*textureBuffer), textureBufferUploadHeap, 0, 0, 1, &textureData);
+
+		auto rb = CD3DX12_RESOURCE_BARRIER::Transition((*textureBuffer), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		commandList->ResourceBarrier(1, &rb);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = 1;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		THROW_IF_FAILED(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(descriptorHeap)));
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		ZeroMemory(&srvDesc, sizeof(srvDesc));
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = textureDesc->Format;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = 1;
+		device->CreateShaderResourceView((*textureBuffer), &srvDesc, (*descriptorHeap)->GetCPUDescriptorHandleForHeapStart());
+
+		finishedRecordingCommandList();
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
+	}
+
+	void DXRenderer::createIndexBuffer(ID3D12Resource** buffer, D3D12_INDEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* indexData) {
+		HRESULT hr;
+		
+		resetCommandList();
+
+		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(buffer)
+		));
+
+		(*buffer)->SetName(L"Index buffer");
+
+		CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC uploadResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		ID3D12Resource* uploadHeapBuffer;
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&uploadResourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&uploadHeapBuffer)
+		));
+
+		uploadHeapBuffer->SetName(L"Index buffer resource upload heap");
+
+		D3D12_SUBRESOURCE_DATA indexResourceData{};
+		ZeroMemory(&indexResourceData, sizeof(indexResourceData));
+		indexResourceData.pData = indexData;
+		indexResourceData.RowPitch = bufferSize;
+		indexResourceData.SlicePitch = bufferSize;
+
+		UpdateSubresources(commandList, (*buffer), uploadHeapBuffer, 0, 0, 1, &indexResourceData);
+
+		auto bufferRB = CD3DX12_RESOURCE_BARRIER::Transition((*buffer), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		commandList->ResourceBarrier(1, &bufferRB);
+
+		bufferView->BufferLocation = (*buffer)->GetGPUVirtualAddress();
+		bufferView->Format = DXGI_FORMAT_R32_UINT;
+		bufferView->SizeInBytes = bufferSize;
+
+		finishedRecordingCommandList();
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
+	}
+
+	void DXRenderer::createVertexBuffer(ID3D12Resource** buffer, D3D12_VERTEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* vertexData) {
+		HRESULT hr;
+
+		resetCommandList();
+
+		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(buffer)
+		));
+
+		(*buffer)->SetName(L"Vertex buffer");
+
+		CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC uploadResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		ID3D12Resource* uploadHeap;
+		THROW_IF_FAILED(device->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&uploadResourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&uploadHeap)
+		));
+
+		uploadHeap->SetName(L"Vertex buffer upload heap");
+
+		D3D12_SUBRESOURCE_DATA vertexResourceData{};
+		ZeroMemory(&vertexResourceData, sizeof(vertexResourceData));
+		vertexResourceData.pData = vertexData;
+		vertexResourceData.RowPitch = bufferSize;
+		vertexResourceData.SlicePitch = bufferSize;
+
+		UpdateSubresources(commandList, (*buffer), uploadHeap, 0, 0, 1, &vertexResourceData);
+
+		CD3DX12_RESOURCE_BARRIER bufferRB = CD3DX12_RESOURCE_BARRIER::Transition((*buffer), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		commandList->ResourceBarrier(1, &bufferRB);
+
+		bufferView->BufferLocation = (*buffer)->GetGPUVirtualAddress();
+		bufferView->StrideInBytes = sizeof(Vertex);
+		bufferView->SizeInBytes = bufferSize;
+
+		finishedRecordingCommandList();
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
 	}
 
 	void DXRenderer::Cleanup()
