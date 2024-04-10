@@ -8,7 +8,6 @@ namespace pathtracex {
 		DirectX::XMFLOAT3 pos{};
 		DirectX::XMFLOAT4 color{};
 		DirectX::XMFLOAT2 tex{};
-		//unsigned int has_col_tex{ 0 };
 		DirectX::XMFLOAT3 normal{};
 	};
 }

@@ -376,7 +376,6 @@ namespace pathtracex {
 				if (materials.size() == 0)
 					continue;
 				auto mat = materials.at(mesh.materialIdx);
-				//vertices.at(i + mesh.startIndex).has_col_tex = mat.colorTexture.valid;
 				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
 			}
 		}

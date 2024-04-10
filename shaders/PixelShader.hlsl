@@ -5,7 +5,6 @@ struct VS_OUTPUT
     float4 pos : SV_POSITION;
     float4 color : COLOR;
     float2 texCoord : TEXCOORD;
-    //uint hasColTex : HASCOLTEX;
     float4 worldNormal : WORLDNORMAL;
     float4 worldPos : WORLDPOS;
 };
