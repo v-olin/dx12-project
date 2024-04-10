@@ -526,6 +526,171 @@ namespace pathtracex {
 		}
 	}
 
+	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation)
+	{
+		std::vector<float3> positions{};
+		std::vector<uint32_t> indices{};
+		std::vector<float3> normals{};
+		std::vector<float2> texcoords{};
+		std::vector<Vertex> vertices{};
+
+//		m_mapSize = size;
+		float sideLen = sideLength / (tesselation - 1);
+
+		float totalX = 0.0f;
+		float totalZ = 0.0f;
+
+		for (int i = 0; i < tesselation; i++)
+		{
+			float x = -sideLength / 2 + i * sideLen;
+
+			for (int j = 0; j < tesselation; j++)
+			{
+				float z = -sideLength / 2 + j * sideLen;
+			//	float y = Noise::perlin(x, z, size, seed, 2) // 2 is octaves
+			//		* sceneContext.heightScale;
+				float y = 0;
+				positions.push_back({ x, y, z });
+
+				texcoords.push_back({ totalX / sideLength, totalZ / sideLength });
+
+				if (i != tesselation - 1 && j != tesselation - 1)
+				{
+					indices.push_back(i * tesselation + j);
+					indices.push_back(i * tesselation + j + 1);
+					indices.push_back((i + 1) * tesselation + j + 1);
+
+					indices.push_back(i * tesselation + j);
+					indices.push_back((i + 1) * tesselation + j + 1);
+					indices.push_back((i + 1) * tesselation + j);
+				}
+				totalZ += sideLen;
+			}
+			totalZ = 0;
+			totalX += sideLen;
+		}
+		/*
+	
+		// despair, käl please fix
+		for (int i = 0; i < tesselation; i++)
+		{
+			for (int j = 0; j < tesselation; j++)
+			{
+				//  	A	
+				//  B	x	C
+				//  	D
+				vec3 x, a, b, c, d, n;
+				x = vertices.at(i * tesselation + j);
+
+				if (i == 0 && j == 0)
+				{
+					a = vertices.at((i + 1) * tesselation + j);
+					c = vertices.at(i * tesselation + j + 1);
+
+					n = cross(c - x, a - x);
+				}
+				else if (i == tesselation - 1 && j == tesselation - 1)
+				{
+					b = vertices.at(i * tesselation + j - 1);
+					d = vertices.at((i - 1) * tesselation + j);
+
+					n = cross(b - x, d - x);
+				}
+				else if (i == 0)
+				{
+					b = vertices.at(i * tesselation + j - 1);
+					c = vertices.at(i * tesselation + j + 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(b - x, d - x) + cross(d - x, c - x);
+				}
+				else if (i == tesselation - 1)
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					b = vertices.at(i * tesselation + j - 1);
+					c = vertices.at(i * tesselation + j + 1);
+
+					n = cross(a - x, b - x) + cross(c - x, a - x);
+				}
+				else if (j == 0)
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					c = vertices.at(i * tesselation + j + 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(c - x, a - x) + cross(d - x, c - x);
+				}
+				else if (j == tesselation - 1)
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					b = vertices.at(i * tesselation + j - 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(a - x, b - x) + cross(b - x, d - x);
+				}
+				else
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					b = vertices.at(i * tesselation + j - 1);
+					c = vertices.at(i * tesselation + j + 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(a - x, b - x)
+						+ cross(b - x, d - x)
+						+ cross(d - x, c - x)
+						+ cross(c - x, a - x);
+				}
+				normals.push_back(-normalize(n));
+				//normals.push_back(vec3(0.0, 1.0, 0.0));
+			}
+		}
+			*/
+
+
+		float3 max_cords(positions.at(0));
+		float3 min_cords(positions.at(0));
+		for (size_t i = 1; i < positions.size(); i++) {
+			max_cords = max_cords.Max(max_cords, positions.at(i));
+			min_cords = max_cords.Min(min_cords, positions.at(i));
+		}
+
+		//TODO creatye materials for cube faces, 
+		// posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
+		std::vector<uint32_t> indecies;
+
+//		for (auto mesh : meshes) {
+//			for (size_t i = 0; i < mesh.numberOfVertices; i++)
+//				indecies.push_back(i + mesh.startIndex);
+//		}
+
+		for (size_t i = 0; i < positions.size(); i++) {
+			vertices.push_back({ positions.at(i), float4(1, 0, 0, 1), float3(0,1,0), texcoords.at(i)});
+		}
+
+		Mesh mesh = Mesh();
+		mesh.name = "Procedual mesh";
+		mesh.materialIdx = 0;
+		mesh.startIndex = 0;
+		mesh.numberOfVertices = indices.size();
+		
+		std::vector<Material> materials;
+		std::vector<Mesh> meshes;
+
+		meshes.push_back(mesh);
+
+		std::shared_ptr<Model> model = std::make_shared<Model>("Procedual mesh"
+			, materials
+			, meshes
+			, false
+			, max_cords
+			, min_cords
+			, vertices
+			, indices);
+		//model->primativeType = PrimitiveModelType::CUBE;
+
+		return model;
+	}
+
 	std::shared_ptr<Model> Model::createCube() {
 		std::vector<Vertex> tmp_vertices{};
 		std::vector<Vertex> vertecies;

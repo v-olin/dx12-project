@@ -1054,7 +1054,8 @@ namespace pathtracex {
 		{
 			// create resource for cube 1
 			CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
-			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64); // allocate a 64KB buffer
+			// If this memory is consumed fully, the app will crash
+			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64 * 2); // allocate a 128 KB buffer
 			hr = device->CreateCommittedResource(
 				&heapUpload,					   // this heap will be used to upload the constant buffer data
 				D3D12_HEAP_FLAG_NONE,			   // no flags
