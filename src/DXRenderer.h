@@ -142,7 +142,8 @@ namespace pathtracex {
 			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
 			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
-			// Total: 244 bytes
+			bool hasTexCoord; // 1 bytes (i think)
+			// Total: 245 with hasTexCoord
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
