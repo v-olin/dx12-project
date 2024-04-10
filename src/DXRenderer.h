@@ -143,7 +143,8 @@ namespace pathtracex {
 			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
 			bool hasTexCoord; // 1 bytes (i think)
-			// Total: 245 with hasTexCoord
+			bool hasNormalTex; // 1 bytes (i think)
+			// Total: 246 
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.

@@ -503,14 +503,22 @@ namespace pathtracex {
 
 				cbPerObject.hasTexCoord = false;
 				if (model->materials.size() > 0) {
-					auto col_tex = model->materials[mesh.materialIdx].colorTexture;
-					cbPerObject.hasTexCoord = col_tex.valid;
-					if (col_tex.valid) { //Something like this but also fill out the input to the shaders
-
-						ID3D12DescriptorHeap* descriptorHeaps[] = { col_tex.mainDescriptorHeap};
+					auto mat = model->materials[mesh.materialIdx];
+					auto colTex = mat.colorTexture;
+					auto normalTex = mat.normalTexture;
+					cbPerObject.hasTexCoord = colTex.valid;
+					cbPerObject.hasNormalTex = normalTex.valid;
+					if (normalTex.valid) {
+						ID3D12DescriptorHeap* descriptorHeaps[] = {normalTex.mainDescriptorHeap};
 						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-						commandList->SetGraphicsRootDescriptorTable(1, col_tex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart()); 
+						commandList->SetGraphicsRootDescriptorTable(1, normalTex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 					}
+					if (colTex.valid) {
+						ID3D12DescriptorHeap* descriptorHeaps[] = {colTex.mainDescriptorHeap};
+						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+						commandList->SetGraphicsRootDescriptorTable(1, colTex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+					}
+
 				}
 				// // copy our ConstantBuffer instance to the mapped constant buffer resource
 				memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
@@ -802,7 +810,7 @@ namespace pathtracex {
 		// this is a range of descriptors inside a descriptor heap
 		D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
 		descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // this is a range of shader resource views (descriptors)
-		descriptorTableRanges[0].NumDescriptors = 1; // we only have one texture right now, so the range is only 1
+		descriptorTableRanges[0].NumDescriptors = 2; // we only have two texture right now, so the range is only 2
 		descriptorTableRanges[0].BaseShaderRegister = 0; // start index of the shader registers in the range
 		descriptorTableRanges[0].RegisterSpace = 0; // space 0. can usually be zero
 		descriptorTableRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // this appends the range to the end of the root signature descriptor tables

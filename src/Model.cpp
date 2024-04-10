@@ -209,6 +209,10 @@ namespace pathtracex {
 			{
 				material.emissionTexture.load(directory, m.emissive_texname, 4);
 			}
+			if (m.bump_texname != "")
+			{
+				material.normalTexture.load(directory, m.bump_texname, 3);
+			}
 			material.transparency = m.transmittance[0];
 			material.ior = m.ior;
 			materials.push_back(material);

@@ -24,5 +24,6 @@ namespace pathtracex {
 		Texture metalnessTexture;
 		Texture fresnelTexture;
 		Texture emissionTexture;
+		Texture normalTexture;
 	};
 }
