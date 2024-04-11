@@ -61,6 +61,8 @@ target_sources(PathTracerX PRIVATE
 	TimedEvent.h
 	ProcedualWorldManager.h
 	ProcedualWorldManager.cpp
+	Noise.h
+	Noise.cpp
 )
 
 source_group("DX" FILES

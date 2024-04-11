@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include "Logger.h"
+#include "Noise.h"
 
 // DON'T REMOVE DEFINES, AND DON'T DEFINE ANYWHERE ELSE!!!!!!!!!!!!!
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -449,10 +450,11 @@ namespace pathtracex
 
 			for (int j = 0; j < tesselation; j++)
 			{
+				float heightScale = 50;
+
 				float z = -sideLength / 2 + j * sideLen;
-				//	float y = Noise::perlin(x, z, size, seed, 2) // 2 is octaves
-				//		* sceneContext.heightScale;
-				float y = 0;
+				float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 2) // 2 is octaves
+						* heightScale;
 				positions.push_back({x, y, z});
 
 				texcoords.push_back({totalX / sideLength, totalZ / sideLength});
@@ -896,6 +898,7 @@ namespace pathtracex
 
 		return model;
 	}
+
 	std::shared_ptr<Model> Model::createPlane()
 	{
 		std::vector<Vertex> tmp_vertices{};

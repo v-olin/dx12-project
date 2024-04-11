@@ -20,7 +20,7 @@ namespace pathtracex
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
 
-		defaultRenderSettings.camera.transform.transformMatrix = DirectX::XMMatrixRotationX(1.571);
+		defaultRenderSettings.camera.transform.rotate({ 0, 0, 1 }, 1.571);
 		defaultRenderSettings.camera.transform.setPosition({ 0, 100, 0 });
 		//defaultRenderSettings.camera.transform.transformMatrix = DirectX::XMMatrixLookAtRH(defaultRenderSettings.camera.transform.getPosition(), DirectX::XMVectorSet(0, 0, 0, 0), DirectX::XMVectorSet(0, 1, 0, 0));
 	}
@@ -35,6 +35,7 @@ namespace pathtracex
 			cleanup();
 			return 1;
 		}
+
 
 		registerEventListener(&defaultCamera);
 

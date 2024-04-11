@@ -1102,7 +1102,7 @@ namespace pathtracex {
 		// As you can see, we are allocating 64KB for each resource we create. Buffer resource heaps must be
 		// an alignment of 64KB. We are creating 3 resources, one for each frame. Each constant buffer is
 		// only a 4x4 matrix of floats in this tutorial. So with a float being 4 bytes, we have
-		// 16 floats in one constant buffer, and we will store 2 constant buffers in each
+		// 16 floats in one constant buffer, and we will store 2 con stant buffers in each
 		// heap, one for each cube, thats only 64x2 bits, or 128 bits we are using for each
 		// resource, and each resource must be at least 64KB (65536 bits)
 		for (int i = 0; i < frameBufferCount; ++i)

@@ -11,7 +11,7 @@ namespace pathtracex
 		int seed;
 		float chunkSideLength = 10;
 		float tessellationFactor;
-		int chunkRenderDistance = 90;
+		int chunkRenderDistance = 100;
 	};
 
 	// Only for pairs of std::hash-able types for simplicity.
