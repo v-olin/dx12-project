@@ -9,10 +9,10 @@ namespace pathtracex
 	struct ProcedualWorldSettings : public Serializable
 	{
 		int seed = 1432432;
-		float chunkSideLength = 10;
-		float tessellationFactor = 10;
-		int chunkRenderDistance = 100;
-		int heightScale = 10;
+		float chunkSideLength = 50;
+		float tessellationFactor = 50;
+		int chunkRenderDistance = 200;
+		int heightScale = 30;
 
 		std::vector<SerializableVariable> getSerializableVariables() override
 		{
@@ -52,7 +52,11 @@ namespace pathtracex
 		void updateProcedualWorld(Camera& camera);
 
 		// The active procedual world models that will be rendered
-		std::vector<std::shared_ptr<Model>> procedualWorldModels;
+		std::vector<std::shared_ptr<Model>> procedualWorldGroundModels;
+
+		std::vector<std::shared_ptr<Model>> procedualWorldSkyModels;
+
+		std::shared_ptr<Model> sun = nullptr;
 
 		void updateProcedualWorldSettings(const ProcedualWorldSettings settings);
 
@@ -67,7 +71,7 @@ namespace pathtracex
 		std::pair<int, int> getChunkCoordinatesAtPosition(const float3 position);
 
 		void createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates);
-
+		void createSun();
 
 
 		bool settingsChanged = true;

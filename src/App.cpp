@@ -123,7 +123,8 @@ namespace pathtracex
 			worldManager.updateProcedualWorld(defaultCamera);
 		}
 
-		scene.proceduralModels = worldManager.procedualWorldModels;
+		scene.proceduralGroundModels = worldManager.procedualWorldGroundModels;
+		scene.proceduralSkyModels = worldManager.procedualWorldSkyModels;
 
 		if (window.windowHasBeenResized()) {
 			auto newSize = window.getNewWindowSize();

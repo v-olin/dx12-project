@@ -52,7 +52,6 @@ float3 calculatePointLight(PointLight light, float3 normal, float3 position, flo
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
-    return input.color;
     if (pointLightCount == 0)
     {
         return input.color;
