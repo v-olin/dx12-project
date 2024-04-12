@@ -25,4 +25,4 @@ Models:
     PrimativeType: None
 Lights:
   - Name: Light
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0.282995343, 0.191714883, -1.36403286, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4225.20703, 5.45496178, 6570.13672, 1]

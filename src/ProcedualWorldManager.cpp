@@ -7,7 +7,7 @@ namespace pathtracex
 		// If the camera has not moved to a different chunk, we do not need to update the world
 		if (previousCameraCordinates == getChunkCoordinatesAtPosition(camera.transform.getPosition()) && !settingsChanged)
 		{
-			//return;
+			return;
 		}
 
 		settingsChanged = false;
@@ -44,7 +44,7 @@ namespace pathtracex
 	void ProcedualWorldManager::createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates)
 	{	
 		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
-		std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.seed, 10);
+		std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.seed, settings.tessellationFactor, settings.heightScale);
 		model->trans.setScale(float3(1, 1, 1));
 		model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength + settings.chunkSideLength / 2, 0, (chunkCoordinates.second) * settings.chunkSideLength + settings.chunkSideLength / 2));
 

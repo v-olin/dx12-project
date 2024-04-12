@@ -8,10 +8,11 @@ namespace pathtracex
 {
 	struct ProcedualWorldSettings : public Serializable
 	{
-		int seed = 0;
+		int seed = 1432432;
 		float chunkSideLength = 10;
 		float tessellationFactor = 10;
 		int chunkRenderDistance = 100;
+		int heightScale = 10;
 
 		std::vector<SerializableVariable> getSerializableVariables() override
 		{
@@ -20,7 +21,8 @@ namespace pathtracex
 				{SerializableType::INT, "seed", "The seed of the procedual world", &seed},
 				{SerializableType::FLOAT, "chunkSideLength", "The side length of a chunk", &chunkSideLength},
 				{SerializableType::FLOAT, "tessellationFactor", "The tessellation factor of the procedual world", &tessellationFactor},
-				{SerializableType::INT, "chunkRenderDistance", "The render distance of the procedual world", &chunkRenderDistance}
+				{SerializableType::INT, "chunkRenderDistance", "The render distance of the procedual world", &chunkRenderDistance},
+				{SerializableType::INT, "heightScale", "The height scale of the procedual world", &heightScale}
 			};
 		};
 	};
@@ -68,7 +70,7 @@ namespace pathtracex
 
 
 
-		bool settingsChanged = false;
+		bool settingsChanged = true;
 
 		std::pair<int, int> previousCameraCordinates;
 	};

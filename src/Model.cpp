@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "Logger.h"
 #include "Noise.h"
+#include "ProcedualWorldManager.h"
 
 // DON'T REMOVE DEFINES, AND DON'T DEFINE ANYWHERE ELSE!!!!!!!!!!!!!
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -430,7 +431,7 @@ namespace pathtracex
 		}
 	}
 
-	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation)
+	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale)
 	{
 		std::vector<float3> positions{};
 		std::vector<uint32_t> indices{};
@@ -450,8 +451,6 @@ namespace pathtracex
 
 			for (int j = 0; j < tesselation; j++)
 			{
-				float heightScale = 50;
-
 				float z = -sideLength / 2 + j * sideLen;
 				float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 2) // 2 is octaves
 						* heightScale;
@@ -571,8 +570,10 @@ namespace pathtracex
 		for (size_t i = 0; i < positions.size(); i++)
 		{
 			// Color depends on the height
-
-			vertices.push_back({positions.at(i), float4(1, 0, 0, 1), float3(0, 1, 0), texcoords.at(i)});
+			float4 color = float4(positions.at(i).y / heightScale, 0, 0, 1);
+			if (positions.at(i).y < 0)
+				color = float4(0, 0, 1, 1);
+			vertices.push_back({positions.at(i), color, float3(0, 1, 0), texcoords.at(i)});
 		}
 
 		Mesh mesh = Mesh();

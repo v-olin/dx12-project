@@ -52,6 +52,7 @@ float3 calculatePointLight(PointLight light, float3 normal, float3 position, flo
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
+    return input.color;
     if (pointLightCount == 0)
     {
         return input.color;
@@ -68,5 +69,5 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     //also sample texture if it exists, needs to be implemented and passed in
     if(hasColTex)
         return t1.Sample(s1, input.texCoord);
-    return input.color;
+    return color;
 }

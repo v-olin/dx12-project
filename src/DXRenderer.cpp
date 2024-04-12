@@ -470,12 +470,22 @@ namespace pathtracex {
 			}
 		}
 
+		int k = 0;
+		PointLight pointLights[3];
+		for (auto light : scene.lights) {
+			pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
+			k++;
+		}
+
+		cbPerObject.pointLightCount = k;
+
+		// create the wvp matrix and store in constant buffer
+		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
+		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 
 		for (auto model : models)
 		{
-			// create the wvp matrix and store in constant buffer
-			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
-			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
+
 			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
 			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
 			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
@@ -486,14 +496,7 @@ namespace pathtracex {
 			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, model->trans.transformMatrix));
 			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
 			
-			int k = 0;
-			PointLight pointLights[3];
-			for (auto light : scene.lights) {
-				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0}};
-				k++;
-			}
 
-			cbPerObject.pointLightCount = k;
 
 			memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
@@ -1114,7 +1117,7 @@ namespace pathtracex {
 			// create resource for cube 1
 			CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
 			// If this memory is consumed fully, the app will crash
-			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64 * 2); // allocate a 128 KB buffer
+			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64 * 20); // allocate a 128 KB buffer
 			hr = device->CreateCommittedResource(
 				&heapUpload,					   // this heap will be used to upload the constant buffer data
 				D3D12_HEAP_FLAG_NONE,			   // no flags
