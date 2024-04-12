@@ -570,6 +570,8 @@ namespace pathtracex
 
 		for (size_t i = 0; i < positions.size(); i++)
 		{
+			// Color depends on the height
+
 			vertices.push_back({positions.at(i), float4(1, 0, 0, 1), float3(0, 1, 0), texcoords.at(i)});
 		}
 

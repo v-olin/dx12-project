@@ -8,6 +8,7 @@ namespace pathtracex {
 		int height;
 		bool useMultiSampling = true;
 		bool useRayTracing = false;
+		bool drawProcedualWorld = false;
 		int rayBounces = 10;
 		Camera& camera;
 
@@ -25,6 +26,7 @@ namespace pathtracex {
 			this->useRayTracing = rs.useRayTracing;
 			this->rayBounces = rs.rayBounces;
 			this->camera = rs.camera;
+			this->drawProcedualWorld = rs.drawProcedualWorld;
 		}
 	};	
 }

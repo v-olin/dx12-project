@@ -41,6 +41,8 @@ namespace pathtracex
 
 		Serializer::deserializeScene(config.startupSceneName, scene);
 
+		scene.procedualWorldManager = &worldManager;
+
 		while(running) {
 			const auto ecode = Window::processMessages();
 			if (ecode)
@@ -116,7 +118,11 @@ namespace pathtracex
 	}
 
 	void App::everyFrame() {
-		worldManager.updateProcedualWorld(defaultCamera);
+		if (defaultRenderSettings.drawProcedualWorld)
+		{
+			worldManager.updateProcedualWorld(defaultCamera);
+		}
+
 		scene.proceduralModels = worldManager.procedualWorldModels;
 
 		if (window.windowHasBeenResized()) {

@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "RenderSettings.h"
 #include "Light.h"
+#include "ProcedualWorldManager.h"
 
 namespace pathtracex {
 	class Scene {
@@ -17,5 +18,6 @@ namespace pathtracex {
 		std::string sceneName = "Scene";
 
 		Camera camera{};
+		ProcedualWorldManager* procedualWorldManager;
 	};
 }

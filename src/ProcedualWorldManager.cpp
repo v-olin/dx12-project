@@ -44,7 +44,7 @@ namespace pathtracex
 	void ProcedualWorldManager::createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates)
 	{	
 		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
-		std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, 234242, 10);
+		std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.seed, 10);
 		model->trans.setScale(float3(1, 1, 1));
 		model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength + settings.chunkSideLength / 2, 0, (chunkCoordinates.second) * settings.chunkSideLength + settings.chunkSideLength / 2));
 
@@ -56,5 +56,8 @@ namespace pathtracex
 	{
 		settingsChanged = true;
 		this->settings = settings;
+
+		procedualWorldModels.clear();
+		procedualWorldModelMap.clear();
 	}
 }

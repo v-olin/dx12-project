@@ -462,10 +462,14 @@ namespace pathtracex {
 
 		int i = 0;
 		std::vector<std::shared_ptr<Model>> models = scene.models;
-		// Add the procedual models to the list of models
-		for (auto model : scene.proceduralModels) {
-			models.push_back(model);
+
+		if (renderSettings.drawProcedualWorld) {
+			// Add the procedual models to the list of models
+			for (auto model : scene.proceduralModels) {
+				models.push_back(model);
+			}
 		}
+
 
 		for (auto model : models)
 		{

@@ -6,12 +6,23 @@
 
 namespace pathtracex
 {
-	struct ProcedualWorldSettings
+	struct ProcedualWorldSettings : public Serializable
 	{
-		int seed;
+		int seed = 0;
 		float chunkSideLength = 10;
-		float tessellationFactor;
+		float tessellationFactor = 10;
 		int chunkRenderDistance = 100;
+
+		std::vector<SerializableVariable> getSerializableVariables() override
+		{
+			return
+			{
+				{SerializableType::INT, "seed", "The seed of the procedual world", &seed},
+				{SerializableType::FLOAT, "chunkSideLength", "The side length of a chunk", &chunkSideLength},
+				{SerializableType::FLOAT, "tessellationFactor", "The tessellation factor of the procedual world", &tessellationFactor},
+				{SerializableType::INT, "chunkRenderDistance", "The render distance of the procedual world", &chunkRenderDistance}
+			};
+		};
 	};
 
 	// Only for pairs of std::hash-able types for simplicity.
@@ -40,10 +51,11 @@ namespace pathtracex
 
 		// The active procedual world models that will be rendered
 		std::vector<std::shared_ptr<Model>> procedualWorldModels;
+
+		void updateProcedualWorldSettings(const ProcedualWorldSettings settings);
+
+		ProcedualWorldSettings settings;
 	private: 
-
-
-
 		// Mapping of chunk coordinates to model
 		// Currently not deleting models, just caching them
 		// If memory usage becomes a problem, we can limit the cache size
@@ -54,11 +66,10 @@ namespace pathtracex
 
 		void createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates);
 
-		void updateProcedualWorldSettings(const ProcedualWorldSettings settings);
+
 
 		bool settingsChanged = false;
 
 		std::pair<int, int> previousCameraCordinates;
-		ProcedualWorldSettings settings;
 	};
 }
