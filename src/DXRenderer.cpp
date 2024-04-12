@@ -508,16 +508,19 @@ namespace pathtracex {
 					auto normalTex = mat.normalTexture;
 					cbPerObject.hasTexCoord = colTex.valid;
 					cbPerObject.hasNormalTex = normalTex.valid;
-					if (normalTex.valid) {
-						ID3D12DescriptorHeap* descriptorHeaps[] = {normalTex.mainDescriptorHeap};
-						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-						commandList->SetGraphicsRootDescriptorTable(1, normalTex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-					}
 					if (colTex.valid) {
+						
 						ID3D12DescriptorHeap* descriptorHeaps[] = {colTex.mainDescriptorHeap};
 						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 						commandList->SetGraphicsRootDescriptorTable(1, colTex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+					
 					}
+					if (normalTex.valid) {
+						ID3D12DescriptorHeap* descriptorHeaps[] = {normalTex.mainDescriptorHeap};
+						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+						commandList->SetGraphicsRootDescriptorTable(2, normalTex.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+					}
+					
 
 				}
 				// // copy our ConstantBuffer instance to the mapped constant buffer resource
@@ -808,29 +811,40 @@ namespace pathtracex {
 
 		// create a descriptor range (descriptor table) and fill it out
 		// this is a range of descriptors inside a descriptor heap
-		D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
-		descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // this is a range of shader resource views (descriptors)
-		descriptorTableRanges[0].NumDescriptors = 2; // we only have two texture right now, so the range is only 2
-		descriptorTableRanges[0].BaseShaderRegister = 0; // start index of the shader registers in the range
-		descriptorTableRanges[0].RegisterSpace = 0; // space 0. can usually be zero
-		descriptorTableRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // this appends the range to the end of the root signature descriptor tables
+		CD3DX12_DESCRIPTOR_RANGE colTexTable;
+		colTexTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+		//D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
+		//descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // this is a range of shader resource views (descriptors)
+		//descriptorTableRanges[0].NumDescriptors = 2; // we only have two texture right now, so the range is only 2
+		//descriptorTableRanges[0].BaseShaderRegister = 0; // start index of the shader registers in the range
+		//descriptorTableRanges[0].RegisterSpace = 0; // space 0. can usually be zero
+		//descriptorTableRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // this appends the range to the end of the root signature descriptor tables
+		CD3DX12_DESCRIPTOR_RANGE normalTexTable;
+		normalTexTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+
+
 
 		// create a descriptor table
-		D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
-		descriptorTable.NumDescriptorRanges = _countof(descriptorTableRanges); // we only have one range
-		descriptorTable.pDescriptorRanges = &descriptorTableRanges[0]; // the pointer to the beginning of our ranges array
+		//D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
+		//descriptorTable.NumDescriptorRanges = _countof(descriptorTableRanges); // we only have one range
+		//descriptorTable.pDescriptorRanges = &descriptorTableRanges[0]; // the pointer to the beginning of our ranges array
 
 
 		// create a root parameter and fill it out
-		D3D12_ROOT_PARAMETER rootParameters[2];								 // only one parameter right now
-		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	 // this is a constant buffer view root descriptor
-		rootParameters[0].Descriptor = rootCBVDescriptor;					 // this is the root descriptor for this root parameter
-		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // our pixel shader will be the only shader accessing this parameter for now
+		//D3D12_ROOT_PARAMETER rootParameters[3];								 // only one parameter right now
+		CD3DX12_ROOT_PARAMETER rootParameters[3];
+		rootParameters[0].InitAsConstantBufferView(0);
+		//rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	 // this is a constant buffer view root descriptor
+		//rootParameters[0].Descriptor = rootCBVDescriptor;					 // this is the root descriptor for this root parameter
+		//rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // our pixel shader will be the only shader accessing this parameter for now
 		// fill out the parameter for our descriptor table. Remember it's a good idea to sort parameters by frequency of change. Our constant
 		// buffer will be changed multiple times per frame, while our descriptor table will not be changed at all (in this tutorial)
-		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
-		rootParameters[1].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
-		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // our pixel shader will be the only shader accessing this parameter for now
+		//rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
+		//rootParameters[1].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
+		//rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // our pixel shader will be the only shader accessing this parameter for now
+		rootParameters[1].InitAsDescriptorTable(1, &colTexTable, D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[2].InitAsDescriptorTable(1, &normalTexTable, D3D12_SHADER_VISIBILITY_PIXEL);
+
 
 		// create a static sampler
 		D3D12_STATIC_SAMPLER_DESC sampler = {};

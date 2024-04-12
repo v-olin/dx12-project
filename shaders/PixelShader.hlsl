@@ -68,9 +68,9 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float4 color = float4(result, 1.0f);
     // return interpolated color
     ////also sample texture if it exists, needs to be implemented and passed in
-    if (hasNormalTex)
-        return normalTex.Sample(s1, input.texCoord);
-    if (hasColTex)
-        return colTex.Sample(s1, input.texCoord);
+    //if (hasNormalTex)
+    return normalTex.Sample(s1, input.texCoord);
+    //if (hasColTex)
+    //    return colTex.Sample(s1, input.texCoord);
     return input.color;
 }
