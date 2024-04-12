@@ -68,5 +68,5 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     //also sample texture if it exists, needs to be implemented and passed in
     if(hasColTex)
         return t1.Sample(s1, input.texCoord);
-    return input.color;
+    return color;
 }
