@@ -26,6 +26,9 @@ cbuffer ConstantBuffer : register(b0)
     bool hasColTex; // 1 bytes
     bool hasNormalTex;
     bool hasShinyTex;
+    float material_shininess;
+    float material_metalness;
+    float material_fresnel;
   };
 
 float3 calculatePointLight(PointLight light, float3 normal, float3 position, float3 baseColor)

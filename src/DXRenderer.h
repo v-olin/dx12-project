@@ -148,8 +148,15 @@ namespace pathtracex {
 			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
 			bool hasTexCoord; // 2 bytes (i think)
+			bool pad1[3];
 			bool hasNormalTex; // 2 bytes (i think)
-			bool hasShinyTex;
+			bool pad2[3];
+			bool hasShinyTex; // 2 bytes (i think)
+			bool pad3[3];
+			float material_shininess;
+			float material_metalness;
+			float material_fresnel;
+			
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
@@ -161,7 +168,7 @@ namespace pathtracex {
 		// buffer data to the gpu virtual address. currently we memcpy the size of our structure, which is 16 bytes here, but if we
 		// were to add the padding array, we would memcpy 64 bytes if we memcpy the size of our structure, which is 50 wasted bytes
 		// being copied.
-		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
+		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 511) & ~511;
 
 		ConstantBufferPerObject cbPerObject; // this is the constant buffer data we will send to the gpu 
 		// (which will be placed in the resource we created above)

@@ -514,8 +514,11 @@ namespace pathtracex {
 					cbPerObject.hasTexCoord = colTex.valid;
 					cbPerObject.hasNormalTex = normalTex.valid;
 					cbPerObject.hasShinyTex = shinyTex.valid;
-					cbPerObject.hasShinyTex = true;
-					cbPerObject.hasNormalTex = true;
+			
+					cbPerObject.material_shininess = mat.shininess;
+					cbPerObject.material_metalness = mat.metalness;
+					cbPerObject.material_fresnel = mat.fresnel;
+
 
 					auto srv_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
