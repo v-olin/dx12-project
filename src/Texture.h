@@ -23,6 +23,7 @@ namespace pathtracex {
 		{
 			COLTEX,
 			NORMALTEX,
+			SHININESSTEX,
 			NUMTEXTURETYPES
 		};
 	class Texture {

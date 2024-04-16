@@ -216,7 +216,7 @@ namespace pathtracex {
 			material.shininess = m.roughness;
 			if (m.roughness_texname != "")
 			{
-				//material.shininessTexture.load(directory, m.roughness_texname, 1, &mainDescriptorHeap);
+				material.shininessTexture.load(directory, m.roughness_texname, 1, &material.mainDescriptorHeap, SHININESSTEX);
 			}
 			material.emission = float3(m.emission[0], m.emission[1], m.emission[2]);
 			if (m.emissive_texname != "")

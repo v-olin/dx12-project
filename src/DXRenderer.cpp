@@ -475,7 +475,7 @@ namespace pathtracex {
 			DirectX::XMStoreFloat4x4(&cbPerObject.modelMatrix, transposed2);	// store the model matrix in the constant buffer
 			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, model->trans.transformMatrix));
 			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
-			
+
 			int k = 0;
 			PointLight pointLights[3];
 			for (auto light : scene.lights) {
@@ -509,8 +509,14 @@ namespace pathtracex {
 					auto mainDescriptorHeap = mat.mainDescriptorHeap;
 					auto colTex = mat.colorTexture;
 					auto normalTex = mat.normalTexture;
+					auto shinyTex = mat.shininessTexture;
+
 					cbPerObject.hasTexCoord = colTex.valid;
 					cbPerObject.hasNormalTex = normalTex.valid;
+					cbPerObject.hasShinyTex = shinyTex.valid;
+					cbPerObject.hasShinyTex = true;
+					cbPerObject.hasNormalTex = true;
+
 					auto srv_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 					ID3D12DescriptorHeap* descriptorHeaps[] = {mainDescriptorHeap};
@@ -519,6 +525,8 @@ namespace pathtracex {
 				}
 				// // copy our ConstantBuffer instance to the mapped constant buffer resource
 				//here also set all uniforms for each mesh
+
+				auto size = sizeof(cbPerObject);
 
 				memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
 				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
