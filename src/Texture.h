@@ -19,15 +19,21 @@
 #include "Helper.h"
 #include "../vendor/d3dx12/d3dx12.h"
 namespace pathtracex {
+	enum TextureType
+		{
+			COLTEX,
+			NORMALTEX,
+			NUMTEXTURETYPES
+		};
 	class Texture {
 	public:
+	
 		std::string filename;
 		std::string directory;
 		bool valid{ false };
 		ID3D12Resource* textureBuffer; // the resource heap containing our texture
-		ID3D12DescriptorHeap* mainDescriptorHeap;
 
-		bool load(const std::string& directory, const std::string& filename, int n);
+		bool load(const std::string& directory, const std::string& filename, int n, ID3D12DescriptorHeap** descriptorHeap, TextureType texType);
 		void free();
 	private:
 		DXGI_FORMAT GetDXGIFormatFromWICFormat(WICPixelFormatGUID& wicFormatGUID);

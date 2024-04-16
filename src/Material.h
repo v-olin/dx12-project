@@ -25,5 +25,8 @@ namespace pathtracex {
 		Texture fresnelTexture;
 		Texture emissionTexture;
 		Texture normalTexture;
+
+		//Each material now has a descriptor heap that will contain all the textures
+		ID3D12DescriptorHeap* mainDescriptorHeap;
 	};
 }

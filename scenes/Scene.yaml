@@ -1,5 +1,4 @@
 Models:
-
   - Name: space-ship
     Filename: Intergalactic_Spaceship.obj
     TransformMatrix: [-1, -1.81992584e-06, 8.74227695e-08, 0, -1.81992596e-06, 1, -1.81992584e-06, 0, -8.74194583e-08, -1.81992596e-06, -1, 0, 1.6926868, -0.321783364, 9.65780735, 1]
