@@ -1,0 +1,12 @@
+Models:
+  - Name: Primative Plane
+    Filename: ""
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -0.477197826, 0, 1]
+    PrimativeType: Plane
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -2.14458847, 1.76107705, -0.0288581848, 1]
+    PrimativeType: Cube
+Lights:
+  - Name: Light
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.056214869, 2.63285208, -4.2120738, 1]

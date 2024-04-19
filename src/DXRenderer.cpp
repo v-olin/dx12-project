@@ -14,8 +14,11 @@
 #include <stdexcept>
 #include "Logger.h"
 
+#include "NVBLASGenerator.h"
+
 namespace wrl = Microsoft::WRL;
 namespace dx = DirectX;
+namespace nv = nvidia;
 
 namespace pathtracex {
 
@@ -48,7 +51,7 @@ namespace pathtracex {
 	void DXRenderer::resetCommandList()
 	{
 		// We have to wait for the gpu to finish with the command allocator before we reset it
-		WaitForPreviousFrame();
+		waitForPreviousFrame();
 
 		HRESULT hr;
 		hr = commandAllocator[frameIndex]->Reset();
@@ -76,6 +79,27 @@ namespace pathtracex {
 			LOG_ERROR("Error signaling current frame and incrementing fence, signalCurrentFrameAndIncrementFence()");
 			THROW_IF_FAILED(hr);
 		}
+	}
+
+	bool DXRenderer::checkRaytracingSupport()	{
+		D3D12_FEATURE_DATA_D3D12_OPTIONS5 options{};
+		HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options, sizeof(options));
+		if (FAILED(hr)) {
+			LOG_ERROR("Could not check ray tracing support, checkRaytracingSupport()");
+			return false;
+		}
+
+		if (options.RaytracingTier < D3D12_RAYTRACING_TIER_1_0) {
+			raytracingSupported = false;
+			MessageBox(nullptr,
+				"Raytracing is not supported by this GPU. Only raster-based rendering will be available.",
+				"Old GPU", MB_OK | MB_ICONWARNING);
+			return true;
+		}
+
+		raytracingSupported = true;
+
+		return true;
 	}
 
 	void DXRenderer::onEvent(Event& e) {
@@ -139,8 +163,7 @@ namespace pathtracex {
 		return true;
 	}
 
-	bool DXRenderer::init(Window *window)
-	{
+	bool DXRenderer::init(Window *window, Scene& scene)	{
 		App::registerEventListener(this);
 
 		LOG_INFO("Initializing DXRenderer");
@@ -178,8 +201,16 @@ namespace pathtracex {
 		if (!createRootSignature())
 			return false;
 
-		if (!createPipeline())
+		if (!createRasterPipeline())
 			return false;
+
+		if (!checkRaytracingSupport())
+			return false;
+
+		if (raytracingSupported) {
+			if (!createAccelerationStructures(scene))
+				return false;
+		}
 
 		if (!createBuffers())
 			return false;
@@ -393,7 +424,7 @@ namespace pathtracex {
 		frameIndex = 0;
 	}
 
-	void DXRenderer::UpdatePipeline(RenderSettings &renderSettings, Scene &scene)
+	void DXRenderer::updatePipeline(RenderSettings &renderSettings, Scene &scene)
 	{
 		HRESULT hr;
 
@@ -402,7 +433,7 @@ namespace pathtracex {
 			waitForTotalGPUCompletion();
 		}
 		else {
-			WaitForPreviousFrame();
+			waitForPreviousFrame();
 		}
 
 
@@ -557,7 +588,7 @@ namespace pathtracex {
 		HRESULT hr;
 
 		//	Update(renderSettings);
-		UpdatePipeline(renderSettings, scene); // update the pipeline by sending commands to the commandqueue
+		updatePipeline(renderSettings, scene); // update the pipeline by sending commands to the commandqueue
 
 		// create an array of command lists (only one command list here)
 		ID3D12CommandList *ppCommandLists[] = {commandList};
@@ -888,7 +919,7 @@ namespace pathtracex {
 		return true;
 	}
 
-	bool DXRenderer::createPipeline()
+	bool DXRenderer::createRasterPipeline()
 	{
 		LOG_TRACE("Creating DirectX12 pipeline");
 
@@ -1154,6 +1185,152 @@ namespace pathtracex {
 		return true;
 	}
 
+	ID3D12Resource* DXRenderer::createASBuffers(UINT64 buffSize, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES* heapProps) {
+		static const D3D12_HEAP_PROPERTIES defaultHeapProps{
+			D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0
+		};
+
+		if (heapProps == nullptr) {
+			heapProps = &defaultHeapProps;
+		}
+
+		D3D12_RESOURCE_DESC bufDesc{};
+		ZeroMemory(&bufDesc, sizeof(bufDesc));
+		bufDesc.Alignment = 0;
+		bufDesc.DepthOrArraySize = 1;
+		bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		bufDesc.Flags = flags;
+		bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+		bufDesc.Height = 1;
+		bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		bufDesc.MipLevels = 1;
+		bufDesc.SampleDesc.Count = 1;
+		bufDesc.SampleDesc.Quality = 0;
+		bufDesc.Width = buffSize;
+
+		ID3D12Resource* pBuffer;
+
+		HRESULT hr = device->CreateCommittedResource(
+			heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+			initState, nullptr, IID_PPV_ARGS(&pBuffer)
+		);
+
+		if (FAILED(hr)) {
+			LOG_FATAL("Error creating acceleration structure buffer, createASBuffers()");
+		}
+
+		return pBuffer;
+	}
+
+	DXRenderer::AccelerationStructureBuffers DXRenderer::createBLASFromModel(std::shared_ptr<Model> model) {
+		nv::NVBLASGenerator blasGenerator;
+
+		ID3D12Resource* vbuffer = model->vertexBuffer.get()->vertexBuffer;
+		uint32_t vbufferSize = model->vertexBuffer.get()->vBufferSize;
+		ID3D12Resource* ibuffer = model->indexBuffer.get()->indexBuffer;
+		uint32_t ibufferSize = model->indexBuffer.get()->iBufferSize;
+
+		/*
+			The "opaque" param here is true in order to optimize the search for a closest hit
+			It does not mean that the model itself is opaque or transparent
+		*/
+		blasGenerator.addVertexBuffer(vbuffer, 0,
+			vbufferSize, sizeof(Vertex),
+			ibuffer, 0,
+			ibufferSize, nullptr, 0, true);
+
+		UINT64 scratchSizeInBytes = 0;
+		UINT64 resultSizeInBytes = 0;
+
+		blasGenerator.computeASBufferSizes(device, false, &scratchSizeInBytes, &resultSizeInBytes);
+
+		AccelerationStructureBuffers buffers;
+		buffers.pScratch = createASBuffers(
+			scratchSizeInBytes,
+			D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON
+		);
+		buffers.pResult = createASBuffers(
+			resultSizeInBytes,
+			D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE
+		);
+
+		blasGenerator.generate(commandList, buffers.pScratch, buffers.pResult);
+		return buffers;
+	}
+
+	void DXRenderer::createTLASFromBLAS(const std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>>& models,
+		bool updateOnly // if true, then TLAS will only be refitted and not rebuilt from scratch
+	) {
+
+		// build TLAS from scratch
+		if (!updateOnly) {
+			for (size_t i = 0; i < models.size(); i++) {
+				const std::pair<ID3D12Resource*, DirectX::XMMATRIX>& model = models.at(i);
+				tlasGenerator.addInstance(model.first, model.second, static_cast<UINT>(i), static_cast<UINT>(i * 2));
+			}
+
+			UINT64 scratchSize, resultSize, instanceDescsSize;
+			tlasGenerator.computeASBufferSizes(device, true, &scratchSize, &resultSize, &instanceDescsSize);
+
+			tlasBuffers.pScratch = createASBuffers(
+				scratchSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+			);
+
+			tlasBuffers.pResult = createASBuffers(
+				resultSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+				D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE
+			);
+
+			D3D12_HEAP_PROPERTIES heapProps{
+				D3D12_HEAP_TYPE_UPLOAD,
+				D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+				D3D12_MEMORY_POOL_UNKNOWN,
+				0, 0
+			};
+
+
+			tlasBuffers.pInstanceDesc = createASBuffers(
+				instanceDescsSize, D3D12_RESOURCE_FLAG_NONE,
+				D3D12_RESOURCE_STATE_GENERIC_READ, &heapProps
+			);
+		}
+
+		tlasGenerator.generate(
+			commandList,
+			tlasBuffers.pScratch,
+			tlasBuffers.pResult,
+			tlasBuffers.pInstanceDesc,
+			updateOnly, tlasBuffers.pResult
+		);
+	}
+
+	bool DXRenderer::createAccelerationStructures(Scene& scene) {
+		std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>> modelBLASBuffers(scene.models.size());
+
+		//for (int i = 0; i < scene.models.size(); i++) {
+		for (auto model : scene.models) {
+			AccelerationStructureBuffers buffers = createBLASFromModel(model);
+			modelBLASBuffers.push_back({ buffers.pResult, model->trans.getModelMatrix() });
+		}
+
+		createTLASFromBLAS(modelBLASBuffers);
+
+		finishedRecordingCommandList();
+		executeCommandList();
+		incrementFenceAndSignalCurrentFrame();
+
+		HRESULT hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
+		if (FAILED(hr)) {
+			LOG_ERROR("Could not reset commandlist, createAccelerationStructures()");
+			return false;
+		}
+
+		return true;
+	}
+
 	void DXRenderer::createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow) {
 		HRESULT hr;
 		
@@ -1323,13 +1500,13 @@ namespace pathtracex {
 		incrementFenceAndSignalCurrentFrame();
 	}
 
-	void DXRenderer::Cleanup()
+	void DXRenderer::cleanup()
 	{
 		// wait for the gpu to finish all frames
 		for (int i = 0; i < frameBufferCount; ++i)
 		{
 			frameIndex = i;
-			WaitForPreviousFrame();
+			waitForPreviousFrame();
 		}
 
 		// get swapchain out of full screen before exiting
@@ -1353,7 +1530,7 @@ namespace pathtracex {
 		};
 	}
 
-	void DXRenderer::WaitForPreviousFrame()
+	void DXRenderer::waitForPreviousFrame()
 	{
 		HRESULT hr;
 

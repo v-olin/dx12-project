@@ -25,8 +25,11 @@ namespace pathtracex
 
 	int App::run()
 	{
+		Serializer::deserializeScene(config.startupSceneName, scene);
+		scene.procedualWorldManager = &worldManager;
+
 		renderer = DXRenderer::getInstance();
-		if (!renderer->init(&window))
+		if (!renderer->init(&window, scene))
 		{
 			MessageBox(0, "Failed to initialize direct3d 12",
 					   "Error", MB_OK);
@@ -36,10 +39,6 @@ namespace pathtracex
 
 
 		registerEventListener(&defaultCamera);
-
-		Serializer::deserializeScene(config.startupSceneName, scene);
-
-		scene.procedualWorldManager = &worldManager;
 
 		while(running) {
 			const auto ecode = Window::processMessages();

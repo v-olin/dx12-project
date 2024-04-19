@@ -18,6 +18,10 @@
 #include "DXVertexBuffer.h"
 #include "DXIndexBuffer.h"
 
+#include "NVTLASGenerator.h"
+
+namespace nv = nvidia;
+
 namespace pathtracex {
 	const int frameBufferCount = 3;
 
@@ -35,7 +39,7 @@ namespace pathtracex {
 		DXRenderer(const DXRenderer&) = delete;
 		DXRenderer& operator=(const DXRenderer&) = delete;
 	
-		bool init(Window* window); // initializes direct3d 12
+		bool init(Window* window, Scene& scene); // initializes direct3d 12
 
 		void initGraphicsAPI() override;
 		void setClearColor(const dx::XMFLOAT3& color) override;
@@ -46,7 +50,7 @@ namespace pathtracex {
 		GraphicsAPIType getGraphicsAPIType() override { return GraphicsAPIType::DirectX12; };
 
 		void Render(RenderSettings& renderSettings, Scene& scene); // execute the command list
-		void Update(RenderSettings& renderSettings); // update the game logic
+		//void Update(RenderSettings& renderSettings); // update the game logic
 
 		static DXRenderer* getInstance() {
 			static DXRenderer instance;
@@ -58,82 +62,54 @@ namespace pathtracex {
 		void createIndexBuffer(ID3D12Resource** buffer, D3D12_INDEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* indexData);
 		void createVertexBuffer(ID3D12Resource** buffer, D3D12_VERTEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* vertexData);
 
-		void Cleanup(); // release com ojects and clean up memory
+		void cleanup(); // release com ojects and clean up memory
 		
 		virtual void onEvent(Event& e) override;
 
 	private:
-		ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
-		ID3D12Device* device; // direct3d device
+		// I changed the commandlist to a 4 and the device to a 5 to get raytracing stuff
+		//ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
+		ID3D12GraphicsCommandList4* commandList; // a command list we can record commands into, then execute them to render the frame
+		//ID3D12Device* device; // direct3d device
+		ID3D12Device5* device; // direct3d device
 		ID3D12CommandQueue* commandQueue; // container for command lists
 		
 		DXRenderer();
 
-
 		HWND hwnd;
+		Window* window = nullptr;
 		bool useWarpDevice = false; // ???
 		bool resizeOnNextFrame = false;
 		UINT resizedWidth = 0, resizedHeight = 0;
-
-		Window* window = nullptr;
-
-		void finishedRecordingCommandList();
-		void executeCommandList();
-		void resetCommandList();
-		void WaitForPreviousFrame(); // wait until gpu is finished with command list
-		void incrementFenceAndSignalCurrentFrame();
-		// direct3d stuff
- // number of buffers we want, 2 for double buffering, 3 for tripple buffering
+		bool raytracingSupported = false;
 
 
-
+		#pragma region DirectX stuff
 		IDXGISwapChain3* swapChain; // swapchain used to switch between render targets
-
-
-
 		ID3D12DescriptorHeap* rtvDescriptorHeap; // a descriptor heap to hold resources like the render targets
-
 		ID3D12DescriptorHeap* srvHeap;
-
 		ID3D12Resource* renderTargets[frameBufferCount]; // number of render targets equal to buffer count
-
 		ID3D12CommandAllocator* commandAllocator[frameBufferCount]; // we want enough allocators for each buffer * number of threads (we only have one thread)
-
-
-
 		ID3D12Fence* fence[frameBufferCount];    // an object that is locked while our command list is being executed by the gpu. We need as many 
-		//as we have allocators (more if we want to know when the gpu is finished with an asset)
-
+													//as we have allocators (more if we want to know when the gpu is finished with an asset)
 		HANDLE fenceEvent; // a handle to an event when our fence is unlocked by the gpu
-
 		UINT64 fenceValue[frameBufferCount]; // this value is incremented each frame. each fence will have its own value
-
 		int frameIndex; // current rtv we are on
 
 		int rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
-
 		IDXGIFactory4* dxgiFactory;
-
 		ID3D12PipelineState* pipelineStateObject; // pso containing a pipeline state
-
 		ID3D12RootSignature* rootSignature; // root signature defines data shaders will access
-
 		D3D12_VIEWPORT viewport; // area that output from rasterizer will be stretched to.
-
 		D3D12_RECT scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
 
 		// the total size of the buffer, and the size of each element (vertex)
 		DXGI_SAMPLE_DESC sampleDesc{};
-
 		ID3D12Resource* depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
 		ID3D12DescriptorHeap* dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
-
 		ID3D12DescriptorHeap* mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
 		ID3D12Resource* constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
-
 		UINT8* cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
-
-
 
 		// The constant buffer can't be bigger than 256 bytes
 		struct ConstantBufferPerObject {
@@ -156,16 +132,40 @@ namespace pathtracex {
 		// were to add the padding array, we would memcpy 64 bytes if we memcpy the size of our structure, which is 50 wasted bytes
 		// being copied.
 		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
-
 		ConstantBufferPerObject cbPerObject; // this is the constant buffer data we will send to the gpu 
-		// (which will be placed in the resource we created above)
-
+											// (which will be placed in the resource we created above)
 		ID3D12Resource* constantBufferUploadHeaps[frameBufferCount]; // this is the memory on the gpu where constant buffers for each frame will be placed
-
 		UINT8* cbvGPUAddress[frameBufferCount]; // this is a pointer to each of the constant buffer resource heaps
+		#pragma endregion
 
-		void UpdatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
+#pragma region Raytracing stuff
 
+		struct AccelerationStructureBuffers {
+			ID3D12Resource* pScratch;		// scratch memory for AS builder
+			ID3D12Resource* pResult;		// ptr to finished AS
+			ID3D12Resource* pInstanceDesc;	// hold matrices of instances
+		};
+
+		ID3D12Resource* blas; // storage for BLAS
+		nv::NVTLASGenerator tlasGenerator;
+		AccelerationStructureBuffers tlasBuffers;
+		std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>> asInstances;
+
+		bool checkRaytracingSupport();
+		ID3D12Resource* createASBuffers(UINT64 buffSize, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const D3D12_HEAP_PROPERTIES* heapProps = nullptr);
+		AccelerationStructureBuffers createBLASFromModel(std::shared_ptr<Model> model);
+		void createTLASFromBLAS(const std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>>& models, bool updateOnly = false);
+		bool createAccelerationStructures(Scene& scene);
+
+#pragma endregion
+
+		#pragma region Member functions
+		void updatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)
+		void finishedRecordingCommandList();
+		void executeCommandList();
+		void resetCommandList();
+		void waitForPreviousFrame(); // wait until gpu is finished with command list
+		void incrementFenceAndSignalCurrentFrame();
 
 		bool createFactory();
 		bool createDebugController();
@@ -175,7 +175,7 @@ namespace pathtracex {
 		bool createDescriptorHeaps();
 		bool createCommandAllocators();
 		bool createRootSignature();
-		bool createPipeline();
+		bool createRasterPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
 		bool createBuffers(bool createDepthBufferOnly = false);
@@ -188,6 +188,8 @@ namespace pathtracex {
 		void waitForTotalGPUCompletion();
 
 		void destroyDevice();
+		#pragma endregion
+
 	};
 
 }
