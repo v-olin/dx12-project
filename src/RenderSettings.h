@@ -7,8 +7,9 @@ namespace pathtracex {
 		int width;
 		int height;
 		bool useMultiSampling = true;
-		bool useRayTracing = false;
 		bool drawProcedualWorld = false;
+		bool useRayTracing = false;
+		bool raytracingSupported = false;
 		int rayBounces = 10;
 		Camera& camera;
 

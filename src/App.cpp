@@ -37,6 +37,7 @@ namespace pathtracex
 			return 1;
 		}
 
+		defaultRenderSettings.raytracingSupported = renderer->raytracingIsSupported();
 
 		registerEventListener(&defaultCamera);
 
@@ -73,20 +74,6 @@ namespace pathtracex
 		(*inst.callback)(e);
 	}
 
-	/*
-	void App::raiseTimeEvent(Event& e) {
-		// this will make a copy but that's fine
-		getInstance().timedEvents.push_back(e);
-	}
-
-	void App::raiseTimedEvents() {
-		for (auto timedEvent : timedEvents) {
-			// if timedEvent.shouldFire()
-			//		raise(timedEvent)
-		}
-	}
-	*/
-
 	// TODO: This should be in a separate class
 	void App::onEvent(Event &e)
 	{
@@ -110,9 +97,7 @@ namespace pathtracex
 		e.Handled = true;
 	}
 
-	void App::cleanup()
-	{
-	}
+	void App::cleanup() { }
 
 	void App::everyFrame() {
 		if (defaultRenderSettings.drawProcedualWorld)

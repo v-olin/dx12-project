@@ -57,6 +57,8 @@ namespace pathtracex {
 			return &instance;
 		}
 
+		bool raytracingIsSupported() const noexcept { return raytracingSupported; }
+
 
 		void createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow);
 		void createIndexBuffer(ID3D12Resource** buffer, D3D12_INDEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* indexData);
