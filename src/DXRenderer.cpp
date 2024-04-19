@@ -502,17 +502,16 @@ namespace pathtracex {
 			commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
 			//commandList->DrawIndexedInstanced(model->indexBuffer->numCubeIndices, 1, 0, 0, 0);
 			for (auto mesh : model->meshes) {
-
-				// set the descriptor heap
 				//we need to add more uniforms so that we know if there are color textures and so on, 
 				// all textures that are valid should be send down and used
+				// all valid textures ARE sent to the GPU via the mainDescriptorHeap of the material
+				// we just have to tell the shader what textures are valid
 				cbPerObject.hasTexCoord = false;
 				cbPerObject.hasNormalTex = false;
 				cbPerObject.hasShinyTex = false;
 				if (model->materials.size() > 0) {
 					auto mat = model->materials[mesh.materialIdx];
 
-					auto mainDescriptorHeap = mat.mainDescriptorHeap;
 					auto colTex = mat.colorTexture;
 					auto normalTex = mat.normalTexture;
 					auto shinyTex = mat.shininessTexture;
@@ -525,18 +524,12 @@ namespace pathtracex {
 					cbPerObject.material_metalness = mat.metalness;
 					cbPerObject.material_fresnel = mat.fresnel;
 
-
-					auto srv_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-					ID3D12DescriptorHeap* descriptorHeaps[] = {mainDescriptorHeap};
+					ID3D12DescriptorHeap* descriptorHeaps[] = { mat.mainDescriptorHeap };
 					commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-					commandList->SetGraphicsRootDescriptorTable(1, mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+					commandList->SetGraphicsRootDescriptorTable(1, mat.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 				}
 				// // copy our ConstantBuffer instance to the mapped constant buffer resource
 				//here also set all uniforms for each mesh
-
-				auto size = sizeof(cbPerObject);
-
 				memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
 				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
 			}
