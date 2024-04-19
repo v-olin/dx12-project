@@ -465,6 +465,7 @@ namespace pathtracex {
 		{
 			// create the wvp matrix and store in constant buffer
 			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
+			
 			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
 			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
@@ -479,6 +480,10 @@ namespace pathtracex {
 			int k = 0;
 			PointLight pointLights[3];
 			for (auto light : scene.lights) {
+				 //DirectX::XMMATRIX lightPos = { light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0 };
+				 //DirectX::XMMatrixMultiply(viewMat, lightPos);
+				 ////float4 lightWorldPos = viewMat * lightPos;
+
 				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0}};
 				k++;
 			}
@@ -501,8 +506,9 @@ namespace pathtracex {
 				// set the descriptor heap
 				//we need to add more uniforms so that we know if there are color textures and so on, 
 				// all textures that are valid should be send down and used
-
 				cbPerObject.hasTexCoord = false;
+				cbPerObject.hasNormalTex = false;
+				cbPerObject.hasShinyTex = false;
 				if (model->materials.size() > 0) {
 					auto mat = model->materials[mesh.materialIdx];
 

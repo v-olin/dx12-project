@@ -47,5 +47,5 @@ VS_OUTPUT main(VS_INPUT input)
     float4 normal = float4(input.normal, 0.0f);
     output.worldNormal = normalize(mul(normal, normalMatrix));
     output.worldPos = mul(input.pos, modelMatrix);
-    return output;
+        return output;
 }
