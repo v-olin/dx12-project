@@ -11,7 +11,7 @@ namespace pathtracex {
 	{
 	}
 
-	bool Texture::load(const std::string& _directory, const std::string& _filename, int n)
+	bool Texture::load(const std::string& _directory, const std::string& _filename, int n, ID3D12DescriptorHeap** descriptorHeap, TextureType texType)
 	{
 		filename = file_util::normalise(_filename);
 		directory = file_util::normalise(_directory);
@@ -127,7 +127,7 @@ namespace pathtracex {
 		*/
 
 		// New impl
-		renderer->createTextureBuffer(&textureBuffer, &mainDescriptorHeap, &textureDesc, imageData, imageBytesPerRow);
+		renderer->createTextureBuffer(&textureBuffer, descriptorHeap, &textureDesc, imageData, imageBytesPerRow, texType);
 
 		// we are done with image data now that we've uploaded it to the gpu, so free it up
 		delete imageData;
