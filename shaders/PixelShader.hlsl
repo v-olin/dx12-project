@@ -104,8 +104,12 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     float3 result = float3(0, 0, 0);
 
     float3 normal = input.worldNormal.xyz;
-    if(hasNormalTex)
+    if (hasNormalTex)
+    {
+
         normal = normalTex.Sample(s1, input.texCoord).xyz;
+        normal = normalize(mul(float4(normal, 0), normalMatrix));
+    }
        
     for (int i = 0; i < pointLightCount; i++)
     {
