@@ -137,6 +137,14 @@ namespace pathtracex {
 		else
 			drawSelectableSettings();
 
+		ImGui::Text("Procedual world settings");
+		static ProcedualWorldSettings procedualWorldSettings = scene.procedualWorldManager->settings;
+		drawSerializableVariables(&procedualWorldSettings);
+		if (ImGui::Button("Update Procedual World"))
+		{
+			scene.procedualWorldManager->updateProcedualWorldSettings(procedualWorldSettings);
+		}
+
 		ImGui::End();
 	}
 
@@ -181,11 +189,14 @@ namespace pathtracex {
 		ImGui::Text("Rendering Settings");
 		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
 		ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+		ImGui::Checkbox("Draw Procedual World", &renderSettings.drawProcedualWorld);
 
 		ImGui::Text("Camera Settings");
 		ImGui::SliderFloat("FOV", &renderSettings.camera.fov, 0, 120);
 		ImGui::SliderFloat("Near Plane", &renderSettings.camera.nearPlane, 0.1, 50);
 		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 5000);
+
+		drawTransformSettings(renderSettings.camera.transform);
 
 	}
 

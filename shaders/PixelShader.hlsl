@@ -54,7 +54,7 @@ float3 calculateDirectIllumiunation(PointLight light, float3 normal, float3 posi
 
 
     float d = distance;
-    float3 Li = point_light_intensity_multiplier * point_light_color * (1 / (d * d));
+    float3 Li = point_light_intensity_multiplier * point_light_color; // dont care about light distance, for debug only * (1 / (d * d));
 
     float3 wi = lightDir;
 	
@@ -115,5 +115,6 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     {
         result += calculateDirectIllumiunation(pointLights[i], normal, input.worldPos.xyz, color, input.texCoord);
     }
-    return float4(result, 1);
+
+    return float4(result, 1.0f);
 }

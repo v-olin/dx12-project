@@ -5,6 +5,7 @@
 #include "DXRenderer.h"
 #include "RenderSettings.h"
 #include "Event.h"
+#include "ProcedualWorldManager.h"
 
 #include <memory>
 #include <optional>
@@ -64,6 +65,8 @@ namespace pathtracex {
 
 		std::vector<IEventListener*> listeners{};
 		std::vector<Event> timedEvents{};
+
+		ProcedualWorldManager worldManager{ {} };
 	};
 
 }

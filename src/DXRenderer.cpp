@@ -461,12 +461,35 @@ namespace pathtracex {
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
 
 		int i = 0;
-		for (auto model : scene.models)
+		std::vector<std::shared_ptr<Model>> models = scene.models;
+
+		if (renderSettings.drawProcedualWorld) {
+			// Add the procedual models to the list of models
+			for (auto model : scene.proceduralGroundModels) {
+				models.push_back(model);
+			}
+
+			for (auto model : scene.proceduralSkyModels) {
+				models.push_back(model);
+			}
+		}
+
+		int k = 0;
+		PointLight pointLights[3];
+		for (auto light : scene.lights) {
+			pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
+			k++;
+		}
+
+		cbPerObject.pointLightCount = k;
+
+		// create the wvp matrix and store in constant buffer
+		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
+		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
+
+		for (auto model : models)
 		{
-			// create the wvp matrix and store in constant buffer
-			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
-			
-			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
+
 			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
 			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
 			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
@@ -476,14 +499,9 @@ namespace pathtracex {
 			DirectX::XMStoreFloat4x4(&cbPerObject.modelMatrix, transposed2);	// store the model matrix in the constant buffer
 			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, model->trans.transformMatrix));
 			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
-
 			int k = 0;
 			PointLight pointLights[3];
 			for (auto light : scene.lights) {
-				 //DirectX::XMMATRIX lightPos = { light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0 };
-				 //DirectX::XMMatrixMultiply(viewMat, lightPos);
-				 ////float4 lightWorldPos = viewMat * lightPos;
-
 				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0}};
 				k++;
 			}
@@ -1096,14 +1114,15 @@ namespace pathtracex {
 		// As you can see, we are allocating 64KB for each resource we create. Buffer resource heaps must be
 		// an alignment of 64KB. We are creating 3 resources, one for each frame. Each constant buffer is
 		// only a 4x4 matrix of floats in this tutorial. So with a float being 4 bytes, we have
-		// 16 floats in one constant buffer, and we will store 2 constant buffers in each
+		// 16 floats in one constant buffer, and we will store 2 con stant buffers in each
 		// heap, one for each cube, thats only 64x2 bits, or 128 bits we are using for each
 		// resource, and each resource must be at least 64KB (65536 bits)
 		for (int i = 0; i < frameBufferCount; ++i)
 		{
 			// create resource for cube 1
 			CD3DX12_HEAP_PROPERTIES heapUpload(D3D12_HEAP_TYPE_UPLOAD);
-			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64); // allocate a 64KB buffer
+			// If this memory is consumed fully, the app will crash
+			CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1024 * 64 * 64); 
 			hr = device->CreateCommittedResource(
 				&heapUpload,					   // this heap will be used to upload the constant buffer data
 				D3D12_HEAP_FLAG_NONE,			   // no flags

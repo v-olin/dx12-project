@@ -2,20 +2,23 @@
 #include <iostream>
 #include <algorithm>
 #include "Logger.h"
+#include "Noise.h"
+#include "ProcedualWorldManager.h"
 
 // DON'T REMOVE DEFINES, AND DON'T DEFINE ANYWHERE ELSE!!!!!!!!!!!!!
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../../vendor/tinyobjloader/tiny_obj_loader.h"
 #include "DXRenderer.h"
 
+namespace pathtracex
+{
 
-namespace pathtracex {
-	
 #define PATH_TO_ASSETS "../../assets/"
 
-	namespace file_util {
+	namespace file_util
+	{
 
-		std::string normalise(const std::string& file_name)
+		std::string normalise(const std::string &file_name)
 		{
 			std::string nname;
 			nname.reserve(file_name.size());
@@ -37,7 +40,7 @@ namespace pathtracex {
 			return nname;
 		}
 
-		std::string file_stem(const std::string& file_name)
+		std::string file_stem(const std::string &file_name)
 		{
 			size_t slash = file_name.find_last_of("\\/");
 			size_t dot = file_name.find_last_of(".");
@@ -51,7 +54,7 @@ namespace pathtracex {
 			}
 		}
 
-		std::string file_extension(const std::string& file_name)
+		std::string file_extension(const std::string &file_name)
 		{
 			size_t separator = file_name.find_last_of(".");
 			if (separator == std::string::npos)
@@ -64,7 +67,7 @@ namespace pathtracex {
 			}
 		}
 
-		std::string change_extension(const std::string& file_name, const std::string& ext)
+		std::string change_extension(const std::string &file_name, const std::string &ext)
 		{
 			size_t separator = file_name.find_last_of(".");
 			if (separator == std::string::npos)
@@ -77,7 +80,7 @@ namespace pathtracex {
 			}
 		}
 
-		std::string parent_path(const std::string& file_name)
+		std::string parent_path(const std::string &file_name)
 		{
 			size_t separator = file_name.find_last_of("\\/");
 			if (separator != std::string::npos)
@@ -90,10 +93,10 @@ namespace pathtracex {
 			}
 		}
 
-	}	
+	}
 	Model::~Model()
 	{
-		for (auto& material : materials)
+		for (auto &material : materials)
 		{
 			if (material.colorTexture.valid)
 				material.colorTexture.free();
@@ -106,37 +109,21 @@ namespace pathtracex {
 			if (material.emissionTexture.valid)
 				material.emissionTexture.free();
 		}
-	/*	glDeleteBuffers(1, &m_positions_bo);
-		glDeleteBuffers(1, &m_normals_bo);
-		glDeleteBuffers(1, &m_texture_coordinates_bo);*/
+		/*	glDeleteBuffers(1, &m_positions_bo);
+			glDeleteBuffers(1, &m_normals_bo);
+			glDeleteBuffers(1, &m_texture_coordinates_bo);*/
 	}
-	Model::Model(std::string name
-			, std::vector<Material> materials
-			, std::vector<Mesh> meshes
-			, bool hasDedicatedShader
-			, float3 max_cords
-			, float3 min_cords
-		, std::vector<Vertex> vertices = {}
-		, std::vector<uint32_t> indices = {})
-		: name(name)
-		, materials(materials)
-		, meshes(meshes)
-		, maxCords(max_cords)
-		, minCords(min_cords)
-		, vertices(vertices)
-		, indices(indices)
+	Model::Model(std::string name, std::vector<Material> materials, std::vector<Mesh> meshes, bool hasDedicatedShader, float3 max_cords, float3 min_cords, std::vector<Vertex> vertices = {}, std::vector<uint32_t> indices = {})
+		: name(name), materials(materials), meshes(meshes), maxCords(max_cords), minCords(min_cords), vertices(vertices), indices(indices)
 	{
 		// Create the vertex buffer and index buffer
 		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
 		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
-
 	}
 
-
 	Model::Model(std::string filenameWithExtension)
-		//TODO: This could be fucked
-		: maxCords(-INFINITE)
-		, minCords(INFINITE)
+		// TODO: This could be fucked
+		: maxCords(-INFINITE), minCords(INFINITE)
 	{
 		std::string filename, extension, directory;
 
@@ -148,7 +135,6 @@ namespace pathtracex {
 		extension = file_util::file_extension(path);
 
 		this->filename = filename + extension;
-
 
 		if (extension != ".obj")
 		{
@@ -165,7 +151,7 @@ namespace pathtracex {
 
 		// Expect '.mtl' file in the same directory and triangulate meshes
 		bool ret = tinyobj::LoadObj(&attrib, &shapes, &objMaterials, &warn, &err,
-			(directory + filename + extension).c_str(), directory.c_str(), true);
+									(directory + filename + extension).c_str(), directory.c_str(), true);
 
 		// `err` may contain warning message.
 		if (!err.empty())
@@ -176,7 +162,6 @@ namespace pathtracex {
 			LOG_FATAL("loadModelFromOBJ(): Failed to load model: {0}", path);
 			abort();
 		}
-			
 
 		name = filename;
 		filename = path;
@@ -191,7 +176,7 @@ namespace pathtracex {
 		DXRenderer* renderer = DXRenderer::getInstance();
 
 
-		for (const auto& m : objMaterials)
+		for (const auto &m : objMaterials)
 		{
 			Material material;
 			material.name = m.name;
@@ -233,7 +218,7 @@ namespace pathtracex {
 		}
 
 		uint64_t number_of_vertices = 0;
-		for (const auto& shape : shapes)
+		for (const auto &shape : shapes)
 		{
 			number_of_vertices += shape.mesh.indices.size();
 		}
@@ -246,19 +231,19 @@ namespace pathtracex {
 		m_texture_coordinates.resize(number_of_vertices);
 
 		std::vector<DirectX::SimpleMath::Vector4> auto_normals(attrib.vertices.size() / 3);
-		for (const auto& shape : shapes)
+		for (const auto &shape : shapes)
 		{
 			for (int face = 0; face < int(shape.mesh.indices.size()) / 3; face++)
 			{
 				float3 v0 = float3(attrib.vertices[shape.mesh.indices[face * 3 + 0].vertex_index * 3 + 0],
-					attrib.vertices[shape.mesh.indices[face * 3 + 0].vertex_index * 3 + 1],
-					attrib.vertices[shape.mesh.indices[face * 3 + 0].vertex_index * 3 + 2]);
+								   attrib.vertices[shape.mesh.indices[face * 3 + 0].vertex_index * 3 + 1],
+								   attrib.vertices[shape.mesh.indices[face * 3 + 0].vertex_index * 3 + 2]);
 				float3 v1 = float3(attrib.vertices[shape.mesh.indices[face * 3 + 1].vertex_index * 3 + 0],
-					attrib.vertices[shape.mesh.indices[face * 3 + 1].vertex_index * 3 + 1],
-					attrib.vertices[shape.mesh.indices[face * 3 + 1].vertex_index * 3 + 2]);
+								   attrib.vertices[shape.mesh.indices[face * 3 + 1].vertex_index * 3 + 1],
+								   attrib.vertices[shape.mesh.indices[face * 3 + 1].vertex_index * 3 + 2]);
 				float3 v2 = float3(attrib.vertices[shape.mesh.indices[face * 3 + 2].vertex_index * 3 + 0],
-					attrib.vertices[shape.mesh.indices[face * 3 + 2].vertex_index * 3 + 1],
-					attrib.vertices[shape.mesh.indices[face * 3 + 2].vertex_index * 3 + 2]);
+								   attrib.vertices[shape.mesh.indices[face * 3 + 2].vertex_index * 3 + 1],
+								   attrib.vertices[shape.mesh.indices[face * 3 + 2].vertex_index * 3 + 2]);
 
 				float3 e0 = float3(v1 - v0);
 				float3 e1 = v2 - v0;
@@ -271,7 +256,7 @@ namespace pathtracex {
 				auto_normals[shape.mesh.indices[face * 3 + 2].vertex_index] += float4(face_normal.x, face_normal.y, face_normal.z, 1.0f);
 			}
 		}
-		for (auto& normal : auto_normals)
+		for (auto &normal : auto_normals)
 		{
 			normal = (1.0f / normal.w) * normal;
 		}
@@ -279,7 +264,7 @@ namespace pathtracex {
 		int vertices_so_far = 0;
 		for (int s = 0; s < shapes.size(); ++s)
 		{
-			const auto& shape = shapes[s];
+			const auto &shape = shapes[s];
 			int next_material_index = shape.mesh.material_ids[0];
 			int next_material_starting_face = 0;
 			std::vector<bool> finished_materials(materials.size(), 0);
@@ -319,11 +304,10 @@ namespace pathtracex {
 							int v = shape.mesh.indices[i * 3 + j].vertex_index;
 							m_positions[vertices_so_far + j] =
 								float3(attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 0],
-									attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 1],
-									attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 2]);
+									   attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 1],
+									   attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 2]);
 
-
-							/*	
+							/*
 							auto elementMax = [](float3 v1, float3 v2) {
 								return float3(max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z));
 								};
@@ -346,8 +330,8 @@ namespace pathtracex {
 							{
 								m_normals[vertices_so_far + j] =
 									float3(attrib.normals[shape.mesh.indices[i * 3 + j].normal_index * 3 + 0],
-										attrib.normals[shape.mesh.indices[i * 3 + j].normal_index * 3 + 1],
-										attrib.normals[shape.mesh.indices[i * 3 + j].normal_index * 3 + 2]);
+										   attrib.normals[shape.mesh.indices[i * 3 + j].normal_index * 3 + 1],
+										   attrib.normals[shape.mesh.indices[i * 3 + j].normal_index * 3 + 2]);
 							}
 							if (shape.mesh.indices[i * 3 + j].texcoord_index == -1)
 							{
@@ -356,10 +340,10 @@ namespace pathtracex {
 							}
 							else
 							{
-								float u = (attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 0]) ;
-								//This "-1) *-1" hack will fuck us if we load textures that use tex coords outside [0,1]
-								float v = (attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 1] - 1) *-1; 
-								m_texture_coordinates[vertices_so_far + j] = float2(u,v);
+								float u = (attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 0]);
+								// This "-1) *-1" hack will fuck us if we load textures that use tex coords outside [0,1]
+								float v = (attrib.texcoords[shape.mesh.indices[i * 3 + j].texcoord_index * 2 + 1] - 1) * -1;
+								m_texture_coordinates[vertices_so_far + j] = float2(u, v);
 							}
 						}
 						vertices_so_far += 3;
@@ -377,19 +361,23 @@ namespace pathtracex {
 		}
 
 		std::sort(meshes.begin(), meshes.end(),
-			[](const Mesh& a, const Mesh& b) { return a.name < b.name; });
+				  [](const Mesh &a, const Mesh &b)
+				  { return a.name < b.name; });
 
-		//trying very simple way tyo draw vertecies
-		for (int i = 0; i < number_of_vertices; i++) {
+		// trying very simple way tyo draw vertecies
+		for (int i = 0; i < number_of_vertices; i++)
+		{
 			float3 n = m_normals.at(i);
-			float4 col = { n.x, n.y, n.z, 1 };
+			float4 col = {n.x, n.y, n.z, 1};
 
 			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i)};
 			vertices.push_back(vert);
 		}
 
-		for (auto mesh : meshes) {
-			for (size_t i = 0; i < mesh.numberOfVertices; i++) {
+		for (auto mesh : meshes)
+		{
+			for (size_t i = 0; i < mesh.numberOfVertices; i++)
+			{
 				indices.push_back(i + mesh.startIndex);
 				if (materials.size() == 0)
 					continue;
@@ -402,7 +390,8 @@ namespace pathtracex {
 		std::cout << "done.\n";
 	}
 
-	std::shared_ptr<Model> Model::createPrimative(PrimitiveModelType type) {
+	std::shared_ptr<Model> Model::createPrimative(PrimitiveModelType type)
+	{
 		switch (type)
 		{
 		case pathtracex::CUBE:
@@ -460,7 +449,170 @@ namespace pathtracex {
 		}
 	}
 
-	std::shared_ptr<Model> Model::createCube() {
+	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale)
+	{
+		std::vector<float3> positions{};
+		std::vector<uint32_t> indices{};
+		std::vector<float3> normals{};
+		std::vector<float2> texcoords{};
+		std::vector<Vertex> vertices{};
+
+		//		m_mapSize = size;
+		float sideLen = sideLength / (tesselation - 1);
+
+		float totalX = 0.0f;
+		float totalZ = 0.0f;
+
+		for (int i = 0; i < tesselation; i++)
+		{
+			float x = -sideLength / 2 + i * sideLen;
+
+			for (int j = 0; j < tesselation; j++)
+			{
+				float z = -sideLength / 2 + j * sideLen;
+				float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 2) // 2 is octaves
+						* heightScale;
+				positions.push_back({x, y, z});
+
+				texcoords.push_back({totalX / sideLength, totalZ / sideLength});
+
+				if (i != tesselation - 1 && j != tesselation - 1)
+				{
+					indices.push_back(i * tesselation + j);
+					indices.push_back(i * tesselation + j + 1);
+					indices.push_back((i + 1) * tesselation + j + 1);
+
+					indices.push_back(i * tesselation + j);
+					indices.push_back((i + 1) * tesselation + j + 1);
+					indices.push_back((i + 1) * tesselation + j);
+				}
+				totalZ += sideLen;
+			}
+			totalZ = 0;
+			totalX += sideLen;
+		}
+		/*
+
+		// despair, k�l please fix
+		for (int i = 0; i < tesselation; i++)
+		{
+			for (int j = 0; j < tesselation; j++)
+			{
+				//  	A
+				//  B	x	C
+				//  	D
+				vec3 x, a, b, c, d, n;
+				x = vertices.at(i * tesselation + j);
+
+				if (i == 0 && j == 0)
+				{
+					a = vertices.at((i + 1) * tesselation + j);
+					c = vertices.at(i * tesselation + j + 1);
+
+					n = cross(c - x, a - x);
+				}
+				else if (i == tesselation - 1 && j == tesselation - 1)
+				{
+					b = vertices.at(i * tesselation + j - 1);
+					d = vertices.at((i - 1) * tesselation + j);
+
+					n = cross(b - x, d - x);
+				}
+				else if (i == 0)
+				{
+					b = vertices.at(i * tesselation + j - 1);
+					c = vertices.at(i * tesselation + j + 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(b - x, d - x) + cross(d - x, c - x);
+				}
+				else if (i == tesselation - 1)
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					b = vertices.at(i * tesselation + j - 1);
+					c = vertices.at(i * tesselation + j + 1);
+
+					n = cross(a - x, b - x) + cross(c - x, a - x);
+				}
+				else if (j == 0)
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					c = vertices.at(i * tesselation + j + 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(c - x, a - x) + cross(d - x, c - x);
+				}
+				else if (j == tesselation - 1)
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					b = vertices.at(i * tesselation + j - 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(a - x, b - x) + cross(b - x, d - x);
+				}
+				else
+				{
+					a = vertices.at((i - 1) * tesselation + j);
+					b = vertices.at(i * tesselation + j - 1);
+					c = vertices.at(i * tesselation + j + 1);
+					d = vertices.at((i + 1) * tesselation + j);
+
+					n = cross(a - x, b - x)
+						+ cross(b - x, d - x)
+						+ cross(d - x, c - x)
+						+ cross(c - x, a - x);
+				}
+				normals.push_back(-normalize(n));
+				//normals.push_back(vec3(0.0, 1.0, 0.0));
+			}
+		}
+			*/
+
+		float3 max_cords(positions.at(0));
+		float3 min_cords(positions.at(0));
+		for (size_t i = 1; i < positions.size(); i++)
+		{
+			max_cords = max_cords.Max(max_cords, positions.at(i));
+			min_cords = max_cords.Min(min_cords, positions.at(i));
+		}
+
+		// TODO creatye materials for cube faces,
+		//  posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
+		std::vector<uint32_t> indecies;
+
+		//		for (auto mesh : meshes) {
+		//			for (size_t i = 0; i < mesh.numberOfVertices; i++)
+		//				indecies.push_back(i + mesh.startIndex);
+		//		}
+
+		for (size_t i = 0; i < positions.size(); i++)
+		{
+			// Color depends on the height
+			float4 color = float4(positions.at(i).y / heightScale, 0, 0, 1);
+			if (positions.at(i).y < 0)
+				color = float4(0, 0, 1, 1);
+			vertices.push_back({positions.at(i), color, float3(0, 1, 0), texcoords.at(i)});
+		}
+
+		Mesh mesh = Mesh();
+		mesh.name = "Procedual mesh";
+		mesh.materialIdx = 0;
+		mesh.startIndex = 0;
+		mesh.numberOfVertices = indices.size();
+
+		std::vector<Material> materials;
+		std::vector<Mesh> meshes;
+
+		meshes.push_back(mesh);
+
+		std::shared_ptr<Model> model = std::make_shared<Model>("Procedual mesh", materials, meshes, false, max_cords, min_cords, vertices, indices);
+		// model->primativeType = PrimitiveModelType::CUBE;
+
+		return model;
+	}
+
+	std::shared_ptr<Model> Model::createCube()
+	{
 		std::vector<Vertex> tmp_vertices{};
 		std::vector<Vertex> vertecies;
 		std::vector<uint32_t> indices{};
@@ -476,15 +628,18 @@ namespace pathtracex {
 		m_normals.resize(number_of_vertices);
 		m_texture_coordinates.resize(number_of_vertices);
 
-
 		// Front
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 0, 0, 1), float3(0, 0, 1), float2(0, 0)});
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(0, 0, 1), float2(1, 0)});
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 0, 1), float2(1, 1)});
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 0, 1), float2(0, 1)});
+		tmp_vertices.push_back({float3(-0.5f, -0.5f, 0.5f), float4(1, 0, 0, 1), float3(0, 0, 1), float2(0, 0)});
+		tmp_vertices.push_back({float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(0, 0, 1), float2(1, 0)});
+		tmp_vertices.push_back({float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 0, 1), float2(1, 1)});
+		tmp_vertices.push_back({float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 0, 1), float2(0, 1)});
 
-		indices.push_back(0); indices.push_back(1); indices.push_back(2);
-		indices.push_back(2); indices.push_back(3); indices.push_back(0);
+		indices.push_back(0);
+		indices.push_back(1);
+		indices.push_back(2);
+		indices.push_back(2);
+		indices.push_back(3);
+		indices.push_back(0);
 		Mesh front_mesh;
 		front_mesh.name = "front_mesh";
 		front_mesh.materialIdx = 0;
@@ -493,7 +648,8 @@ namespace pathtracex {
 		front_mesh.numberOfVertices = 6;
 		meshes.push_back(front_mesh);
 
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 6; i++)
+		{
 			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
@@ -502,13 +658,17 @@ namespace pathtracex {
 		}
 
 		// Back
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 0, -1), float2(0, 0)});
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 0, -1), float2(1, 0)});
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 0, 1, 1), float3(0, 0, -1), float2(1, 1)});
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(0, 0, -1), float2(0, 1)});
+		tmp_vertices.push_back({float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 0, -1), float2(0, 0)});
+		tmp_vertices.push_back({float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 0, -1), float2(1, 0)});
+		tmp_vertices.push_back({float3(0.5f, 0.5f, -0.5f), float4(0, 0, 1, 1), float3(0, 0, -1), float2(1, 1)});
+		tmp_vertices.push_back({float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(0, 0, -1), float2(0, 1)});
 
-		indices.push_back(6); indices.push_back(5); indices.push_back(4);
-		indices.push_back(4); indices.push_back(7); indices.push_back(6);
+		indices.push_back(6);
+		indices.push_back(5);
+		indices.push_back(4);
+		indices.push_back(4);
+		indices.push_back(7);
+		indices.push_back(6);
 		Mesh back_mesh;
 		back_mesh.name = "back_mesh";
 		back_mesh.materialIdx = 1;
@@ -517,7 +677,8 @@ namespace pathtracex {
 		back_mesh.numberOfVertices = 6;
 		meshes.push_back(back_mesh);
 
-		for (int i = 6; i < 12; i++) {
+		for (int i = 6; i < 12; i++)
+		{
 			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
@@ -526,13 +687,17 @@ namespace pathtracex {
 		}
 
 		// Left
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(-1, 0, 0), float2(0, 0)});
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(-1, 0, 0), float2(1, 0)});
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(-1, 0, 0), float2(1, 1)});
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(-1, 0, 0), float2(0, 1)});
+		tmp_vertices.push_back({float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(-1, 0, 0), float2(0, 0)});
+		tmp_vertices.push_back({float3(-0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(-1, 0, 0), float2(1, 0)});
+		tmp_vertices.push_back({float3(-0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(-1, 0, 0), float2(1, 1)});
+		tmp_vertices.push_back({float3(-0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(-1, 0, 0), float2(0, 1)});
 
-		indices.push_back(8); indices.push_back(9); indices.push_back(10);
-		indices.push_back(10); indices.push_back(11); indices.push_back(8);
+		indices.push_back(8);
+		indices.push_back(9);
+		indices.push_back(10);
+		indices.push_back(10);
+		indices.push_back(11);
+		indices.push_back(8);
 
 		Mesh left_mesh;
 		left_mesh.name = "left_mesh";
@@ -542,7 +707,8 @@ namespace pathtracex {
 		left_mesh.numberOfVertices = 6;
 		meshes.push_back(left_mesh);
 
-		for (int i = 12; i < 18; i++) {
+		for (int i = 12; i < 18; i++)
+		{
 			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
@@ -551,13 +717,17 @@ namespace pathtracex {
 		}
 
 		// Right
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(1, 0, 0), float2(0, 0)});
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(1, 0, 0), float2(1, 0)});
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(1, 0, 0), float2(1, 1)});
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(1, 0, 0), float2(0, 1)});
+		tmp_vertices.push_back({float3(0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(1, 0, 0), float2(0, 0)});
+		tmp_vertices.push_back({float3(0.5f, -0.5f, 0.5f), float4(0, 1, 0, 1), float3(1, 0, 0), float2(1, 0)});
+		tmp_vertices.push_back({float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(1, 0, 0), float2(1, 1)});
+		tmp_vertices.push_back({float3(0.5f, 0.5f, -0.5f), float4(1, 1, 0, 1), float3(1, 0, 0), float2(0, 1)});
 
-		indices.push_back(14); indices.push_back(13); indices.push_back(12);
-		indices.push_back(12); indices.push_back(15); indices.push_back(14);
+		indices.push_back(14);
+		indices.push_back(13);
+		indices.push_back(12);
+		indices.push_back(12);
+		indices.push_back(15);
+		indices.push_back(14);
 		Mesh right_mesh;
 		right_mesh.name = "right_mesh";
 		right_mesh.materialIdx = 3;
@@ -566,7 +736,8 @@ namespace pathtracex {
 		right_mesh.numberOfVertices = 6;
 		meshes.push_back(right_mesh);
 
-		for (int i = 18; i < 24; i++) {
+		for (int i = 18; i < 24; i++)
+		{
 			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
@@ -574,16 +745,18 @@ namespace pathtracex {
 			vertecies.push_back(vertex);
 		}
 
-
-
 		// Top
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0)});
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0)});
-		tmp_vertices.push_back({ float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1)});
-		tmp_vertices.push_back({ float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1)});
+		tmp_vertices.push_back({float3(-0.5f, 0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0)});
+		tmp_vertices.push_back({float3(0.5f, 0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0)});
+		tmp_vertices.push_back({float3(0.5f, 0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1)});
+		tmp_vertices.push_back({float3(-0.5f, 0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1)});
 
-		indices.push_back(18); indices.push_back(17); indices.push_back(16);
-		indices.push_back(16); indices.push_back(19); indices.push_back(18);
+		indices.push_back(18);
+		indices.push_back(17);
+		indices.push_back(16);
+		indices.push_back(16);
+		indices.push_back(19);
+		indices.push_back(18);
 		Mesh top_mesh;
 		top_mesh.name = "top_mesh";
 		top_mesh.materialIdx = 4;
@@ -592,7 +765,8 @@ namespace pathtracex {
 		top_mesh.numberOfVertices = 6;
 		meshes.push_back(top_mesh);
 
-		for (int i = 24; i < 30; i++) {
+		for (int i = 24; i < 30; i++)
+		{
 			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
@@ -601,13 +775,17 @@ namespace pathtracex {
 		}
 
 		// Bottom
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, -1, 0), float2(0, 0)});
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, -1, 0), float2(1, 0)});
-		tmp_vertices.push_back({ float3(0.5f, -0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, -1, 0), float2(1, 1)});
-		tmp_vertices.push_back({ float3(-0.5f, -0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, -1, 0), float2(0, 1)});
+		tmp_vertices.push_back({float3(-0.5f, -0.5f, -0.5f), float4(1, 0, 0, 1), float3(0, -1, 0), float2(0, 0)});
+		tmp_vertices.push_back({float3(0.5f, -0.5f, -0.5f), float4(0, 1, 0, 1), float3(0, -1, 0), float2(1, 0)});
+		tmp_vertices.push_back({float3(0.5f, -0.5f, 0.5f), float4(0, 0, 1, 1), float3(0, -1, 0), float2(1, 1)});
+		tmp_vertices.push_back({float3(-0.5f, -0.5f, 0.5f), float4(1, 1, 0, 1), float3(0, -1, 0), float2(0, 1)});
 
-		indices.push_back(20); indices.push_back(21); indices.push_back(22);
-		indices.push_back(22); indices.push_back(23); indices.push_back(20);
+		indices.push_back(20);
+		indices.push_back(21);
+		indices.push_back(22);
+		indices.push_back(22);
+		indices.push_back(23);
+		indices.push_back(20);
 
 		Mesh bottom_mesh;
 		bottom_mesh.name = "bottom_mesh";
@@ -617,44 +795,40 @@ namespace pathtracex {
 		bottom_mesh.numberOfVertices = 6;
 		meshes.push_back(bottom_mesh);
 
-		for (int i = 30; i < 36; i++) {
+		for (int i = 30; i < 36; i++)
+		{
 			vertex = tmp_vertices.at(indices.at(i));
 			m_positions.push_back(vertex.pos);
 			m_normals.push_back(vertex.normal);
 			m_texture_coordinates.push_back(vertex.tex);
 			vertecies.push_back(vertex);
 		}
-	
 
 		float3 max_cords(m_positions.at(0));
 		float3 min_cords(m_positions.at(0));
-		for (size_t i = 1; i < m_positions.size(); i++) {
+		for (size_t i = 1; i < m_positions.size(); i++)
+		{
 			max_cords = max_cords.Max(max_cords, m_positions.at(i));
 			min_cords = max_cords.Min(min_cords, m_positions.at(i));
 		}
 
-		//TODO creatye materials for cube faces, 
-		// posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
+		// TODO creatye materials for cube faces,
+		//  posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
 		std::vector<uint32_t> indecies;
 
-		for (auto mesh : meshes) {
+		for (auto mesh : meshes)
+		{
 			for (size_t i = 0; i < mesh.numberOfVertices; i++)
 				indecies.push_back(i + mesh.startIndex);
 		}
 
-		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Cube"
-					, materials
-					, meshes
-					, false
-					, max_cords
-					, min_cords
-					, vertecies
-					, indecies);
-		model->primativeType = PrimitiveModelType::CUBE;	
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Cube", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
+		model->primativeType = PrimitiveModelType::CUBE;
 
 		return model;
 	}
-	std::shared_ptr<Model> Model::createSphere(int stacks, int slices) {
+	std::shared_ptr<Model> Model::createSphere(int stacks, int slices)
+	{
 		std::vector<Vertex> tmp_vertices{};
 		std::vector<uint32_t> indices{};
 
@@ -665,8 +839,7 @@ namespace pathtracex {
 		float4 cols[] = {
 			{1, 0, 0, 1},
 			{0, 1, 0, 1},
-			{0, 0, 1, 1}
-		};
+			{0, 0, 1, 1}};
 		for (int i = 0; i <= stacks; ++i)
 		{
 			stackAngle = 3.1415 / 2 - i * stackStep;
@@ -684,8 +857,8 @@ namespace pathtracex {
 				normal.Normalize();
 				float2 uv = float2((float)j / slices, (float)i / stacks);
 
-				float4 col{ normal.x, normal.y, normal.z, 1 };
-				tmp_vertices.push_back({ float3(x, y, z), col, normal, uv});
+				float4 col{normal.x, normal.y, normal.z, 1};
+				tmp_vertices.push_back({float3(x, y, z), col, normal, uv});
 			}
 		}
 
@@ -718,20 +891,21 @@ namespace pathtracex {
 		mesh.name = "sphere_mesh";
 		mesh.startIndex = 0;
 		mesh.numberOfVertices = indices.size();
-		std::vector<Mesh> meshes{ mesh };
-		
+		std::vector<Mesh> meshes{mesh};
+
 		std::vector<Vertex> vertecies;
 		size_t idx;
-		for (size_t i = 0; i < indices.size(); i++) {
+		for (size_t i = 0; i < indices.size(); i++)
+		{
 			idx = indices.at(i);
 			vertecies.push_back(tmp_vertices.at(idx));
 		}
 		std::vector<Material> materials;
 
-
 		float3 max_cords(vertecies.at(0).pos);
 		float3 min_cords(vertecies.at(0).pos);
-		for (size_t i = 1; i < vertecies.size(); i++) {
+		for (size_t i = 1; i < vertecies.size(); i++)
+		{
 			max_cords = max_cords.Max(max_cords, vertecies.at(0).pos);
 			min_cords = max_cords.Min(min_cords, vertecies.at(0).pos);
 		}
@@ -740,50 +914,55 @@ namespace pathtracex {
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
 
-		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Sphere"
-					, materials
-					, meshes
-					, false
-					, max_cords
-					, min_cords
-					, vertecies
-					, indecies);
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Sphere", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::SPHERE;
 
 		return model;
 	}
-	std::shared_ptr<Model> Model::createPlane() {
+
+	std::shared_ptr<Model> Model::createPlane()
+	{
 		std::vector<Vertex> tmp_vertices{};
 		std::vector<uint32_t> indices{};
 
-		tmp_vertices.push_back({ float3(-5.f, 0.0f, -5.f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0)});
-		tmp_vertices.push_back({ float3(5.f, 0.0f, -5.f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0)});
-		tmp_vertices.push_back({ float3(5.f, 0.0f, 5.f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1)});
-		tmp_vertices.push_back({ float3(-5.f, 0.0f, 5.f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1)});
+		tmp_vertices.push_back({float3(-5.f, 0.0f, -5.f), float4(1, 0, 0, 1), float3(0, 1, 0), float2(0, 0)});
+		tmp_vertices.push_back({float3(5.f, 0.0f, -5.f), float4(0, 1, 0, 1), float3(0, 1, 0), float2(1, 0)});
+		tmp_vertices.push_back({float3(5.f, 0.0f, 5.f), float4(0, 0, 1, 1), float3(0, 1, 0), float2(1, 1)});
+		tmp_vertices.push_back({float3(-5.f, 0.0f, 5.f), float4(1, 1, 0, 1), float3(0, 1, 0), float2(0, 1)});
 
-		indices.push_back(0); indices.push_back(1); indices.push_back(2);
-		indices.push_back(2); indices.push_back(3); indices.push_back(0);
-		indices.push_back(2); indices.push_back(1); indices.push_back(0);
-		indices.push_back(0); indices.push_back(3); indices.push_back(2);
+		indices.push_back(0);
+		indices.push_back(1);
+		indices.push_back(2);
+		indices.push_back(2);
+		indices.push_back(3);
+		indices.push_back(0);
+		indices.push_back(2);
+		indices.push_back(1);
+		indices.push_back(0);
+		indices.push_back(0);
+		indices.push_back(3);
+		indices.push_back(2);
 
 		Mesh mesh;
 		mesh.materialIdx = 0;
 		mesh.name = "Plane mesh";
 		mesh.startIndex = 0;
 		mesh.numberOfVertices = indices.size();
-		
+
 		std::vector<Vertex> vertecies;
 		size_t idx;
-		for (size_t i = 0; i < indices.size(); i++) {
+		for (size_t i = 0; i < indices.size(); i++)
+		{
 			idx = indices.at(i);
 			vertecies.push_back(tmp_vertices.at(idx));
 		}
-		std::vector<Mesh> meshes{ mesh };
+		std::vector<Mesh> meshes{mesh};
 		std::vector<Material> materials;
 
 		float3 max_cords(vertecies.at(0).pos);
 		float3 min_cords(vertecies.at(0).pos);
-		for (size_t i = 1; i < vertecies.size(); i++) {
+		for (size_t i = 1; i < vertecies.size(); i++)
+		{
 			max_cords = max_cords.Max(max_cords, vertecies.at(0).pos);
 			min_cords = max_cords.Min(min_cords, vertecies.at(0).pos);
 		}
@@ -792,20 +971,10 @@ namespace pathtracex {
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
 
-		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Plane"
-					, materials
-					, meshes
-					, false
-					, max_cords
-					, min_cords
-					, vertecies
-					, indecies);
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Plane", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::PLANE;
-
 
 		return model;
 	}
-
-
 
 }

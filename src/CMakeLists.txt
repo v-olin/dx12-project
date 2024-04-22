@@ -59,6 +59,10 @@ target_sources(PathTracerX PRIVATE
 	MouseEvent.h
 	WindowEvent.h
 	TimedEvent.h
+	ProcedualWorldManager.h
+	ProcedualWorldManager.cpp
+	Noise.h
+	Noise.cpp
 )
 
 source_group("DX" FILES

@@ -113,6 +113,8 @@ namespace pathtracex {
 			};
 		};
 
+		static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale = 10);
+
 		std::string id = StringUtil::generateRandomString(10);
 	private:
 	

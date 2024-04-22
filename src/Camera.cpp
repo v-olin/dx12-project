@@ -135,7 +135,7 @@ namespace pathtracex {
     }
 
     void Camera::updateMovement() {
-        static const float sensitivity = 0.05f;
+        static const float sensitivity = 0.2f;
 
         std::chrono::duration<float> diff = std::chrono::steady_clock::now() - lastMovement;
         auto diffms = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();

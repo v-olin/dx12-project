@@ -19,6 +19,7 @@ namespace pathtracex
 		window.getSize(width, height);
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
+
 		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
 	}
 
@@ -33,9 +34,12 @@ namespace pathtracex
 			return 1;
 		}
 
+
 		registerEventListener(&defaultCamera);
 
 		Serializer::deserializeScene(config.startupSceneName, scene);
+
+		scene.procedualWorldManager = &worldManager;
 
 		while(running) {
 			const auto ecode = Window::processMessages();
@@ -112,6 +116,14 @@ namespace pathtracex
 	}
 
 	void App::everyFrame() {
+		if (defaultRenderSettings.drawProcedualWorld)
+		{
+			worldManager.updateProcedualWorld(defaultCamera);
+		}
+
+		scene.proceduralGroundModels = worldManager.procedualWorldGroundModels;
+		scene.proceduralSkyModels = worldManager.procedualWorldSkyModels;
+
 		if (window.windowHasBeenResized()) {
 			auto newSize = window.getNewWindowSize();
 			WindowResizeEvent wre{ newSize.first, newSize.second };
