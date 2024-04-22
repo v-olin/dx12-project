@@ -1,9 +1,9 @@
 struct VS_INPUT
 {
-    float4 pos : POSITION;
+    float3 pos : POSITION;
     float4 color : COLOR;
-    float2 texCoord : TEXCOORD;
     float3 normal : NORMAL;
+    float2 texCoord : TEXCOORD;
 };
 
 struct PointLight
@@ -40,12 +40,12 @@ VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
 
-    output.pos = mul(input.pos, wvpMat);
+    output.pos = mul(float4(input.pos, 1.0), wvpMat);
     output.color = input.color;
     output.texCoord = input.texCoord;
 
     float4 normal = float4(input.normal, 0.0f);
     output.worldNormal = normalize(mul(normal, normalMatrix));
-    output.worldPos = mul(input.pos, modelMatrix);
-        return output;
+    output.worldPos = mul(float4(input.pos, 1.0), modelMatrix);
+    return output;
 }
