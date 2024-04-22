@@ -368,7 +368,7 @@ namespace pathtracex
 		for (int i = 0; i < number_of_vertices; i++)
 		{
 			float3 n = m_normals.at(i);
-			float4 col = {n.x, n.y, n.z, 1};
+			float4 col = {0.0, 0.0, 0.0, 0.0};
 
 			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i)};
 			vertices.push_back(vert);
