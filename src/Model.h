@@ -95,6 +95,9 @@ namespace pathtracex {
 		float3 maxCords;
 		float3 minCords;
 
+		float3 getMinCords() { return minCords; }
+		float3 getMaxCords() { return maxCords; }
+
 		// Currently storing vertices, if this becomes a memory issue it can probably be removed
 		std::vector<Vertex> vertices{};
 		std::vector<uint32_t> indices{};

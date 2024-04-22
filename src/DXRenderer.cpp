@@ -3,6 +3,7 @@
 #include "App.h"
 #include "Exceptions.h"
 #include "Helper.h"
+#include "Culling.h"
 
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
@@ -462,6 +463,7 @@ namespace pathtracex {
 
 		int i = 0;
 		std::vector<std::shared_ptr<Model>> models = scene.models;
+		std::vector<std::shared_ptr<Model>> culledModels;
 
 		if (renderSettings.drawProcedualWorld) {
 			// Add the procedual models to the list of models
@@ -486,10 +488,18 @@ namespace pathtracex {
 		// create the wvp matrix and store in constant buffer
 		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
 		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
+		// Update the frustum planes
+		Culling::updateFrustum(viewMat, projMat);
 
-		for (auto model : models)
+		for (auto model : models) {
+			if (Culling::isAABBInFrustum(model->getMinCords(), model->getMaxCords())) {
+				// Add to culled models
+				culledModels.push_back(model);
+			}
+		}
+
+		for (auto model : culledModels)
 		{
-
 			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
 			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
 			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
@@ -554,6 +564,9 @@ namespace pathtracex {
 
 			i++;
 		}
+
+		// Log ammount of models drawn
+		LOG_TRACE("Drawn {} models", i);
 
 		commandList->SetDescriptorHeaps(1, &srvHeap);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);

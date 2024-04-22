@@ -63,6 +63,8 @@ target_sources(PathTracerX PRIVATE
 	ProcedualWorldManager.cpp
 	Noise.h
 	Noise.cpp
+	Culling.cpp
+	Culling.h
 )
 
 source_group("DX" FILES
