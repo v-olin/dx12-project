@@ -5,6 +5,7 @@
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <dxcapi.h>
 #include "Helper.h"
 
 #include <string>
@@ -19,6 +20,7 @@
 #include "DXIndexBuffer.h"
 
 #include "NVTLASGenerator.h"
+#include "NVShaderBindingTableGenerator.h"
 
 namespace nv = nvidia;
 
@@ -39,7 +41,8 @@ namespace pathtracex {
 		DXRenderer(const DXRenderer&) = delete;
 		DXRenderer& operator=(const DXRenderer&) = delete;
 	
-		bool init(Window* window, Scene& scene); // initializes direct3d 12
+		bool init(Window* window); // initializes direct3d 12
+		bool initRaytracingPipeline(Scene& scene);
 
 		void initGraphicsAPI() override;
 		void setClearColor(const dx::XMFLOAT3& color) override;
@@ -70,9 +73,7 @@ namespace pathtracex {
 
 	private:
 		// I changed the commandlist to a 4 and the device to a 5 to get raytracing stuff
-		//ID3D12GraphicsCommandList* commandList; // a command list we can record commands into, then execute them to render the frame
 		ID3D12GraphicsCommandList4* commandList; // a command list we can record commands into, then execute them to render the frame
-		//ID3D12Device* device; // direct3d device
 		ID3D12Device5* device; // direct3d device
 		ID3D12CommandQueue* commandQueue; // container for command lists
 		
@@ -109,10 +110,10 @@ namespace pathtracex {
 		DXGI_SAMPLE_DESC sampleDesc{};
 		ID3D12Resource* depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
 		ID3D12DescriptorHeap* dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
-		ID3D12DescriptorHeap* mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
-		ID3D12Resource* constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
-		UINT8* cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
+		ID3D12DescriptorHeap* mainDescriptorHeap; // this heap will store the descripor to our constant buffer
+		#pragma endregion
 
+		#pragma region Constant buffers
 		// The constant buffer can't be bigger than 256 bytes
 		struct ConstantBufferPerObject {
 			DirectX::XMFLOAT4X4 wvpMat; // 64 bytes
@@ -136,11 +137,19 @@ namespace pathtracex {
 		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
 		ConstantBufferPerObject cbPerObject; // this is the constant buffer data we will send to the gpu 
 											// (which will be placed in the resource we created above)
-		ID3D12Resource* constantBufferUploadHeaps[frameBufferCount]; // this is the memory on the gpu where constant buffers for each frame will be placed
-		UINT8* cbvGPUAddress[frameBufferCount]; // this is a pointer to each of the constant buffer resource heaps
+		ID3D12Resource* constantBufferUploadHeap; // this is the memory on the gpu where constant buffers for each frame will be placed
+		UINT8* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
 		#pragma endregion
 
-#pragma region Raytracing stuff
+		#pragma region Raytracing stuff
+		
+		const D3D12_HEAP_PROPERTIES defaultHeapProps = {
+			D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0
+		};
+
+		const D3D12_HEAP_PROPERTIES	deafultUploadHeapProps = {
+			D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0
+		};
 
 		struct AccelerationStructureBuffers {
 			ID3D12Resource* pScratch;		// scratch memory for AS builder
@@ -152,14 +161,52 @@ namespace pathtracex {
 		nv::NVTLASGenerator tlasGenerator;
 		AccelerationStructureBuffers tlasBuffers;
 		std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>> asInstances;
+		ID3D12Resource* instancePropsBuffer;
+		nv::NVShaderBindingTableGenerator sbtGenerator;
+
+		struct InstanceProperties {
+			dx::XMMATRIX objToWorld;
+		};
+
+		IDxcBlob* rayGenLib;
+		ID3D12RootSignature* rayGenSign;
+		IDxcBlob* missLib;
+		ID3D12RootSignature* missSign;
+		IDxcBlob* hitLib;
+		ID3D12RootSignature* hitSign;
+		IDxcBlob* shadowLib;
+		ID3D12RootSignature* shadowSign;
+
+		ID3D12StateObject* rtpipelinestate;
+		ID3D12StateObjectProperties* rtpipelinestateprops;
+
+		ID3D12Resource* rtoutputbuffer;
+		ID3D12DescriptorHeap* rtSrvUavHeap;
+		ID3D12Resource* cameraConstantBuffer;
+		const uint32_t cameraConstantBufferSize = 4 * sizeof(dx::XMMATRIX);
+		ID3D12DescriptorHeap* constHeap;
+		ID3D12Resource* sbtStorage;
 
 		bool checkRaytracingSupport();
+
 		ID3D12Resource* createASBuffers(UINT64 buffSize, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const D3D12_HEAP_PROPERTIES* heapProps = nullptr);
 		AccelerationStructureBuffers createBLASFromModel(std::shared_ptr<Model> model);
 		void createTLASFromBLAS(const std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>>& models, bool updateOnly = false);
 		bool createAccelerationStructures(Scene& scene);
+		bool createRaytracingPipeline();
+		bool createRaytracingOutputBuffer();
+		bool createShaderResourceHeap();
+		bool createCameraBuffer();
+		bool createShaderBindingTable(Scene& scene);
 
-#pragma endregion
+		IDxcBlob* compileShaderLibrary(LPCWSTR libname);
+		ID3D12RootSignature* createRayGenSignature();
+		ID3D12RootSignature* createMissSignature();
+		ID3D12RootSignature* createHitSignature();
+		void createInstancePropsBuffer();
+		void updateInstancePropsBuffer();
+
+		#pragma endregion
 
 		#pragma region Member functions
 		void updatePipeline(RenderSettings& renderSettings, Scene& scene); // update the direct3d pipeline (update command lists)

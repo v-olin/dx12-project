@@ -25,11 +25,9 @@ namespace pathtracex
 
 	int App::run()
 	{
-		Serializer::deserializeScene(config.startupSceneName, scene);
-		scene.procedualWorldManager = &worldManager;
 
 		renderer = DXRenderer::getInstance();
-		if (!renderer->init(&window, scene))
+		if (!renderer->init(&window))
 		{
 			MessageBox(0, "Failed to initialize direct3d 12",
 					   "Error", MB_OK);
@@ -37,7 +35,14 @@ namespace pathtracex
 			return 1;
 		}
 
+		Serializer::deserializeScene(config.startupSceneName, scene);
+		scene.procedualWorldManager = &worldManager;
 		defaultRenderSettings.raytracingSupported = renderer->raytracingIsSupported();
+
+		if (defaultRenderSettings.raytracingSupported) {
+			renderer->initRaytracingPipeline(scene);
+			defaultRenderSettings.useRayTracing = true;
+		}
 
 		registerEventListener(&defaultCamera);
 
@@ -123,7 +128,7 @@ namespace pathtracex
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
 
-		gui.drawGUI(defaultRenderSettings);
+		//gui.drawGUI(defaultRenderSettings);
 
 		renderer->Render(defaultRenderSettings, scene);
 

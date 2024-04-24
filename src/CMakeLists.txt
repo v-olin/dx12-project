@@ -42,6 +42,8 @@ target_sources(PathTracerX PRIVATE
 	DXVertexBuffer.cpp
 	DXIndexBuffer.h
 	DXIndexBuffer.cpp
+	DXConstantBuffer.h
+	DXConstantBuffer.cpp
 	NVBLASGenerator.h
 	NVBLASGenerator.cpp
 	NVRaytracingPipelineGenerator.h
@@ -82,6 +84,8 @@ source_group("DX" FILES
 	DXVertexBuffer.cpp
 	DXIndexBuffer.h
 	DXIndexBuffer.cpp
+	DXConstantBuffer.h
+	DXConstantBuffer.cpp
 )
 
 source_group("NV" FILES
