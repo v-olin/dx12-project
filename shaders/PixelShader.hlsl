@@ -61,7 +61,7 @@ float3 calculateDirectIllumiunation(PointLight light, float3 normal, float3 posi
     normal = normalize(normal);
     
     float3 point_light_color = float3(1.0, 1.0, 1.0);
-    float point_light_intensity_multiplier = 50.0;
+    float point_light_intensity_multiplier = 500.0;
 
     float3 lightDir = light.position.xyz - position;
     float distance = length(lightDir);

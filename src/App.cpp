@@ -41,7 +41,7 @@ namespace pathtracex
 
 		if (defaultRenderSettings.raytracingSupported) {
 			renderer->initRaytracingPipeline(scene);
-			defaultRenderSettings.useRayTracing = true;
+			defaultRenderSettings.useRayTracing = false;
 		}
 
 		registerEventListener(&defaultCamera);
@@ -128,7 +128,8 @@ namespace pathtracex
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
 
-		//gui.drawGUI(defaultRenderSettings);
+		if (!defaultRenderSettings.useRayTracing)
+			gui.drawGUI(defaultRenderSettings);
 
 		renderer->Render(defaultRenderSettings, scene);
 

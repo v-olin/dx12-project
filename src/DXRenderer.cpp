@@ -207,11 +207,11 @@ namespace pathtracex {
 		scissorRect.bottom = height;
 
 		/*
+		*/
 		ImGui_ImplDX12_Init(device, frameBufferCount,
 							DXGI_FORMAT_R8G8B8A8_UNORM, srvHeap,
 							srvHeap->GetCPUDescriptorHandleForHeapStart(),
 							srvHeap->GetGPUDescriptorHandleForHeapStart());
-		*/
 
 		LOG_INFO("DXRenderer initialized");
 		return true;
@@ -516,7 +516,7 @@ namespace pathtracex {
 			commandList->RSSetScissorRects(1, &scissorRect);						  // set the scissor rects
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
 
-		std::vector<std::shared_ptr<Model>> models = scene.models;
+			std::vector<std::shared_ptr<Model>> models = scene.models;
 
 			if (renderSettings.drawProcedualWorld) {
 				// Add the procedual models to the list of models
@@ -542,96 +542,96 @@ namespace pathtracex {
 			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
 			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 
-		int models_drawn = 0;
-		int meshes_drawn = 0;
-		for (auto model : models)
-		{
+			int models_drawn = 0;
+			int meshes_drawn = 0;
+			for (auto model : models)
+			{
 
-			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
-			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
-			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
-			//DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.transformMatrix);
-			DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.getModelMatrix());
-			DirectX::XMMATRIX transposed2 = modelMatrix;
-			DirectX::XMStoreFloat4x4(&cbPerObject.modelMatrix, transposed2);	// store the model matrix in the constant buffer
-			//DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixTranspose(modelMatrix)));
-			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixInverse(nullptr,model->trans.transformMatrix); //WORDSPACE
-			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
-			int k = 0;
-			PointLight pointLights[3];
-			for (auto light : scene.lights) {
-				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0}};
-				k++;
-			}
-
-			cbPerObject.pointLightCount = k;
-
-				memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
-
-			int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
-			
-			// set cube1's constant buffer
-			commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + offset);
-			commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
-
-			memcpy(cbvGPUAddress[frameIndex] + offset, &cbPerObject, sizeof(cbPerObject));
-			models_drawn++;
-			// draw first cube
-			commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
-			commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
-
-			for (auto mesh : model->meshes) {
-				//we need to add more uniforms so that we know if there are color textures and so on, 
-				// all textures that are valid should be send down and used
-				// all valid textures ARE sent to the GPU via the mainDescriptorHeap of the material
-				// we just have to tell the shader what textures are valid
-				cbPerMesh.hasTexCoord = false;
-				cbPerMesh.hasNormalTex = false;
-				cbPerMesh.hasShinyTex = false;
-				cbPerMesh.hasMetalTex = false;
-				cbPerMesh.hasFresnelTex = false;
-				cbPerMesh.hasEmisionTex = false;
-
-				cbPerMesh.material_shininess = 0;
-				cbPerMesh.material_metalness = 0;
-				cbPerMesh.material_fresnel = 0;
-
-
-
-				cbPerMesh.material_emmision = float4(0, 0, 0, 0);
-
-				if (model->materials.size() > 0) {
-					auto mat = model->materials[mesh.materialIdx];
-					cbPerMesh.hasTexCoord = mat.colorTexture.valid;
-					cbPerMesh.hasNormalTex =  mat.normalTexture.valid;
-					cbPerMesh.hasShinyTex =  mat.shininessTexture.valid;
-					cbPerMesh.hasMetalTex = mat.metalnessTexture.valid;
-					cbPerMesh.hasFresnelTex = mat.fresnelTexture.valid;
-					cbPerMesh.hasEmisionTex = mat.emissionTexture.valid;
-			
-					cbPerMesh.material_shininess = mat.shininess;
-					cbPerMesh.material_metalness = mat.metalness;
-					cbPerMesh.material_fresnel = mat.fresnel;
-					cbPerMesh.material_emmision = float4(mat.emission.x,mat.emission.y, mat.emission.z, 0);
-
-					ID3D12DescriptorHeap* descriptorHeaps[] = { mat.mainDescriptorHeap };
-					commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-					commandList->SetGraphicsRootDescriptorTable(2, mat.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+				DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
+				DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
+				DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
+				//DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.transformMatrix);
+				DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.getModelMatrix());
+				DirectX::XMMATRIX transposed2 = modelMatrix;
+				DirectX::XMStoreFloat4x4(&cbPerObject.modelMatrix, transposed2);	// store the model matrix in the constant buffer
+				//DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixTranspose(modelMatrix)));
+				DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixInverse(nullptr,model->trans.transformMatrix); //WORDSPACE
+				DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
+				int k = 0;
+				PointLight pointLights[3];
+				for (auto light : scene.lights) {
+					pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0}};
+					k++;
 				}
-				// // copy our ConstantBuffer instance to the mapped constant buffer resource
-				//here also set all uniforms for each mesh
+
+				cbPerObject.pointLightCount = k;
+
+					memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
 				int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
-				commandList->SetGraphicsRootConstantBufferView(1, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + offset);
-				memcpy(cbvGPUAddress[frameIndex] + offset, &cbPerMesh, sizeof(cbPerMesh));
-				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
-				meshes_drawn++;
+				
+				// set cube1's constant buffer
+				commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeap->GetGPUVirtualAddress() + offset);
+				commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
+
+				memcpy(cbvGPUAddress + offset, &cbPerObject, sizeof(cbPerObject));
+				models_drawn++;
+				// draw first cube
+				commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
+				commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
+
+				for (auto mesh : model->meshes) {
+					//we need to add more uniforms so that we know if there are color textures and so on, 
+					// all textures that are valid should be send down and used
+					// all valid textures ARE sent to the GPU via the mainDescriptorHeap of the material
+					// we just have to tell the shader what textures are valid
+					cbPerMesh.hasTexCoord = false;
+					cbPerMesh.hasNormalTex = false;
+					cbPerMesh.hasShinyTex = false;
+					cbPerMesh.hasMetalTex = false;
+					cbPerMesh.hasFresnelTex = false;
+					cbPerMesh.hasEmisionTex = false;
+
+					cbPerMesh.material_shininess = 0;
+					cbPerMesh.material_metalness = 0;
+					cbPerMesh.material_fresnel = 0;
+
+
+
+					cbPerMesh.material_emmision = float4(0, 0, 0, 0);
+
+					if (model->materials.size() > 0) {
+						auto mat = model->materials[mesh.materialIdx];
+						cbPerMesh.hasTexCoord = mat.colorTexture.valid;
+						cbPerMesh.hasNormalTex =  mat.normalTexture.valid;
+						cbPerMesh.hasShinyTex =  mat.shininessTexture.valid;
+						cbPerMesh.hasMetalTex = mat.metalnessTexture.valid;
+						cbPerMesh.hasFresnelTex = mat.fresnelTexture.valid;
+						cbPerMesh.hasEmisionTex = mat.emissionTexture.valid;
+				
+						cbPerMesh.material_shininess = mat.shininess;
+						cbPerMesh.material_metalness = mat.metalness;
+						cbPerMesh.material_fresnel = mat.fresnel;
+						cbPerMesh.material_emmision = float4(mat.emission.x,mat.emission.y, mat.emission.z, 0);
+
+						ID3D12DescriptorHeap* descriptorHeaps[] = { mat.mainDescriptorHeap };
+						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+						commandList->SetGraphicsRootDescriptorTable(2, mat.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+					}
+					// // copy our ConstantBuffer instance to the mapped constant buffer resource
+					//here also set all uniforms for each mesh
+
+					int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
+					commandList->SetGraphicsRootConstantBufferView(1, constantBufferUploadHeap->GetGPUVirtualAddress() + offset);
+					memcpy(cbvGPUAddress + offset, &cbPerMesh, sizeof(cbPerMesh));
+					commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
+					meshes_drawn++;
+				}
 			}
-		}
 
 			commandList->SetDescriptorHeaps(1, &srvHeap);
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
 		}
-		//ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
 
 		// transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
 		// warning if present is called on the render target when it's not in the present state
