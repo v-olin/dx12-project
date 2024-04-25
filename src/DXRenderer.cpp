@@ -460,7 +460,6 @@ namespace pathtracex {
 		commandList->RSSetScissorRects(1, &scissorRect);						  // set the scissor rects
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
 
-		int i = 0;
 		std::vector<std::shared_ptr<Model>> models = scene.models;
 
 		if (renderSettings.drawProcedualWorld) {
@@ -487,6 +486,8 @@ namespace pathtracex {
 		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
 		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 
+		int models_drawn = 0;
+		int meshes_drawn = 0;
 		for (auto model : models)
 		{
 
@@ -511,49 +512,65 @@ namespace pathtracex {
 
 			memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
+			int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
 			
 			// set cube1's constant buffer
-			commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + ConstantBufferPerObjectAlignedSize * i);
+			commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + offset);
 			commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
 
+			memcpy(cbvGPUAddress[frameIndex] + offset, &cbPerObject, sizeof(cbPerObject));
+			models_drawn++;
 			// draw first cube
 			commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
 			commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
-			//commandList->DrawIndexedInstanced(model->indexBuffer->numCubeIndices, 1, 0, 0, 0);
+
 			for (auto mesh : model->meshes) {
 				//we need to add more uniforms so that we know if there are color textures and so on, 
 				// all textures that are valid should be send down and used
 				// all valid textures ARE sent to the GPU via the mainDescriptorHeap of the material
 				// we just have to tell the shader what textures are valid
-				cbPerObject.hasTexCoord = false;
-				cbPerObject.hasNormalTex = false;
-				cbPerObject.hasShinyTex = false;
+				cbPerMesh.hasTexCoord = false;
+				cbPerMesh.hasNormalTex = false;
+				cbPerMesh.hasShinyTex = false;
+				cbPerMesh.hasMetalTex = false;
+				cbPerMesh.hasFresnelTex = false;
+				cbPerMesh.hasEmisionTex = false;
+
+				cbPerMesh.material_shininess = 0;
+				cbPerMesh.material_metalness = 0;
+				cbPerMesh.material_fresnel = 0;
+
+
+
+				cbPerMesh.material_emmision = float4(0, 0, 0, 0);
+
 				if (model->materials.size() > 0) {
 					auto mat = model->materials[mesh.materialIdx];
-
-					auto colTex = mat.colorTexture;
-					auto normalTex = mat.normalTexture;
-					auto shinyTex = mat.shininessTexture;
-
-					cbPerObject.hasTexCoord = colTex.valid;
-					cbPerObject.hasNormalTex = normalTex.valid;
-					cbPerObject.hasShinyTex = shinyTex.valid;
+					cbPerMesh.hasTexCoord = mat.colorTexture.valid;
+					cbPerMesh.hasNormalTex =  mat.normalTexture.valid;
+					cbPerMesh.hasShinyTex =  mat.shininessTexture.valid;
+					cbPerMesh.hasMetalTex = mat.metalnessTexture.valid;
+					cbPerMesh.hasFresnelTex = mat.fresnelTexture.valid;
+					cbPerMesh.hasEmisionTex = mat.emissionTexture.valid;
 			
-					cbPerObject.material_shininess = mat.shininess;
-					cbPerObject.material_metalness = mat.metalness;
-					cbPerObject.material_fresnel = mat.fresnel;
+					cbPerMesh.material_shininess = mat.shininess;
+					cbPerMesh.material_metalness = mat.metalness;
+					cbPerMesh.material_fresnel = mat.fresnel;
+					cbPerMesh.material_emmision = float4(mat.emission.x,mat.emission.y, mat.emission.z, 0);
 
 					ID3D12DescriptorHeap* descriptorHeaps[] = { mat.mainDescriptorHeap };
 					commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-					commandList->SetGraphicsRootDescriptorTable(1, mat.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+					commandList->SetGraphicsRootDescriptorTable(2, mat.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 				}
 				// // copy our ConstantBuffer instance to the mapped constant buffer resource
 				//here also set all uniforms for each mesh
-				memcpy(cbvGPUAddress[frameIndex] + ConstantBufferPerObjectAlignedSize * i, &cbPerObject, sizeof(cbPerObject));
-				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
-			}
 
-			i++;
+				int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
+				commandList->SetGraphicsRootConstantBufferView(1, constantBufferUploadHeaps[frameIndex]->GetGPUVirtualAddress() + offset);
+				memcpy(cbvGPUAddress[frameIndex] + offset, &cbPerMesh, sizeof(cbPerMesh));
+				commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
+				meshes_drawn++;
+			}
 		}
 
 		commandList->SetDescriptorHeaps(1, &srvHeap);
@@ -839,9 +856,10 @@ namespace pathtracex {
 		texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUMTEXTURETYPES, 0);
 
 		// create a root parameter and fill it out
-		CD3DX12_ROOT_PARAMETER rootParameters[2];
+		CD3DX12_ROOT_PARAMETER rootParameters[3];
 		rootParameters[0].InitAsConstantBufferView(0);
-		rootParameters[1].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[1].InitAsConstantBufferView(1);
+		rootParameters[2].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
 
 		// create a static sampler
 		D3D12_STATIC_SAMPLER_DESC sampler = {};

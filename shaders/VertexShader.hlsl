@@ -27,13 +27,20 @@ cbuffer ConstantBuffer : register(b0)
     float4x4 normalMatrix; // 64 bytes
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
+  };
+cbuffer ConstantMeshBuffer : register(b1)
+{
+	float4 material_emmision;
     bool hasColTex; // 1 bytes
     bool hasNormalTex;
     bool hasShinyTex;
+	bool hasMetalTex;
+	bool hasFresnelTex;
+	bool hasEmisionTex;
     float material_shininess;
     float material_metalness;
     float material_fresnel;
-  };
+}
 
 
 VS_OUTPUT main(VS_INPUT input)

@@ -191,12 +191,12 @@ namespace pathtracex
 			material.metalness = m.metallic;
 			if (m.metallic_texname != "")
 			{
-				//material.metalnessTexture.load(directory, m.metallic_texname, 1, &mainDescriptorHeap);
+				material.metalnessTexture.load(directory, m.metallic_texname, 1, &material.mainDescriptorHeap, METALNESSTEX);
 			}
 			material.fresnel = m.specular[0];
 			if (m.specular_texname != "")
 			{
-				//material.fresnelTexture.load(directory, m.specular_texname, 1, &mainDescriptorHeap);
+				material.fresnelTexture.load(directory, m.specular_texname, 1, &material.mainDescriptorHeap, FRESNELTEX);
 			}
 			material.shininess = m.roughness;
 			if (m.roughness_texname != "")
@@ -206,7 +206,7 @@ namespace pathtracex
 			material.emission = float3(m.emission[0], m.emission[1], m.emission[2]);
 			if (m.emissive_texname != "")
 			{
-				//material.emissionTexture.load(directory, m.emissive_texname, 4, &mainDescriptorHeap);
+				material.emissionTexture.load(directory, m.emissive_texname, 4, &material.mainDescriptorHeap, EMISIONTEX);
 			}
 			if (m.bump_texname != "")
 			{

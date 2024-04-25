@@ -24,6 +24,9 @@ namespace pathtracex {
 			COLTEX,
 			NORMALTEX,
 			SHININESSTEX,
+			METALNESSTEX,
+			FRESNELTEX,
+			EMISIONTEX,
 			NUMTEXTURETYPES
 		};
 	class Texture {
