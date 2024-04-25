@@ -1,6 +1,10 @@
 Texture2D colTex : register(t0);
 Texture2D normalTex : register(t1);
 Texture2D shinyTex : register(t2);
+Texture2D metalTex : register(t3);
+Texture2D fresnelTex : register(t4);
+Texture2D emisionTex : register(t5);
+
 SamplerState s1 : register(s0);
 struct VS_OUTPUT
 {
@@ -23,13 +27,20 @@ cbuffer ConstantBuffer : register(b0)
     float4x4 normalMatrix; // 64 bytes
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
-    bool hasColTex; // 1 bytes
+  };
+cbuffer ConstantMeshBuffer : register(b1)
+{
+	float4 material_emmision;
+    bool hasColTex; 
     bool hasNormalTex;
     bool hasShinyTex;
+	bool hasMetalTex;
+	bool hasFresnelTex;
+	bool hasEmisionTex;
     float material_shininess;
     float material_metalness;
     float material_fresnel;
-  };
+}
 
 
 #define PI 3.14159265359f
@@ -42,7 +53,11 @@ float3 calculateDirectIllumiunation(PointLight light, float3 normal, float3 posi
     if(hasShinyTex)
         shininess = shinyTex.Sample(s1, texCoord).r;
     float metalness = material_metalness;
+    if(hasMetalTex)
+        metalness = metalTex.Sample(s1, texCoord).r;
     float fresnel = material_fresnel;
+    if(hasFresnelTex)
+        fresnel = fresnelTex.Sample(s1, texCoord).r;
     normal = normalize(normal);
     
     float3 point_light_color = float3(1.0, 1.0, 1.0);
@@ -115,6 +130,12 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     {
         result += calculateDirectIllumiunation(pointLights[i], normal, input.worldPos.xyz, color, input.texCoord);
     }
+
+    float3 emision = material_emmision.rgb;
+    if(hasEmisionTex)
+        emision = emisionTex.Sample(s1, input.texCoord);
+
+    result += emision;
 
     return float4(result, 1.0f);
 }

@@ -139,6 +139,11 @@ namespace pathtracex {
 		UINT8* cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
 
 
+		//these constantbuffers will be stored as follows:
+		// Assume we have two models with two meshes each.
+		// Then we need constanBufferPerObjects p1 and p2
+		// and we need mesh buffers m11 m12 m21 m22
+		// they will be stored p1 m11 m12 p2 m21 m22
 
 		// The constant buffer can't be bigger than 256 bytes
 		struct ConstantBufferPerObject {
@@ -147,16 +152,25 @@ namespace pathtracex {
 			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
 			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
+		};
+
+		struct constantBufferPerMesh {
+			float4 material_emmision;
 			bool hasTexCoord; // 2 bytes (i think)
 			bool pad1[3];
 			bool hasNormalTex; // 2 bytes (i think)
 			bool pad2[3];
 			bool hasShinyTex; // 2 bytes (i think)
 			bool pad3[3];
+			bool hasMetalTex;
+			bool pad4[3];
+			bool hasFresnelTex;
+			bool pad5[3];
+			bool hasEmisionTex;
+			bool pad6[3];
 			float material_shininess;
 			float material_metalness;
 			float material_fresnel;
-			
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
@@ -168,10 +182,12 @@ namespace pathtracex {
 		// buffer data to the gpu virtual address. currently we memcpy the size of our structure, which is 16 bytes here, but if we
 		// were to add the padding array, we would memcpy 64 bytes if we memcpy the size of our structure, which is 50 wasted bytes
 		// being copied.
-		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 511) & ~511;
+		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
+		int ConstantBufferPerMeshAlignedSize =  (sizeof(ConstantBufferPerObject) + 255) & ~255;
 
 		ConstantBufferPerObject cbPerObject; // this is the constant buffer data we will send to the gpu 
 		// (which will be placed in the resource we created above)
+		constantBufferPerMesh cbPerMesh;
 
 		ID3D12Resource* constantBufferUploadHeaps[frameBufferCount]; // this is the memory on the gpu where constant buffers for each frame will be placed
 

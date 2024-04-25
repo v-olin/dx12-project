@@ -13,3 +13,4 @@ illum 2
 map_Bump textures\\Intergalactic Spaceship_nmap_2_Tris.jpg
 map_Kd textures\\Intergalactic Spaceship_color_4.jpg
 map_Ks textures\\Intergalactic Spaceship_rough.jpg
+map_Ke textures\\Intergalactic Spaceship_emi.jpg
