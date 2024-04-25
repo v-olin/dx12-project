@@ -63,7 +63,8 @@ namespace pathtracex {
 		bool raytracingIsSupported() const noexcept { return raytracingSupported; }
 
 
-		void createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow);
+		void createTextureDescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC heapDesc, ID3D12DescriptorHeap** descriptorHeap);
+		void createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow, TextureType texType);
 		void createIndexBuffer(ID3D12Resource** buffer, D3D12_INDEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* indexData);
 		void createVertexBuffer(ID3D12Resource** buffer, D3D12_VERTEX_BUFFER_VIEW* bufferView, UINT64 bufferSize, BYTE* vertexData);
 
@@ -121,8 +122,25 @@ namespace pathtracex {
 			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
 			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
-			bool hasTexCoord; // 1 bytes (i think)
-			// Total: 245 with hasTexCoord
+		};
+
+		struct constantBufferPerMesh {
+			float4 material_emmision;
+			bool hasTexCoord; // 2 bytes (i think)
+			bool pad1[3];
+			bool hasNormalTex; // 2 bytes (i think)
+			bool pad2[3];
+			bool hasShinyTex; // 2 bytes (i think)
+			bool pad3[3];
+			bool hasMetalTex;
+			bool pad4[3];
+			bool hasFresnelTex;
+			bool pad5[3];
+			bool hasEmisionTex;
+			bool pad6[3];
+			float material_shininess;
+			float material_metalness;
+			float material_fresnel;
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
@@ -135,8 +153,11 @@ namespace pathtracex {
 		// were to add the padding array, we would memcpy 64 bytes if we memcpy the size of our structure, which is 50 wasted bytes
 		// being copied.
 		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
+		int ConstantBufferPerMeshAlignedSize =  (sizeof(ConstantBufferPerObject) + 255) & ~255;
+
 		ConstantBufferPerObject cbPerObject; // this is the constant buffer data we will send to the gpu 
 											// (which will be placed in the resource we created above)
+		constantBufferPerMesh cbPerMesh;
 		ID3D12Resource* constantBufferUploadHeap; // this is the memory on the gpu where constant buffers for each frame will be placed
 		UINT8* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
 		#pragma endregion

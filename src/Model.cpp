@@ -8,6 +8,7 @@
 // DON'T REMOVE DEFINES, AND DON'T DEFINE ANYWHERE ELSE!!!!!!!!!!!!!
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../../vendor/tinyobjloader/tiny_obj_loader.h"
+#include "DXRenderer.h"
 
 namespace pathtracex
 {
@@ -165,34 +166,51 @@ namespace pathtracex
 		name = filename;
 		filename = path;
 
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+
 		for (const auto &m : objMaterials)
 		{
 			Material material;
 			material.name = m.name;
 			material.color = float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
+
+			renderer->createTextureDescriptorHeap(heapDesc, &material.mainDescriptorHeap);
+
 			if (m.diffuse_texname != "")
 			{
-				material.colorTexture.load(directory, m.diffuse_texname, 4);
+				material.colorTexture.load(directory, m.diffuse_texname, 4, &material.mainDescriptorHeap, COLTEX);
 			}
 			material.metalness = m.metallic;
 			if (m.metallic_texname != "")
 			{
-				material.metalnessTexture.load(directory, m.metallic_texname, 1);
+				material.metalnessTexture.load(directory, m.metallic_texname, 1, &material.mainDescriptorHeap, METALNESSTEX);
 			}
 			material.fresnel = m.specular[0];
 			if (m.specular_texname != "")
 			{
-				material.fresnelTexture.load(directory, m.specular_texname, 1);
+				material.fresnelTexture.load(directory, m.specular_texname, 1, &material.mainDescriptorHeap, FRESNELTEX);
 			}
 			material.shininess = m.roughness;
 			if (m.roughness_texname != "")
 			{
-				material.shininessTexture.load(directory, m.roughness_texname, 1);
+				material.shininessTexture.load(directory, m.roughness_texname, 1, &material.mainDescriptorHeap, SHININESSTEX);
 			}
 			material.emission = float3(m.emission[0], m.emission[1], m.emission[2]);
 			if (m.emissive_texname != "")
 			{
-				material.emissionTexture.load(directory, m.emissive_texname, 4);
+				material.emissionTexture.load(directory, m.emissive_texname, 4, &material.mainDescriptorHeap, EMISIONTEX);
+			}
+			if (m.bump_texname != "")
+			{
+				material.normalTexture.load(directory, m.bump_texname, 3, &material.mainDescriptorHeap, NORMALTEX);
 			}
 			material.transparency = m.transmittance[0];
 			material.ior = m.ior;
@@ -350,7 +368,7 @@ namespace pathtracex
 		for (int i = 0; i < number_of_vertices; i++)
 		{
 			float3 n = m_normals.at(i);
-			float4 col = {n.x, n.y, n.z, 1};
+			float4 col = {0.0, 0.0, 0.0, 0.0};
 
 			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i)};
 			vertices.push_back(vert);
