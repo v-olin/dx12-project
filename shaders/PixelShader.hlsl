@@ -15,6 +15,9 @@ struct VS_OUTPUT
     //float4 worldPos : WORLDPOS;
     float4 viewSpaceNormal : VIEWSPACENORMAL;
     float4 viewSpacePos : VIEWSPACEPOS;
+    float3 tangent :TANGENT;
+    //float3x3 TBN : TBN;
+
 };
 struct PointLight
 {
@@ -109,6 +112,35 @@ float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float
 
     return direct_illum;
 }
+float3 calculateIndirectIllumination(float3 wo, float3 n, float3 base_color, VS_OUTPUT input)
+{
+    float3 indirect_illum = float3(0.0, 0.0, 0.0);
+	///////////////////////////////////////////////////////////////////////////
+	// Task 5 - Lookup the irradiance from the irradiance map and calculate
+	//          the diffuse reflection
+	///////////////////////////////////////////////////////////////////////////
+    float3 world_normal = mul(float4(n, 1.0), viewInverse).xyz;
+	// Calculate the spherical coordinates of the direction
+    float theta = acos(max(-1.0f, min(1.0f, world_normal.y)));
+    float phi = atan(world_normal.z / world_normal.x);
+    if (phi < 0.0f)
+        phi = phi + 2.0f * PI;
+
+	// Use these to lookup the color in the environment map
+    float2 lookup = float2(phi / (2.0 * PI), 1 - theta / PI);
+    
+
+    //float3 Li = environment_multiplier * texture(irradianceMap, lookup).rgb;
+    float3 env_irradiance = (.7, .7, .7);
+    float Li = env_irradiance;
+
+    float3 diffuse_term = base_color * (1.0 / PI) * Li;
+	
+    indirect_illum = diffuse_term;
+    return indirect_illum;
+
+}
+
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
@@ -125,21 +157,31 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     //float3 normal = input.worldNormal.xyz;
 
     float3 viewSpaceNormal = input.viewSpaceNormal;
+    float3 normal = input.viewSpaceNormal.xyz;
     if (hasNormalTex)
     {
-
-        float3 normal = normalTex.Sample(s1, input.texCoord).xyz;
-        viewSpaceNormal = mul(normalMatrix, float4(normal, 0.));
+        float4 normalMap = normalTex.Sample(s1, input.texCoord);
+        //Change normal map range from [0, 1] to [-1, 1]
+        normalMap = (2.0f * normalMap) - 1.0f;
+        //Make sure tangent is completely orthogonal to normal
+        input.tangent = normalize(input.tangent - dot(input.tangent, normal) * normal);
+        //Create the biTangent
+        float3 biTangent = cross(normal, input.tangent);
+        //Create the "Texture Space"
+        float3x3 texSpace = float3x3(input.tangent, biTangent, normal);
+        //Convert normal from normal map to texture space and store in input.normal
+        float3 modelNormal = normalize(mul(normalMap.xyz, texSpace));
+        viewSpaceNormal = modelNormal;
     }
        
-
+    float3 wo = -normalize(input.viewSpacePos.xyz);
+    float3 n = normalize(viewSpaceNormal);
+        
     for (int i = 0; i < pointLightCount; i++)
     {
-        float3 wo = -normalize(input.viewSpacePos.xyz);
-        float3 n = normalize(viewSpaceNormal);
-        
         result += calculateDirectIllumiunation(pointLights[i], wo, n, color, input);
     }
+    result += calculateIndirectIllumination(wo, n, color, input);
 
 
     float3 emision = material_emmision.rgb;

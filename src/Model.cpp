@@ -383,7 +383,57 @@ namespace pathtracex
 					continue;
 				auto mat = materials.at(mesh.materialIdx);
 				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
+				
 			}
+		}
+		//compute tangents
+		for (int i = 0; i < indices.size(); i += 3) {
+			int i0 = indices.at(i);
+			int i1 = indices.at(i +1);
+			int i2 = indices.at(i+2);
+			auto v0 = vertices.at(i0);
+			auto v1 = vertices.at(i1);
+			auto v2 = vertices.at(i2);
+
+			float2 uv0 = v0.tex;
+			float2 uv1 = v1.tex;
+			float2 uv2 = v2.tex;
+
+			float3 v0Pos = v0.pos;
+			float3 v1Pos = v1.pos;
+			float3 v2Pos = v2.pos;
+
+			auto edge1 = v1Pos - v0Pos;
+			auto edge2 = v2Pos - v0Pos;
+
+			auto deltaUV1 = uv1 - uv0;
+			auto deltaUV2 = uv2 - uv0;
+
+
+			float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+			float3 tangent;
+			float3 bitangent;
+			tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+			tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+			tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+			bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+			bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+		/*	float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+			float3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
+			float3 bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;*/
+
+			vertices.at(i0).tangent = tangent;
+			vertices.at(i1).tangent = tangent;
+			vertices.at(i2).tangent = tangent;
+			vertices.at(i0).biTangent = bitangent;
+			vertices.at(i1).biTangent = bitangent;
+			vertices.at(i2).biTangent = bitangent;
+
+	
 		}
 		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
 		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
