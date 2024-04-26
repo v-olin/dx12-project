@@ -621,6 +621,9 @@ namespace pathtracex
 		std::vector<float2> m_texture_coordinates;
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
+
+		materials.push_back(Material::createDefaultMaterial());
+
 		Vertex vertex;
 		size_t number_of_vertices = 36;
 
@@ -640,13 +643,11 @@ namespace pathtracex
 		indices.push_back(2);
 		indices.push_back(3);
 		indices.push_back(0);
-		Mesh front_mesh;
-		front_mesh.name = "front_mesh";
-		front_mesh.materialIdx = 0;
+		Mesh mesh;
+		mesh.name = "cube_mesh";
+		mesh.materialIdx = 0;
 
-		front_mesh.startIndex = 0;
-		front_mesh.numberOfVertices = 6;
-		meshes.push_back(front_mesh);
+
 
 		for (int i = 0; i < 6; i++)
 		{
@@ -669,13 +670,6 @@ namespace pathtracex
 		indices.push_back(4);
 		indices.push_back(7);
 		indices.push_back(6);
-		Mesh back_mesh;
-		back_mesh.name = "back_mesh";
-		back_mesh.materialIdx = 1;
-
-		back_mesh.startIndex = 6;
-		back_mesh.numberOfVertices = 6;
-		meshes.push_back(back_mesh);
 
 		for (int i = 6; i < 12; i++)
 		{
@@ -699,14 +693,6 @@ namespace pathtracex
 		indices.push_back(11);
 		indices.push_back(8);
 
-		Mesh left_mesh;
-		left_mesh.name = "left_mesh";
-		left_mesh.materialIdx = 2;
-
-		left_mesh.startIndex = 12;
-		left_mesh.numberOfVertices = 6;
-		meshes.push_back(left_mesh);
-
 		for (int i = 12; i < 18; i++)
 		{
 			vertex = tmp_vertices.at(indices.at(i));
@@ -728,13 +714,6 @@ namespace pathtracex
 		indices.push_back(12);
 		indices.push_back(15);
 		indices.push_back(14);
-		Mesh right_mesh;
-		right_mesh.name = "right_mesh";
-		right_mesh.materialIdx = 3;
-
-		right_mesh.startIndex = 18;
-		right_mesh.numberOfVertices = 6;
-		meshes.push_back(right_mesh);
 
 		for (int i = 18; i < 24; i++)
 		{
@@ -757,13 +736,6 @@ namespace pathtracex
 		indices.push_back(16);
 		indices.push_back(19);
 		indices.push_back(18);
-		Mesh top_mesh;
-		top_mesh.name = "top_mesh";
-		top_mesh.materialIdx = 4;
-
-		top_mesh.startIndex = 24;
-		top_mesh.numberOfVertices = 6;
-		meshes.push_back(top_mesh);
 
 		for (int i = 24; i < 30; i++)
 		{
@@ -787,14 +759,6 @@ namespace pathtracex
 		indices.push_back(23);
 		indices.push_back(20);
 
-		Mesh bottom_mesh;
-		bottom_mesh.name = "bottom_mesh";
-		bottom_mesh.materialIdx = 5;
-
-		bottom_mesh.startIndex = 30;
-		bottom_mesh.numberOfVertices = 6;
-		meshes.push_back(bottom_mesh);
-
 		for (int i = 30; i < 36; i++)
 		{
 			vertex = tmp_vertices.at(indices.at(i));
@@ -812,6 +776,10 @@ namespace pathtracex
 			min_cords = max_cords.Min(min_cords, m_positions.at(i));
 		}
 
+		mesh.startIndex = 0;
+		mesh.numberOfVertices = number_of_vertices;
+		meshes.push_back(mesh);
+
 		// TODO creatye materials for cube faces,
 		//  posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
 		std::vector<uint32_t> indecies;
@@ -821,6 +789,16 @@ namespace pathtracex
 			for (size_t i = 0; i < mesh.numberOfVertices; i++)
 				indecies.push_back(i + mesh.startIndex);
 		}
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
 
 		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Cube", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::CUBE;
@@ -902,6 +880,7 @@ namespace pathtracex
 			vertecies.push_back(tmp_vertices.at(idx));
 		}
 		std::vector<Material> materials;
+		materials.push_back(Material::createDefaultMaterial());
 
 		float3 max_cords(vertecies.at(0).pos);
 		float3 min_cords(vertecies.at(0).pos);
@@ -914,6 +893,16 @@ namespace pathtracex
 		std::vector<uint32_t> indecies;
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
 
 		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Sphere", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::SPHERE;
@@ -959,6 +948,7 @@ namespace pathtracex
 		}
 		std::vector<Mesh> meshes{mesh};
 		std::vector<Material> materials;
+		materials.push_back(Material::createDefaultMaterial());
 
 		float3 max_cords(vertecies.at(0).pos);
 		float3 min_cords(vertecies.at(0).pos);
@@ -971,6 +961,16 @@ namespace pathtracex
 		std::vector<uint32_t> indecies;
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
 
 		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Plane", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::PLANE;
