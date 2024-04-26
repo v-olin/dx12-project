@@ -827,6 +827,7 @@ namespace pathtracex
 
 		return model;
 	}
+
 	std::shared_ptr<Model> Model::createSphere(int stacks, int slices)
 	{
 		std::vector<Vertex> tmp_vertices{};

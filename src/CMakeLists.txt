@@ -42,6 +42,18 @@ target_sources(PathTracerX PRIVATE
 	DXVertexBuffer.cpp
 	DXIndexBuffer.h
 	DXIndexBuffer.cpp
+	DXConstantBuffer.h
+	DXConstantBuffer.cpp
+	NVBLASGenerator.h
+	NVBLASGenerator.cpp
+	NVRaytracingPipelineGenerator.h
+	NVRaytracingPipelineGenerator.cpp
+	NVRootSignatureGenerator.h
+	NVRootSignatureGenerator.cpp
+	NVShaderBindingTableGenerator.h
+	NVShaderBindingTableGenerator.cpp
+	NVTLASGenerator.h
+	NVTLASGenerator.cpp
 	Exceptions.h
 	Exceptions.cpp
 	Serializer.h
@@ -72,6 +84,21 @@ source_group("DX" FILES
 	DXVertexBuffer.cpp
 	DXIndexBuffer.h
 	DXIndexBuffer.cpp
+	DXConstantBuffer.h
+	DXConstantBuffer.cpp
+)
+
+source_group("NV" FILES
+	NVBLASGenerator.h
+	NVBLASGenerator.cpp
+	NVRaytracingPipelineGenerator.h
+	NVRaytracingPipelineGenerator.cpp
+	NVRootSignatureGenerator.h
+	NVRootSignatureGenerator.cpp
+	NVShaderBindingTableGenerator.h
+	NVShaderBindingTableGenerator.cpp
+	NVTLASGenerator.h
+	NVTLASGenerator.cpp
 )
 
 source_group("Serializer" FILES

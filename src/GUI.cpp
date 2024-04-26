@@ -188,7 +188,14 @@ namespace pathtracex {
 	{
 		ImGui::Text("Rendering Settings");
 		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
-		ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+		if (renderSettings.raytracingSupported) {
+			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+		}
+		else {
+			ImGui::BeginDisabled();
+			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+			ImGui::EndDisabled();
+		}
 		ImGui::Checkbox("Draw Procedual World", &renderSettings.drawProcedualWorld);
 
 		ImGui::Text("Camera Settings");

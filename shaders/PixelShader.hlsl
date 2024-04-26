@@ -62,7 +62,7 @@ float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float
 	///////////////////////////////////////////////////////////////////////////
 
     float3 point_light_color = float3(1.0, 1.0, 1.0);
-    float point_light_intensity_multiplier = 50.0;
+    float point_light_intensity_multiplier = 500.0;
 
     
     float3 viewSpaceLightPosition = mul(float4(light.position.xyz, 1.0), viewMat).xyz;

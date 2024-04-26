@@ -8,8 +8,6 @@
 
 #pragma comment(lib, "d3d12.lib")
 
-
-
 #include "../../vendor/SimpleMath/SimpleMath.h"
 
 using float2 = DirectX::SimpleMath::Vector2;
