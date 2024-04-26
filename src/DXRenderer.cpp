@@ -524,8 +524,8 @@ namespace pathtracex {
 				D3D12_RESOURCE_STATE_RENDER_TARGET);
 			commandList->ResourceBarrier(1, &transition);
 
+			// set pipeline state to rasterization in order to draw GUI
 			commandList->SetPipelineState(pipelineStateObject);
-
 			commandList->SetDescriptorHeaps(1, &srvHeap);
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
 		}
