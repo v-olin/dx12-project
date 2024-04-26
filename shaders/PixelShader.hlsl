@@ -227,6 +227,5 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
     result += emision;
 
-    return float4(n, 1.0);
     return float4(result, 1.0f);
 }
