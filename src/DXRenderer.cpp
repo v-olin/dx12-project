@@ -117,6 +117,12 @@ namespace pathtracex {
 		if (!createRaytracingOutputBuffer())
 			return false;
 
+		if (!createInstancePropsBuffer())
+			return false;
+
+		if (!createCameraBuffer())
+			return false;
+
 		if (!createShaderResourceHeap())
 			return false;
 
@@ -454,16 +460,20 @@ namespace pathtracex {
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		if (renderSettings.useRayTracing) {
+			// update the TLAS
 			createTLASFromBLAS(asInstances, true);
 
+			// bind access to TLAS and outputbuffer for shaders
 			ID3D12DescriptorHeap* heaps[] = { rtSrvUavHeap };
 			commandList->SetDescriptorHeaps(1, heaps);
 
+			// transition on output buffer to give shaders write-access
 			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				rtoutputbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			commandList->ResourceBarrier(1, &transition);
 
+			// setup ray-dispatching
 			D3D12_DISPATCH_RAYS_DESC dsc{};
 			uint32_t rgssb = sbtGenerator.getRayGenSectionSize();
 			dsc.RayGenerationShaderRecord.StartAddress = sbtStorage->GetGPUVirtualAddress();
@@ -479,30 +489,45 @@ namespace pathtracex {
 			dsc.HitGroupTable.SizeInBytes = hgssb;
 			dsc.HitGroupTable.StrideInBytes = sbtGenerator.getHitGroupEntrySize();
 
+			// setup output buffer size
 			int width, height;
 			window->getSize(width, height);
 			dsc.Width = width;
 			dsc.Height = height;
 			dsc.Depth = 1;
 
+			// bind ray-tracing pipeline
 			commandList->SetPipelineState1(rtpipelinestate);
 			commandList->DispatchRays(&dsc);
 
+			// after shaders are done writing to the outputbuffer
+			// we need to transition the outputbuffer into a copy source
 			transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				rtoutputbuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 				D3D12_RESOURCE_STATE_COPY_SOURCE);
 			commandList->ResourceBarrier(1, &transition);
+
+			// when it's a copy source we need to transition the
+			// current render target into a copy destination
 			transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
 				D3D12_RESOURCE_STATE_COPY_DEST);
 			commandList->ResourceBarrier(1, &transition);
 
+			// then we can copy from the outputbuffer into the rendertarget
 			commandList->CopyResource(renderTargets[frameIndex], rtoutputbuffer);
 
+			// after copying we can transition back the rendertarget from a
+			// copy destination to a rendertarget
 			transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
 				D3D12_RESOURCE_STATE_RENDER_TARGET);
 			commandList->ResourceBarrier(1, &transition);
+
+			commandList->SetPipelineState(pipelineStateObject);
+
+			commandList->SetDescriptorHeaps(1, &srvHeap);
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
 		}
 		else {
 			// Clear the render target by using the ClearRenderTargetView command
@@ -647,6 +672,11 @@ namespace pathtracex {
 	void DXRenderer::Render(RenderSettings &renderSettings, Scene &scene)
 	{
 		HRESULT hr;
+
+		if (renderSettings.useRayTracing) {
+			updateCameraBuffer(renderSettings);
+			updateInstancePropsBuffer(scene);
+		}
 
 		//	Update(renderSettings);
 		updatePipeline(renderSettings, scene); // update the pipeline by sending commands to the commandqueue
@@ -1347,22 +1377,17 @@ namespace pathtracex {
 	bool DXRenderer::createAccelerationStructures(Scene& scene) {
 		resetCommandList();
 
-		std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>> modelBLASBuffers{};
-
 		for (auto model : scene.models) {
 			AccelerationStructureBuffers buffers = createBLASFromModel(model);
-			modelBLASBuffers.push_back({ buffers.pResult, model->trans.getModelMatrix() });
+			asInstances.push_back({ buffers.pResult, model->trans.getModelMatrix() });
 		}
 
-		createTLASFromBLAS(modelBLASBuffers);
+		createTLASFromBLAS(asInstances);
 
 		finishedRecordingCommandList();
 		executeCommandList();
 		incrementFenceAndSignalCurrentFrame();
 		
-		//fence[frameIndex]->SetEventOnCompletion(fenceValue[frameIndex], fenceEvent);
-		//WaitForSingleObject(fenceEvent, INFINITE);
-
 		return true;
 	}
 
@@ -1372,10 +1397,10 @@ namespace pathtracex {
 		rayGenLib = compileShaderLibrary(L"../../shaders/RayGen.hlsl");
 		missLib = compileShaderLibrary(L"../../shaders/Miss.hlsl");
 		hitLib = compileShaderLibrary(L"../../shaders/Hit.hlsl");
-		//shadowLib = compileShaderLibrary(L"ShadowRay.hlsl");
+		shadowLib = compileShaderLibrary(L"../../shaders/ShadowRay.hlsl");
 
-		//pipeline.addLibrary(shadowLib, { L"ShadowClosestHit", L"ShadowMiss" });
-		//shadowSign = createHitSignature();
+		pipeline.addLibrary(shadowLib, { L"ShadowClosestHit", L"ShadowMiss" });
+		shadowSign = createHitSignature();
 
 
 		pipeline.addLibrary(rayGenLib, { L"RayGen" });
@@ -1389,19 +1414,17 @@ namespace pathtracex {
 		// Hit group for the triangles, with a shader simply interpolating vertex
 		// colors
 		pipeline.addHitGroup(L"HitGroup", L"ClosestHit");
-		// #DXR Extra: Per-Instance Data
 		pipeline.addHitGroup(L"PlaneHitGroup", L"PlaneClosestHit");
-		// #DXR Extra - Another ray type
 		// Hit group for all geometry when hit by a shadow ray
-		//pipeline.addHitGroup(L"ShadowHitGroup", L"ShadowClosestHit");
+		pipeline.addHitGroup(L"ShadowHitGroup", L"ShadowClosestHit");
 
 		pipeline.addRootSignatureAssociation(rayGenSign, { L"RayGen" });
 		pipeline.addRootSignatureAssociation(missSign, { L"Miss" });
 		pipeline.addRootSignatureAssociation(hitSign, { L"HitGroup" });
 
 		// #DXR Extra - Another ray type
-		//pipeline.addRootSignatureAssociation(shadowSign,
-		//	{ L"ShadowHitGroup" });
+		pipeline.addRootSignatureAssociation(shadowSign,
+			{ L"ShadowHitGroup" });
 		// #DXR Extra - Another ray type
 		pipeline.addRootSignatureAssociation(missSign,
 			{ L"Miss" });
@@ -1493,14 +1516,12 @@ namespace pathtracex {
 			tlasBuffers.pResult->GetGPUVirtualAddress();
 		device->CreateShaderResourceView(nullptr, &srvDesc, srvHandle);
 
-		/*
 		srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
 		cbvdsc.BufferLocation = cameraConstantBuffer->GetGPUVirtualAddress();
 		cbvdsc.SizeInBytes = cameraConstantBufferSize;
 		device->CreateConstantBufferView(&cbvdsc, srvHandle);
-		*/
 
 		return true;
 	}
@@ -1580,23 +1601,26 @@ namespace pathtracex {
 
 		sbtGenerator.addRayGenerationProgram(L"RayGen", { heapPtr });
 		sbtGenerator.addMissProgram(L"Miss", {});
-		//sbtGenerator.addMissProgram(L"ShadowMiss", {});
+		sbtGenerator.addMissProgram(L"ShadowMiss", {});
 
-		//for (const auto& model : scene.models) {
-		for (int i = 0; i < scene.models.size(); i++) {
-			const auto model = scene.models.at(i);
+		int nmeshes = 0;
+		for (int nmodels = 0; nmodels < scene.models.size(); nmodels++) {
+			const auto model = scene.models.at(nmodels);
 			sbtGenerator.addHitGroup(
 				L"HitGroup",
 				{
 					(void*)(model->vertexBuffer->vertexBuffer->GetGPUVirtualAddress()),
 					(void*)(model->indexBuffer->indexBuffer->GetGPUVirtualAddress()),
-					(void*)(cbvGPUAddress + ConstantBufferPerObjectAlignedSize * i)
+					(void*)(cbvGPUAddress + ConstantBufferPerObjectAlignedSize * nmodels + ConstantBufferPerMeshAlignedSize * nmeshes)
 				}
 			);
+
+			nmeshes += model->meshes.size();
+			sbtGenerator.addHitGroup(L"ShadowHitGroup", {});
 		}
 
 		sbtGenerator.addHitGroup(L"PlaneHitGroup", { heapPtr });
-		//sbtGenerator.addHitGroup(L"ShadowHitGroup", {});
+		sbtGenerator.addHitGroup(L"ShadowHitGroup", {});
 
 		auto sbtsize = sbtGenerator.computeSBTSize();
 
@@ -1737,7 +1761,28 @@ namespace pathtracex {
 		return rsg.generate(device, true);
 	}
 
-	void DXRenderer::createInstancePropsBuffer() {
+	void DXRenderer::updateCameraBuffer(RenderSettings& settings) {
+		int width, height;
+		window->getSize(width, height);
+		
+		const auto view = settings.camera.getViewMatrix();
+		const auto proj = settings.camera.getProjectionMatrix(width, height);
+
+		dx::XMVECTOR det;
+		std::vector<dx::XMMATRIX> matrices{
+			view,
+			proj,
+			dx::XMMatrixInverse(&det, view),
+			dx::XMMatrixInverse(&det, proj)
+		};
+
+		uint8_t* data;
+		cameraConstantBuffer->Map(0, nullptr, (void**)&data);
+		memcpy(data, matrices.data(), cameraConstantBufferSize);
+		cameraConstantBuffer->Unmap(0, nullptr);
+	}
+
+	bool DXRenderer::createInstancePropsBuffer() {
 		uint32_t size = ROUND_UP(static_cast<uint32_t>(asInstances.size()) * sizeof(InstanceProperties),
 			D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
@@ -1754,16 +1799,30 @@ namespace pathtracex {
 		bufDesc.SampleDesc.Quality = 0;
 		bufDesc.Width = size;
 
-		device->CreateCommittedResource(&deafultUploadHeapProps, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&instancePropsBuffer));
+		HRESULT hr = device->CreateCommittedResource(
+			&deafultUploadHeapProps, 
+			D3D12_HEAP_FLAG_NONE, 
+			&bufDesc, 
+			D3D12_RESOURCE_STATE_GENERIC_READ, 
+			nullptr, IID_PPV_ARGS(&instancePropsBuffer));
+
+		if (FAILED(hr)) {
+			LOG_ERROR("Could not create instance properties buffer, createInstancePropsBuffer()");
+			return false;
+		}
+
+		return true;
 	}
 
-	void DXRenderer::updateInstancePropsBuffer() {
+	void DXRenderer::updateInstancePropsBuffer(Scene& scene) {
 		InstanceProperties* curr = nullptr;
 		CD3DX12_RANGE readRange{ 0,0 };
 		instancePropsBuffer->Map(0, &readRange, reinterpret_cast<void**>(&curr));
 
-		for (const auto instance : asInstances) {
-			curr->objToWorld = instance.second;
+		for (int i = 0; i < scene.models.size(); i++) {
+			const auto modelmat = scene.models.at(i)->trans.getModelMatrix();
+			asInstances.at(i).second = modelmat;
+			curr->objToWorld = modelmat;
 			curr++;
 		}
 

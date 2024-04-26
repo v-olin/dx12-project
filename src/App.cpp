@@ -128,8 +128,7 @@ namespace pathtracex
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
 
-		if (!defaultRenderSettings.useRayTracing)
-			gui.drawGUI(defaultRenderSettings);
+		gui.drawGUI(defaultRenderSettings);
 
 		renderer->Render(defaultRenderSettings, scene);
 

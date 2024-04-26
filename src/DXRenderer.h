@@ -189,6 +189,13 @@ namespace pathtracex {
 			dx::XMMATRIX objToWorld;
 		};
 
+		struct CameraConstantBuffer {
+			dx::XMMATRIX view;
+			dx::XMMATRIX proj;
+			dx::XMMATRIX viewInv;
+			dx::XMMATRIX projInv;
+		};
+
 		IDxcBlob* rayGenLib;
 		ID3D12RootSignature* rayGenSign;
 		IDxcBlob* missLib;
@@ -219,13 +226,14 @@ namespace pathtracex {
 		bool createShaderResourceHeap();
 		bool createCameraBuffer();
 		bool createShaderBindingTable(Scene& scene);
+		bool createInstancePropsBuffer();
 
 		IDxcBlob* compileShaderLibrary(LPCWSTR libname);
 		ID3D12RootSignature* createRayGenSignature();
 		ID3D12RootSignature* createMissSignature();
 		ID3D12RootSignature* createHitSignature();
-		void createInstancePropsBuffer();
-		void updateInstancePropsBuffer();
+		void updateCameraBuffer(RenderSettings& settings);
+		void updateInstancePropsBuffer(Scene& scene);
 
 		#pragma endregion
 
