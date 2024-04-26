@@ -238,6 +238,21 @@ namespace pathtracex {
 			}
 			drawSerializableVariables(lockedLight.get());
 		}
+
+		ImGui::NewLine();
+
+		if (ImGui::Button("Delete Model"))
+		{
+			if (auto lockedModel = std::dynamic_pointer_cast<Model>(selectedSelectable.lock()))
+			{
+				scene.models.erase(std::remove(scene.models.begin(), scene.models.end(), lockedModel), scene.models.end());
+			}
+			else if (auto lockedLight = std::dynamic_pointer_cast<Light>(selectedSelectable.lock()))
+			{
+				scene.lights.erase(std::remove(scene.lights.begin(), scene.lights.end(), lockedLight), scene.lights.end());
+			}
+			selectedSelectable.reset();
+		}
 	}
 
 	void GUI::drawTransformSettings(Transform& transform)
