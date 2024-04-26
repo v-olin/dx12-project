@@ -15,6 +15,9 @@ struct VS_OUTPUT
     //float4 worldPos : WORLDPOS;
     float4 viewSpaceNormal : VIEWSPACENORMAL;
     float4 viewSpacePos : VIEWSPACEPOS;
+    float3 tangent :TANGENT;
+    //float3x3 TBN : TBN;
+
 };
 struct PointLight
 {
@@ -191,11 +194,21 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     //float3 normal = input.worldNormal.xyz;
 
     float3 viewSpaceNormal = input.viewSpaceNormal;
+    float3 normal = input.viewSpaceNormal.xyz;
     if (hasNormalTex)
     {
-
-        float3 normal = normalTex.Sample(s1, input.texCoord).xyz;
-        viewSpaceNormal = mul(float4(normal, 0.),normalMatrix );
+        float4 normalMap = normalTex.Sample(s1, input.texCoord);
+        //Change normal map range from [0, 1] to [-1, 1]
+        normalMap = (2.0f * normalMap) - 1.0f;
+        //Make sure tangent is completely orthogonal to normal
+        input.tangent = normalize(input.tangent - dot(input.tangent, normal) * normal);
+        //Create the biTangent
+        float3 biTangent = cross(normal, input.tangent);
+        //Create the "Texture Space"
+        float3x3 texSpace = float3x3(input.tangent, biTangent, normal);
+        //Convert normal from normal map to texture space and store in input.normal
+        float3 modelNormal = normalize(mul(normalMap.xyz, texSpace));
+        viewSpaceNormal = modelNormal;
     }
        
     float3 wo = -normalize(input.viewSpacePos.xyz);
@@ -203,7 +216,6 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         
     for (int i = 0; i < pointLightCount; i++)
     {
-    
         result += calculateDirectIllumiunation(pointLights[i], wo, n, color, input);
     }
     result += calculateIndirectIllumination(wo, n, color, input);
@@ -215,5 +227,6 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
     result += emision;
 
+    return float4(n, 1.0);
     return float4(result, 1.0f);
 }
