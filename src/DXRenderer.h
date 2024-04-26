@@ -130,6 +130,7 @@ namespace pathtracex {
 
 		struct constantBufferPerMesh {
 			float4 material_emmision;
+			float4 material_color;
 			bool hasTexCoord; // 2 bytes (i think)
 			bool pad1[3];
 			bool hasNormalTex; // 2 bytes (i think)
@@ -145,6 +146,7 @@ namespace pathtracex {
 			float material_shininess;
 			float material_metalness;
 			float material_fresnel;
+			bool hasMaterial;
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.

@@ -37,6 +37,7 @@ cbuffer ConstantBuffer : register(b0)
 cbuffer ConstantMeshBuffer : register(b1)
 {
 	float4 material_emmision;
+    float4 material_color;
     bool hasColTex; // 1 bytes
     bool hasNormalTex;
     bool hasShinyTex;
@@ -46,6 +47,7 @@ cbuffer ConstantMeshBuffer : register(b1)
     float material_shininess;
     float material_metalness;
     float material_fresnel;
+    bool hasMaterial;
 }
 
 

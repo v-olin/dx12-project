@@ -34,16 +34,18 @@ cbuffer ConstantBuffer : register(b0)
   };
 cbuffer ConstantMeshBuffer : register(b1)
 {
-	float4 material_emmision;
+    float4 material_emmision;
+    float4 material_color;
     bool hasColTex; 
     bool hasNormalTex;
     bool hasShinyTex;
-	bool hasMetalTex;
-	bool hasFresnelTex;
-	bool hasEmisionTex;
+    bool hasMetalTex;
+    bool hasFresnelTex;
+    bool hasEmisionTex;
     float material_shininess;
     float material_metalness;
     float material_fresnel;
+    bool hasMaterial;
 }
 
 
@@ -117,6 +119,10 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         return input.color;
     }
     float3 color = input.color.rgb;
+    
+    if (hasMaterial)
+        color = material_color.rgb;
+    
     if (hasColTex)
         color = colTex.Sample(s1, input.texCoord);
     
