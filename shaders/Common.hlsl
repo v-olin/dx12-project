@@ -14,3 +14,11 @@ struct Attributes
 {
   float2 bary;
 };
+
+struct Vertex
+{
+    float3 pos;
+    float4 color;
+    float3 normal;
+    float2 texCoord;
+};
