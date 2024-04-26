@@ -8,13 +8,14 @@ Texture2D emisionTex : register(t5);
 SamplerState s1 : register(s0);
 struct VS_OUTPUT
 {
-    float4 pos : SV_POSITION;
+    float4 pos: SV_POSITION;
     float4 color : COLOR;
     float2 texCoord : TEXCOORD;
-    float4 worldNormal : WORLDNORMAL;
-    float4 worldPos : WORLDPOS;
+    //float4 worldNormal : WORLDNORMAL;
+    //float4 worldPos : WORLDPOS;
+    float4 viewSpaceNormal : VIEWSPACENORMAL;
+    float4 viewSpacePos : VIEWSPACEPOS;
 };
-
 struct PointLight
 {
     float4 position;
@@ -23,8 +24,11 @@ struct PointLight
 cbuffer ConstantBuffer : register(b0)
 {
     float4x4 wvpMat; // 64 bytes
-    float4x4 modelMatrix; // 64 bytes
-    float4x4 normalMatrix; // 64 bytes
+    float4x4 normalMatrix;
+    float4x4 modelViewMatrix;
+    float4x4 viewInverse;
+    float4x4 viewMat;
+    
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
   };
@@ -47,64 +51,64 @@ cbuffer ConstantMeshBuffer : register(b1)
 
 
 
-float3 calculateDirectIllumiunation(PointLight light, float3 normal, float3 position, float3 baseColor, float2 texCoord)
+
+float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float3 base_color, VS_OUTPUT input)
 {
-    float shininess = material_shininess;
-    if(hasShinyTex)
-        shininess = shinyTex.Sample(s1, texCoord).r;
-    float metalness = material_metalness;
-    if(hasMetalTex)
-        metalness = metalTex.Sample(s1, texCoord).r;
-    float fresnel = material_fresnel;
-    if(hasFresnelTex)
-        fresnel = fresnelTex.Sample(s1, texCoord).r;
-    normal = normalize(normal);
-    
+    float3 direct_illum = base_color;
+	///////////////////////////////////////////////////////////////////////////
+	// Task 1.2 - Calculate the radiance Li from the light, and the direction
+	//            to the light. If the light is backfacing the triangle,
+	//            return float3(0);
+	///////////////////////////////////////////////////////////////////////////
+
     float3 point_light_color = float3(1.0, 1.0, 1.0);
     float point_light_intensity_multiplier = 500.0;
 
-    float3 lightDir = light.position.xyz - position;
-    float distance = length(lightDir);
-    lightDir /= distance;
-
-
-    float d = distance;
-    float3 Li = point_light_intensity_multiplier * point_light_color * (1 / (d * d));
-
-    float3 wi = lightDir;
+    
+    float3 viewSpaceLightPosition = mul(float4(light.position.xyz, 1.0), viewMat).xyz;
+    const float d = length(viewSpaceLightPosition - input.viewSpacePos.xyz);
+    float3 Li = point_light_intensity_multiplier * point_light_color / (d * d);
+    float3 wi = normalize(viewSpaceLightPosition - input.viewSpacePos.xyz);
+    float ndotwi = dot(n, wi);
 	
-    float dotp = dot(normal, wi);
-
-    if (dotp <= 0)
+    if (ndotwi <= 0)
     {
-        return float3(0.0f, 0.0, 0.0);
+        return float3(0.0, 0.0, 0.0);
     }
 
-    float3 diffuse = baseColor * 1 / PI * max(abs(dotp), 0.0) * Li;
-    float3 wo = -normalize(position);
-    float3 wh = normalize(wi + wo); // can be too short
-    float ndotwh = max(0.0001f, dot(normal, wh));
-    float ndotwo = max(0.0001f, dot(normal, wo));
-    float wodotwh = max(0.0001f, dot(wo, wh));
-    float ndotwi = max(0.0001f, dot(normal, wi));
-    float whdotwi = max(0.0001f, dot(wh, wi));
-        
-    float F = fresnel + (1 - fresnel) * pow(1 - whdotwi, 5);
-    float D = ((shininess + 2) / (2 * PI)) * pow(ndotwh, shininess);
-        
-    float left = 2 * (ndotwh * ndotwo) / wodotwh;
-    float right = 2 * (ndotwh * ndotwi) / wodotwh;
-    float G = min(1, min(left, right));
+	///////////////////////////////////////////////////////////////////////////
+	// Task 1.3 - Calculate the diffuse term and return that as the result
+	///////////////////////////////////////////////////////////////////////////
 
-    float brdf = (F * D * G) / (4 * ndotwo * ndotwi);
+    float3 diffuse_term = base_color * (1.0 / PI) * ndotwi * Li;
+    direct_illum = diffuse_term;
 
-    float3 dielectric_term = brdf * ndotwi * Li + (1 - F) * diffuse;
-    float3 metal_term = brdf * baseColor * ndotwi * Li;
+	///////////////////////////////////////////////////////////////////////////
+	// Task 2 - Calculate the Torrance Sparrow BRDF and return the light
+	//          reflected from that instead
+	///////////////////////////////////////////////////////////////////////////
+    float3 wh = normalize(wi + wo);
+    float ndotwh = max(0.0001, dot(n, wh));
+    float ndotwo = max(0.0001, dot(n, wo));
+    float wodotwh = max(0.0001, dot(wo, wh));
+    float D = ((material_shininess + 2) / (2.0 * PI)) * pow(ndotwh, material_shininess);
+    float G = min(1.0, min(2.0 * ndotwh * ndotwo / wodotwh, 2.0 * ndotwh * ndotwi / wodotwh));
+    float F = material_fresnel + (1.0 - material_fresnel) * pow(1.0 - wodotwh, 5.0);
+    float denominator = 4.0 * clamp(ndotwo * ndotwi, 0.0001, 1.0);
+    float brdf = D * F * G / denominator;
 
-    float3 direct_illum = (metalness * metal_term + (1 - metalness) * dielectric_term);
-    
+
+
+	///////////////////////////////////////////////////////////////////////////
+	// Task 3 - Make your shader respect the parameters of our material model.
+	///////////////////////////////////////////////////////////////////////////
+    float3 dielectric_term = brdf * ndotwi * Li + (1 - F) * diffuse_term;
+    float3 metal_term = brdf * base_color * ndotwi * Li;
+    direct_illum = material_metalness * metal_term + (1 - material_metalness) * dielectric_term;
+
+
     return direct_illum;
-  }
+}
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
@@ -118,18 +122,25 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     
     float3 result = float3(0, 0, 0);
 
-    float3 normal = input.worldNormal.xyz;
+    //float3 normal = input.worldNormal.xyz;
+
+    float3 viewSpaceNormal = input.viewSpaceNormal;
     if (hasNormalTex)
     {
 
-        normal = normalTex.Sample(s1, input.texCoord).xyz;
-        normal = normalize(mul(float4(normal, 0), normalMatrix));
+        float3 normal = normalTex.Sample(s1, input.texCoord).xyz;
+        viewSpaceNormal = mul(normalMatrix, float4(normal, 0.));
     }
        
+
     for (int i = 0; i < pointLightCount; i++)
     {
-        result += calculateDirectIllumiunation(pointLights[i], normal, input.worldPos.xyz, color, input.texCoord);
+        float3 wo = -normalize(input.viewSpacePos.xyz);
+        float3 n = normalize(viewSpaceNormal);
+        
+        result += calculateDirectIllumiunation(pointLights[i], wo, n, color, input);
     }
+
 
     float3 emision = material_emmision.rgb;
     if(hasEmisionTex)

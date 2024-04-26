@@ -554,12 +554,13 @@ namespace pathtracex {
 				}
 			}
 
-			int k = 0;
-			PointLight pointLights[3];
-			for (auto light : scene.lights) {
-				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
-				k++;
-			}
+		int k = 0;
+		PointLight pointLights[3];
+		for (auto light : scene.lights) {
+
+			pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
+			k++;
+		}
 
 			cbPerObject.pointLightCount = k;
 
@@ -567,27 +568,27 @@ namespace pathtracex {
 			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
 			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 
-			int models_drawn = 0;
-			int meshes_drawn = 0;
-			for (auto model : models)
-			{
+		int models_drawn = 0;
+		int meshes_drawn = 0;
+		for (auto model : models)
+		{
+			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
+			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
+			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
+			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixInverse(nullptr,model->trans.transformMatrix * viewMat);
+			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
+			DirectX::XMMATRIX mvMat =  DirectX::XMMatrixTranspose(model->trans.transformMatrix * viewMat);										
+			DirectX::XMStoreFloat4x4(&cbPerObject.modelViewMatrix, mvMat);
+			DirectX::XMStoreFloat4x4(&cbPerObject.viewInverse, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, viewMat)));
+			DirectX::XMStoreFloat4x4(&cbPerObject.viewMat, DirectX::XMMatrixTranspose(viewMat));
 
-				DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
-				DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
-				DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
-				//DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.transformMatrix);
-				DirectX::XMMATRIX modelMatrix = DirectX::XMMatrixTranspose(model->trans.getModelMatrix());
-				DirectX::XMMATRIX transposed2 = modelMatrix;
-				DirectX::XMStoreFloat4x4(&cbPerObject.modelMatrix, transposed2);	// store the model matrix in the constant buffer
-				//DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixTranspose(modelMatrix)));
-				DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixInverse(nullptr,model->trans.transformMatrix); //WORDSPACE
-				DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
-				int k = 0;
-				PointLight pointLights[3];
-				for (auto light : scene.lights) {
-					pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0}};
-					k++;
-				}
+			int k = 0;
+			PointLight pointLights[3];
+			for (auto light : scene.lights) {
+				float4 lightPos = float4(light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 1);
+				pointLights[k] = { lightPos };
+				k++;
+			}
 
 				cbPerObject.pointLightCount = k;
 
