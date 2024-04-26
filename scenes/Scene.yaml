@@ -9,4 +9,4 @@ Models:
     PrimativeType: Plane
 Lights:
   - Name: Light1
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -19.6652946, 5.49223852, -3.81945968, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -12.6640434, 13.4892521, -7.91861343, 1]
