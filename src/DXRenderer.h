@@ -148,8 +148,12 @@ namespace pathtracex {
 		// The constant buffer can't be bigger than 256 bytes
 		struct ConstantBufferPerObject {
 			DirectX::XMFLOAT4X4 wvpMat; // 64 bytes
-			DirectX::XMFLOAT4X4 modelMatrix; // 64 bytes
+
 			DirectX::XMFLOAT4X4 normalMatrix; // 64 bytes
+			DirectX::XMFLOAT4X4 modelViewMatrix; // 64 bytes
+			DirectX::XMFLOAT4X4 viewInverse; // 64 bytes
+			DirectX::XMFLOAT4X4 viewMat; // 64 bytes
+
 			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
 		};

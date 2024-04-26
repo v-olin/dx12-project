@@ -1,12 +1,12 @@
 Models:
   - Name: space-ship
-    Filename: Intergalactic_Spaceship.obj
-    TransformMatrix: [1, 1.81992334e-06, 0, 0, -1.8196165e-06, 0.999831378, 1.819619e-06, 0, 3.31212553e-12, -1.81992584e-06, 1, 0, -20.7141933, -3.81535053, -3.78870201, 1]
+    Filename: space-ship.obj
+    TransformMatrix: [-0.999990463, -1.81990845e-06, 0, 0, -1.81913947e-06, 0.999567926, -1.81913947e-06, 0, 3.31209843e-12, -1.81990845e-06, -0.999990463, 0, -20.7141933, -6.73671579, -3.39436674, 1]
     PrimativeType: None
-  - Name: Primative Plane
+  - Name: plane
     Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.4413588, -1.26723766, 0, 1]
     PrimativeType: Plane
 Lights:
-  - Name: Light
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -5.66511774, 3.50774765, -5.75605536, 1]
+  - Name: Light1
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -19.6652946, 5.49223852, -3.81945968, 1]
