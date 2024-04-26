@@ -1,6 +1,6 @@
 Models:
   - Name: space-ship
-    Filename: Intergalactic_Spaceship.obj
+    Filename: space-ship.obj
     TransformMatrix: [1, 1.81992334e-06, 0, 0, -1.8196165e-06, 0.999831378, 1.819619e-06, 0, 3.31212553e-12, -1.81992584e-06, 1, 0, -20.7141933, -3.81535053, -3.78870201, 1]
     PrimativeType: None
   - Name: Primative Plane

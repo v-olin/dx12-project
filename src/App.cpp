@@ -25,6 +25,7 @@ namespace pathtracex
 
 	int App::run()
 	{
+
 		renderer = DXRenderer::getInstance();
 		if (!renderer->init(&window))
 		{
@@ -34,12 +35,16 @@ namespace pathtracex
 			return 1;
 		}
 
+		Serializer::deserializeScene(config.startupSceneName, scene);
+		scene.procedualWorldManager = &worldManager;
+		defaultRenderSettings.raytracingSupported = renderer->raytracingIsSupported();
+
+		if (defaultRenderSettings.raytracingSupported) {
+			renderer->initRaytracingPipeline(scene);
+			defaultRenderSettings.useRayTracing = false;
+		}
 
 		registerEventListener(&defaultCamera);
-
-		Serializer::deserializeScene(config.startupSceneName, scene);
-
-		scene.procedualWorldManager = &worldManager;
 
 		while(running) {
 			const auto ecode = Window::processMessages();
@@ -74,20 +79,6 @@ namespace pathtracex
 		(*inst.callback)(e);
 	}
 
-	/*
-	void App::raiseTimeEvent(Event& e) {
-		// this will make a copy but that's fine
-		getInstance().timedEvents.push_back(e);
-	}
-
-	void App::raiseTimedEvents() {
-		for (auto timedEvent : timedEvents) {
-			// if timedEvent.shouldFire()
-			//		raise(timedEvent)
-		}
-	}
-	*/
-
 	// TODO: This should be in a separate class
 	void App::onEvent(Event &e)
 	{
@@ -111,9 +102,7 @@ namespace pathtracex
 		e.Handled = true;
 	}
 
-	void App::cleanup()
-	{
-	}
+	void App::cleanup() { }
 
 	void App::everyFrame() {
 		if (defaultRenderSettings.drawProcedualWorld)
