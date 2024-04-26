@@ -582,6 +582,9 @@ namespace pathtracex {
 			DirectX::XMStoreFloat4x4(&cbPerObject.viewInverse, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, viewMat)));
 			DirectX::XMStoreFloat4x4(&cbPerObject.viewMat, DirectX::XMMatrixTranspose(viewMat));
 
+
+
+
 			int k = 0;
 			PointLight pointLights[3];
 			for (auto light : scene.lights) {
@@ -618,9 +621,9 @@ namespace pathtracex {
 					cbPerMesh.hasFresnelTex = false;
 					cbPerMesh.hasEmisionTex = false;
 
-					cbPerMesh.material_shininess = 0;
-					cbPerMesh.material_metalness = 0;
-					cbPerMesh.material_fresnel = 0;
+					cbPerMesh.material_shininess = 1;
+					cbPerMesh.material_metalness = 1;
+					cbPerMesh.material_fresnel =1;
 
 
 
@@ -947,7 +950,7 @@ namespace pathtracex {
 		CD3DX12_ROOT_PARAMETER rootParameters[3];
 		rootParameters[0].InitAsConstantBufferView(0);
 		rootParameters[1].InitAsConstantBufferView(1);
-		rootParameters[2].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[2].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_ALL);
 
 		// create a static sampler
 		D3D12_STATIC_SAMPLER_DESC sampler = {};
@@ -963,7 +966,7 @@ namespace pathtracex {
 		sampler.MaxLOD = D3D12_FLOAT32_MAX;
 		sampler.ShaderRegister = 0;
 		sampler.RegisterSpace = 0;
-		sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init(_countof(rootParameters), // we have 2 root parameters
@@ -1068,7 +1071,10 @@ namespace pathtracex {
 				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+				{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+
 		};
 
 		// fill out an input layout description structure

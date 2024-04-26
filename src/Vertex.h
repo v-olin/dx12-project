@@ -9,5 +9,7 @@ namespace pathtracex {
 		DirectX::XMFLOAT4 color{};
 		DirectX::XMFLOAT3 normal{};
 		DirectX::XMFLOAT2 tex{};
+		DirectX::XMFLOAT3 tangent{};
+		DirectX::XMFLOAT3 biTangent{};
 	};
 }
