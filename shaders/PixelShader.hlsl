@@ -189,7 +189,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     {
 
         float3 normal = normalTex.Sample(s1, input.texCoord).xyz;
-        viewSpaceNormal = mul(normalMatrix, float4(normal, 0.));
+        viewSpaceNormal = mul(float4(normal, 0.),normalMatrix );
     }
        
     float3 wo = -normalize(input.viewSpacePos.xyz);
