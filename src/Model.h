@@ -73,6 +73,8 @@ namespace pathtracex {
 
 		static std::shared_ptr<Model> createPrimative(PrimitiveModelType type);
 
+		static float3 cross(float3 a, float3 b);
+
 		std::string getName() override { return name; };
 
 		static std::string primitiveModelTypeToString(PrimitiveModelType type);

@@ -18,6 +18,9 @@ struct VS_OUTPUT
     float3 tangent :TANGENT;
     //float3x3 TBN : TBN;
 
+    float3 tangent :TANGENT;
+    //float3x3 TBN : TBN;
+
 };
 struct PointLight
 {
@@ -133,7 +136,7 @@ float3 calculateIndirectIllumination(float3 wo, float3 n, float3 base_color, VS_
     
 
     //float3 Li = environment_multiplier * texture(irradianceMap, lookup).rgb;
-    float3 env_irradiance = (.7, .7, .7);
+    float3 env_irradiance = (1, 1, 1);
     float Li = env_irradiance;
 
     float3 diffuse_term = base_color * (1.0 / PI) * Li;
@@ -195,6 +198,6 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         emision = emisionTex.Sample(s1, input.texCoord);
 
     result += emision;
-
+    return float4(n, 0.0);
     return float4(result, 1.0f);
 }
