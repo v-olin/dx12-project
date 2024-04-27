@@ -19,6 +19,7 @@ struct VS_OUTPUT
     //float3x3 TBN : TBN;
 
 };
+
 struct PointLight
 {
     float4 position;
@@ -34,7 +35,8 @@ cbuffer ConstantBuffer : register(b0)
     
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
-  };
+};
+
 cbuffer ConstantMeshBuffer : register(b1)
 {
     float4 material_emmision;
@@ -51,11 +53,7 @@ cbuffer ConstantMeshBuffer : register(b1)
     bool hasMaterial;
 }
 
-
 #define PI 3.14159265359f
-
-
-
 
 float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float3 base_color, VS_OUTPUT input)
 {
