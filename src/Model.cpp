@@ -498,7 +498,9 @@ namespace pathtracex
 			return PrimitiveModelType::NONE;
 		}
 	}
-
+	float3 Model::cross(float3 a, float3 b) {
+		return float3(DirectX::XMVector3Cross(a, b));
+	}
 	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale)
 	{
 		std::vector<float3> positions{};
@@ -520,7 +522,7 @@ namespace pathtracex
 			for (int j = 0; j < tesselation; j++)
 			{
 				float z = -sideLength / 2 + j * sideLen;
-				float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 2) // 2 is octaves
+				float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 5) // 2 is octaves
 						* heightScale;
 				positions.push_back({x, y, z});
 
@@ -541,7 +543,6 @@ namespace pathtracex
 			totalZ = 0;
 			totalX += sideLen;
 		}
-		/*
 
 		// despair, k�l please fix
 		for (int i = 0; i < tesselation; i++)
@@ -551,72 +552,71 @@ namespace pathtracex
 				//  	A
 				//  B	x	C
 				//  	D
-				vec3 x, a, b, c, d, n;
-				x = vertices.at(i * tesselation + j);
+				float3 x, a, b, c, d, n;
+				x = positions.at(i * tesselation + j);
 
 				if (i == 0 && j == 0)
 				{
-					a = vertices.at((i + 1) * tesselation + j);
-					c = vertices.at(i * tesselation + j + 1);
+					a = positions.at((i + 1) * tesselation + j);
+					c = positions.at(i * tesselation + j + 1);
 
 					n = cross(c - x, a - x);
 				}
 				else if (i == tesselation - 1 && j == tesselation - 1)
 				{
-					b = vertices.at(i * tesselation + j - 1);
-					d = vertices.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					d = positions.at((i - 1) * tesselation + j);
 
 					n = cross(b - x, d - x);
 				}
 				else if (i == 0)
 				{
-					b = vertices.at(i * tesselation + j - 1);
-					c = vertices.at(i * tesselation + j + 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					c = positions.at(i * tesselation + j + 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(b - x, d - x) + cross(d - x, c - x);
 				}
 				else if (i == tesselation - 1)
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					b = vertices.at(i * tesselation + j - 1);
-					c = vertices.at(i * tesselation + j + 1);
+					a = positions.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					c = positions.at(i * tesselation + j + 1);
 
 					n = cross(a - x, b - x) + cross(c - x, a - x);
 				}
 				else if (j == 0)
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					c = vertices.at(i * tesselation + j + 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					a = positions.at((i - 1) * tesselation + j);
+					c = positions.at(i * tesselation + j + 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(c - x, a - x) + cross(d - x, c - x);
 				}
 				else if (j == tesselation - 1)
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					b = vertices.at(i * tesselation + j - 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					a = positions.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(a - x, b - x) + cross(b - x, d - x);
 				}
 				else
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					b = vertices.at(i * tesselation + j - 1);
-					c = vertices.at(i * tesselation + j + 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					a = positions.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					c = positions.at(i * tesselation + j + 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(a - x, b - x)
 						+ cross(b - x, d - x)
 						+ cross(d - x, c - x)
 						+ cross(c - x, a - x);
 				}
-				normals.push_back(-normalize(n));
+				normals.push_back(-float3(DirectX::XMVector3Normalize(n)));
 				//normals.push_back(vec3(0.0, 1.0, 0.0));
 			}
 		}
-			*/
 
 		float3 max_cords(positions.at(0));
 		float3 min_cords(positions.at(0));
@@ -641,7 +641,8 @@ namespace pathtracex
 			float4 color = float4(positions.at(i).y / heightScale, 0, 0, 1);
 			if (positions.at(i).y < 0)
 				color = float4(0, 0, 1, 1);
-			vertices.push_back({positions.at(i), color, float3(0, 1, 0), texcoords.at(i)});
+			float3 normal = normals.at(i);
+			vertices.push_back({positions.at(i), color, normal, texcoords.at(i)});
 		}
 
 		Mesh mesh = Mesh();
