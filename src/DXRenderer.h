@@ -22,6 +22,8 @@
 #include "NVTLASGenerator.h"
 #include "NVShaderBindingTableGenerator.h"
 
+#define ALIGN_256(size) (((size) + 255) & ~255)
+
 namespace nv = nvidia;
 
 namespace pathtracex {
@@ -156,8 +158,10 @@ namespace pathtracex {
 		// buffer data to the gpu virtual address. currently we memcpy the size of our structure, which is 16 bytes here, but if we
 		// were to add the padding array, we would memcpy 64 bytes if we memcpy the size of our structure, which is 50 wasted bytes
 		// being copied.
-		int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
-		int ConstantBufferPerMeshAlignedSize =  (sizeof(ConstantBufferPerObject) + 255) & ~255;
+		//int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
+		//int ConstantBufferPerMeshAlignedSize =  (sizeof(ConstantBufferPerObject) + 255) & ~255;
+		int ConstantBufferPerObjectAlignedSize = ALIGN_256(sizeof(ConstantBufferPerObject));
+		int ConstantBufferPerMeshAlignedSize =  ALIGN_256(sizeof(ConstantBufferPerObject));
 
 		ConstantBufferPerObject cbPerObject; // this is the constant buffer data we will send to the gpu 
 											// (which will be placed in the resource we created above)
@@ -199,6 +203,17 @@ namespace pathtracex {
 			dx::XMMATRIX viewInv;
 			dx::XMMATRIX projInv;
 		};
+		
+		ID3D12Resource* cameraConstantBuffer;
+		const uint32_t cameraConstantBufferSize = ALIGN_256(sizeof(CameraConstantBuffer));
+
+		struct LightConstantBuffer {
+			PointLight lights[5];
+			int pointLightCount;
+		};
+
+		ID3D12Resource* lightConstantBuffer;
+		const uint32_t lightConstantBufferSize = ALIGN_256(sizeof(LightConstantBuffer));
 
 		IDxcBlob* rayGenLib;
 		ID3D12RootSignature* rayGenSign;
@@ -214,8 +229,6 @@ namespace pathtracex {
 
 		ID3D12Resource* rtoutputbuffer;
 		ID3D12DescriptorHeap* rtSrvUavHeap;
-		ID3D12Resource* cameraConstantBuffer;
-		const uint32_t cameraConstantBufferSize = 4 * sizeof(dx::XMMATRIX);
 		ID3D12DescriptorHeap* constHeap;
 		ID3D12Resource* sbtStorage;
 
@@ -228,7 +241,7 @@ namespace pathtracex {
 		bool createRaytracingPipeline();
 		bool createRaytracingOutputBuffer();
 		bool createShaderResourceHeap();
-		bool createCameraBuffer();
+		bool createRTBuffers();
 		bool createShaderBindingTable(Scene& scene);
 		bool createInstancePropsBuffer();
 
@@ -236,7 +249,7 @@ namespace pathtracex {
 		ID3D12RootSignature* createRayGenSignature();
 		ID3D12RootSignature* createMissSignature();
 		ID3D12RootSignature* createHitSignature();
-		void updateCameraBuffer(RenderSettings& settings);
+		void updateRTBuffers(RenderSettings& settings, Scene& scene);
 		void updateInstancePropsBuffer(Scene& scene);
 
 		#pragma endregion
@@ -260,7 +273,7 @@ namespace pathtracex {
 		bool createRasterPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
-		bool createBuffers(bool createDepthBufferOnly = false);
+		bool createBuffers();
 
 		bool onWindowResizeEvent(WindowResizeEvent& wre);
 		void onResizeUpdatePipeline();
@@ -269,6 +282,7 @@ namespace pathtracex {
 		void onResizeUpdateDescriptorHeaps();
 		void waitForTotalGPUCompletion();
 
+		// cleanup = cringe
 		void destroyDevice();
 		#pragma endregion
 

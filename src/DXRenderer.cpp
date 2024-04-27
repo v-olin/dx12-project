@@ -120,7 +120,7 @@ namespace pathtracex {
 		if (!createInstancePropsBuffer())
 			return false;
 
-		if (!createCameraBuffer())
+		if (!createRTBuffers())
 			return false;
 
 		if (!createShaderResourceHeap())
@@ -678,7 +678,7 @@ namespace pathtracex {
 		HRESULT hr;
 
 		if (renderSettings.useRayTracing) {
-			updateCameraBuffer(renderSettings);
+			updateRTBuffers(renderSettings, scene);
 			updateInstancePropsBuffer(scene);
 		}
 
@@ -1173,7 +1173,7 @@ namespace pathtracex {
 		return true;
 	}
 
-	bool DXRenderer::createBuffers(bool createDepthBufferOnly)
+	bool DXRenderer::createBuffers()
 	{
 		HRESULT hr;
 
@@ -1358,17 +1358,11 @@ namespace pathtracex {
 				D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE
 			);
 
-			D3D12_HEAP_PROPERTIES heapProps{
-				D3D12_HEAP_TYPE_UPLOAD,
-				D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-				D3D12_MEMORY_POOL_UNKNOWN,
-				0, 0
-			};
-
+			tlasBuffers.pResult->SetName(L"Result TLAS");
 
 			tlasBuffers.pInstanceDesc = createASBuffers(
 				instanceDescsSize, D3D12_RESOURCE_FLAG_NONE,
-				D3D12_RESOURCE_STATE_GENERIC_READ, &heapProps
+				D3D12_RESOURCE_STATE_GENERIC_READ, &deafultUploadHeapProps
 			);
 		}
 
@@ -1386,6 +1380,7 @@ namespace pathtracex {
 
 		for (auto model : scene.models) {
 			AccelerationStructureBuffers buffers = createBLASFromModel(model);
+			buffers.pResult->SetName(L"BLAS");
 			asInstances.push_back({ buffers.pResult, model->trans.getModelMatrix() });
 		}
 
@@ -1408,7 +1403,6 @@ namespace pathtracex {
 
 		pipeline.addLibrary(shadowLib, { L"ShadowClosestHit", L"ShadowMiss" });
 		shadowSign = createHitSignature();
-
 
 		pipeline.addLibrary(rayGenLib, { L"RayGen" });
 		pipeline.addLibrary(missLib, { L"Miss" });
@@ -1434,7 +1428,7 @@ namespace pathtracex {
 			{ L"ShadowHitGroup" });
 		// #DXR Extra - Another ray type
 		pipeline.addRootSignatureAssociation(missSign,
-			{ L"Miss" });
+			{ L"Miss", L"ShadowMiss"});
 
 		// #DXR Extra: Per-Instance Data
 		pipeline.addRootSignatureAssociation(hitSign,
@@ -1494,46 +1488,73 @@ namespace pathtracex {
 	}
 
 	bool DXRenderer::createShaderResourceHeap() {
-		D3D12_DESCRIPTOR_HEAP_DESC desc{};
-		ZeroMemory(&desc, sizeof(desc));
-		desc.NumDescriptors = 3;
-		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		// create the descriptor heap for our 4 buffers
+		// 1: UAV for gBuffer for RT output
+		// 2: SRV for the TLAS
+		// 3: CBV for camera
+		// 4: CBV for light sources
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC desc{};
+			ZeroMemory(&desc, sizeof(desc));
+			desc.NumDescriptors = 4;
+			desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-		HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rtSrvUavHeap));
-		if (FAILED(hr)) {
-			LOG_ERROR("Could not create descriptor heaps for shaders, createShaderResourceHeap()");
-			return false;
+			HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rtSrvUavHeap));
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create descriptor heaps for shaders, createShaderResourceHeap()");
+				return false;
+			}
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = rtSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
 
-		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
-		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-		device->CreateUnorderedAccessView(rtoutputbuffer, nullptr, &uavDesc, srvHandle);
+		// The UAV is the first entry in the root signature so create it first
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			device->CreateUnorderedAccessView(rtoutputbuffer, nullptr, &uavDesc, srvHandle);
 
-		srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-		ZeroMemory(&srvDesc, sizeof(srvDesc));
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.RaytracingAccelerationStructure.Location =
-			tlasBuffers.pResult->GetGPUVirtualAddress();
-		device->CreateShaderResourceView(nullptr, &srvDesc, srvHandle);
+		// Then add the SRV for the TLAS
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+			ZeroMemory(&srvDesc, sizeof(srvDesc));
+			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.RaytracingAccelerationStructure.Location =
+				tlasBuffers.pResult->GetGPUVirtualAddress();
+			
+			device->CreateShaderResourceView(nullptr, &srvDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 
-		srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		// Then add CBV for camera
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
+			cbvdsc.BufferLocation = cameraConstantBuffer->GetGPUVirtualAddress();
+			cbvdsc.SizeInBytes = cameraConstantBufferSize;
+			
+			device->CreateConstantBufferView(&cbvdsc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 
-		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
-		cbvdsc.BufferLocation = cameraConstantBuffer->GetGPUVirtualAddress();
-		cbvdsc.SizeInBytes = cameraConstantBufferSize;
-		device->CreateConstantBufferView(&cbvdsc, srvHandle);
+		// Then add CBV for lights
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
+			cbvdsc.BufferLocation = lightConstantBuffer->GetGPUVirtualAddress();
+			cbvdsc.SizeInBytes = lightConstantBufferSize;
+			
+			device->CreateConstantBufferView(&cbvdsc, srvHandle);
+		}
 
 		return true;
 	}
 
-	bool DXRenderer::createCameraBuffer() {
+	bool DXRenderer::createRTBuffers() {
 		// create the camera constant buffer
 		{
 			D3D12_RESOURCE_DESC dsc{};
@@ -1557,44 +1578,80 @@ namespace pathtracex {
 				nullptr, IID_PPV_ARGS(&cameraConstantBuffer));
 
 			if (FAILED(hr)) {
-				LOG_ERROR("Could not create constant buffer for camera, createCameraBuffer()");
+				LOG_ERROR("Could not create constant buffer for camera, createRTBuffers()");
 				return false;
 			}
 		}
 
+		// create the light constant buffer
+		{
+			CD3DX12_RESOURCE_DESC dsc = CD3DX12_RESOURCE_DESC::Buffer(lightConstantBufferSize);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&deafultUploadHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&dsc, D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr, IID_PPV_ARGS(&lightConstantBuffer)
+			);
+
+			lightConstantBuffer->SetName(L"Light constant buffer");
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create constant buffer for lights, createRTBuffers()");
+				return false;
+			}
+		}
+
+		/*
 		// create the heap to be used by shaders
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC dsc{};
-			dsc.NumDescriptors = 2;
+			dsc.NumDescriptors = 3;
 			dsc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			dsc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 			HRESULT hr = device->CreateDescriptorHeap(&dsc, IID_PPV_ARGS(&constHeap));
 			if (FAILED(hr)) {
-				LOG_ERROR("Could not create constant heap for camera buffer");
+				LOG_ERROR("Could not create constant heap for RT buffers, createRTBuffers()");
 				return false;
 			}
 		}
 
-		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
-		cbvdsc.BufferLocation = cameraConstantBuffer->GetGPUVirtualAddress();
-		cbvdsc.SizeInBytes = cameraConstantBufferSize;
+		// describe and create the constant buffer view for the camera buffer
 		D3D12_CPU_DESCRIPTOR_HANDLE srvhandle = constHeap->GetCPUDescriptorHandleForHeapStart();
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
+			cbvdsc.BufferLocation = cameraConstantBuffer->GetGPUVirtualAddress();
+			cbvdsc.SizeInBytes = cameraConstantBufferSize;
 
-		device->CreateConstantBufferView(&cbvdsc, srvhandle);
+			device->CreateConstantBufferView(&cbvdsc, srvhandle);
+			srvhandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 
-		srvhandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		// describe and create the constant buffer view for the light buffer
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
+			cbvdsc.BufferLocation = lightConstantBuffer->GetGPUVirtualAddress();
+			cbvdsc.SizeInBytes = lightConstantBufferSize;
+			
+			device->CreateConstantBufferView(&cbvdsc, srvhandle);
+			srvhandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.FirstElement = 0;
-		srvDesc.Buffer.NumElements = static_cast<UINT>(asInstances.size());
-		srvDesc.Buffer.StructureByteStride = sizeof(InstanceProperties);
-		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-		// Write the per-instance buffer view in the heap
-		device->CreateShaderResourceView(instancePropsBuffer, &srvDesc, srvhandle);
+		// create the SRV for the instance properties buffer
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			srvDesc.Buffer.FirstElement = 0;
+			srvDesc.Buffer.NumElements = static_cast<UINT>(asInstances.size());
+			srvDesc.Buffer.StructureByteStride = sizeof(InstanceProperties);
+			srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+			// Write the per-instance buffer view in the heap
+			device->CreateShaderResourceView(instancePropsBuffer, &srvDesc, srvhandle);
+		}
+		*/
 
 		return true;
 	}
@@ -1618,7 +1675,8 @@ namespace pathtracex {
 				{
 					(void*)(model->vertexBuffer->vertexBuffer->GetGPUVirtualAddress()),
 					(void*)(model->indexBuffer->indexBuffer->GetGPUVirtualAddress()),
-					(void*)(cbvGPUAddress + ConstantBufferPerObjectAlignedSize * nmodels + ConstantBufferPerMeshAlignedSize * nmeshes)
+					(void*)(lightConstantBuffer->GetGPUVirtualAddress())
+					//(void*)(cbvGPUAddress + ConstantBufferPerObjectAlignedSize * nmodels + ConstantBufferPerMeshAlignedSize * nmeshes)
 				}
 			);
 
@@ -1757,36 +1815,57 @@ namespace pathtracex {
 
 	ID3D12RootSignature* DXRenderer::createHitSignature() {
 		nv::NVRootSignatureGenerator rsg;
-		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV,
-			0 /*t0*/); // vertices and colors
+		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0 /*t0*/); // vertices and colors
 		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1 /*t1*/); // indices
-		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0);
-		rsg.addHeapRangesParameter({
-			{2 /*t2*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-			 1 /*2nd slot of the heap*/},
-			});
+		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0 /*b0*/); // light buffer
+		rsg.addHeapRangesParameter(
+			{ // TLAS
+				{2 /*t2*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 /*2nd slot of the heap*/}
+			}
+		);
 		return rsg.generate(device, true);
 	}
 
-	void DXRenderer::updateCameraBuffer(RenderSettings& settings) {
-		int width, height;
-		window->getSize(width, height);
-		
-		const auto view = settings.camera.getViewMatrix();
-		const auto proj = settings.camera.getProjectionMatrix(width, height);
+	void DXRenderer::updateRTBuffers(RenderSettings& settings, Scene& scene) {
+		// update the camera constant buffer
+		{
+			int width, height;
+			window->getSize(width, height);
+			
+			const auto view = settings.camera.getViewMatrix();
+			const auto proj = settings.camera.getProjectionMatrix(width, height);
 
-		dx::XMVECTOR det;
-		std::vector<dx::XMMATRIX> matrices{
-			view,
-			proj,
-			dx::XMMatrixInverse(&det, view),
-			dx::XMMatrixInverse(&det, proj)
-		};
+			dx::XMVECTOR det;
+			CameraConstantBuffer temp{
+				view,
+				proj,
+				dx::XMMatrixInverse(&det, view),
+				dx::XMMatrixInverse(&det, proj)
+			};
 
-		uint8_t* data;
-		cameraConstantBuffer->Map(0, nullptr, (void**)&data);
-		memcpy(data, matrices.data(), cameraConstantBufferSize);
-		cameraConstantBuffer->Unmap(0, nullptr);
+			uint8_t* data;
+			cameraConstantBuffer->Map(0, nullptr, (void**)&data);
+			memcpy(data, &temp, cameraConstantBufferSize);
+			cameraConstantBuffer->Unmap(0, nullptr);
+		}
+
+		// update the light constant buffer
+		{
+			LightConstantBuffer temp;
+			int count = scene.lights.size();
+			for (int i = 0; i < count && i < 5; i++) {
+				// pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
+				const auto light = scene.lights.at(i);
+				const auto pos = light->transform.getPosition();
+				temp.lights[i] = {{pos.x, pos.y, pos.z, 0}};
+			}
+			temp.pointLightCount = count;
+
+			uint8_t* data;
+			lightConstantBuffer->Map(0, nullptr, (void**)&data);
+			memcpy(data, &temp, lightConstantBufferSize);
+			lightConstantBuffer->Unmap(0, nullptr);
+		}
 	}
 
 	bool DXRenderer::createInstancePropsBuffer() {
