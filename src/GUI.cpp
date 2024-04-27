@@ -137,14 +137,6 @@ namespace pathtracex {
 		else
 			drawSelectableSettings();
 
-		ImGui::Text("Procedual world settings");
-		static ProcedualWorldSettings procedualWorldSettings = scene.procedualWorldManager->settings;
-		drawSerializableVariables(&procedualWorldSettings);
-		if (ImGui::Button("Update Procedual World"))
-		{
-			scene.procedualWorldManager->updateProcedualWorldSettings(procedualWorldSettings);
-		}
-
 		ImGui::End();
 	}
 
@@ -205,6 +197,13 @@ namespace pathtracex {
 
 		drawTransformSettings(renderSettings.camera.transform);
 
+		ImGui::Text("Procedual world settings");
+		static ProcedualWorldSettings procedualWorldSettings = scene.procedualWorldManager->settings;
+		drawSerializableVariables(&procedualWorldSettings);
+		if (ImGui::Button("Update Procedual World"))
+		{
+			scene.procedualWorldManager->updateProcedualWorldSettings(procedualWorldSettings);
+		}
 	}
 
 	void GUI::drawSelectableSettings()
@@ -215,6 +214,20 @@ namespace pathtracex {
 			{
 				drawTransformSettings(lockedModel->trans);
 			}
+
+			if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				for (auto& material : lockedModel->materials)
+				{
+					if (ImGui::CollapsingHeader(material.name.c_str()))
+					{
+						drawSerializableVariables(&material);
+					}
+				}
+			}
+
+			ImGui::NewLine();
+
 			drawSerializableVariables(lockedModel.get());
 		}
 		else if (auto lockedLight = std::dynamic_pointer_cast<Light>(selectedSelectable.lock()))
@@ -224,6 +237,21 @@ namespace pathtracex {
 				drawTransformSettings(lockedLight->transform);
 			}
 			drawSerializableVariables(lockedLight.get());
+		}
+
+		ImGui::NewLine();
+
+		if (ImGui::Button("Delete Model"))
+		{
+			if (auto lockedModel = std::dynamic_pointer_cast<Model>(selectedSelectable.lock()))
+			{
+				scene.models.erase(std::remove(scene.models.begin(), scene.models.end(), lockedModel), scene.models.end());
+			}
+			else if (auto lockedLight = std::dynamic_pointer_cast<Light>(selectedSelectable.lock()))
+			{
+				scene.lights.erase(std::remove(scene.lights.begin(), scene.lights.end(), lockedLight), scene.lights.end());
+			}
+			selectedSelectable.reset();
 		}
 	}
 

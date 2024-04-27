@@ -620,6 +620,7 @@ namespace pathtracex {
 					cbPerMesh.hasMetalTex = false;
 					cbPerMesh.hasFresnelTex = false;
 					cbPerMesh.hasEmisionTex = false;
+					cbPerMesh.hasMaterial = false;
 
 					cbPerMesh.material_shininess = 1;
 					cbPerMesh.material_metalness = 1;
@@ -642,10 +643,13 @@ namespace pathtracex {
 						cbPerMesh.material_metalness = mat.metalness;
 						cbPerMesh.material_fresnel = mat.fresnel;
 						cbPerMesh.material_emmision = float4(mat.emission.x,mat.emission.y, mat.emission.z, 0);
+						cbPerMesh.material_color = float4(mat.color.x, mat.color.y, mat.color.z, 1);
+						cbPerMesh.hasMaterial = true;
 
 						ID3D12DescriptorHeap* descriptorHeaps[] = { mat.mainDescriptorHeap };
 						commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 						commandList->SetGraphicsRootDescriptorTable(2, mat.mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+						
 					}
 					// // copy our ConstantBuffer instance to the mapped constant buffer resource
 					//here also set all uniforms for each mesh

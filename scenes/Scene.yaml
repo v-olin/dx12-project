@@ -7,6 +7,15 @@ Models:
     Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.4413588, -1.26723766, 0, 1]
     PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0.5
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
   - Name: Intergalactic_Spaceship
     Filename: Intergalactic_Spaceship.obj
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.160520196, -0.814614236, -15.9011049, 1]
