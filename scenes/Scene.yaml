@@ -18,12 +18,12 @@ Models:
       IOR: 1
   - Name: Intergalactic_Spaceship
     Filename: Intergalactic_Spaceship.obj
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.160520196, -0.814614236, -15.9011049, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.160520196, 20.1067829, -6.42008018, 1]
     PrimativeType: None
   - Name: tex sphere
     Filename: sphere.obj
-    TransformMatrix: [0.00999999978, 0, 0, 0, 0, 0.00999999978, 0, 0, 0, 0, 0.00999999978, 0, -5.27584696, -0.633675456, -14.5076523, 1]
+    TransformMatrix: [0.00999999978, 0, 0, 0, 0, 0.00999999978, 0, 0, 0, 0, 0.00999999978, 0, -5.27584696, 21.7876606, -14.5076523, 1]
     PrimativeType: None
 Lights:
   - Name: Light1
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2.38609266, -0.350411683, -20.5401478, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1.91094589, 44.2423248, -2.75915456, 1]
