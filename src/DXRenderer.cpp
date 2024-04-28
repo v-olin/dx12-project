@@ -1679,7 +1679,8 @@ namespace pathtracex {
 				{
 					(void*)(model->vertexBuffer->vertexBuffer->GetGPUVirtualAddress()),
 					(void*)(model->indexBuffer->indexBuffer->GetGPUVirtualAddress()),
-					(void*)(lightConstantBuffer->GetGPUVirtualAddress())
+					(void*)(lightConstantBuffer->GetGPUVirtualAddress()),
+					(void*)(cameraConstantBuffer->GetGPUVirtualAddress())
 					//(void*)(cbvGPUAddress + ConstantBufferPerObjectAlignedSize * nmodels + ConstantBufferPerMeshAlignedSize * nmeshes)
 				}
 			);
@@ -1822,9 +1823,10 @@ namespace pathtracex {
 		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0 /*t0*/); // vertices and colors
 		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1 /*t1*/); // indices
 		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0 /*b0*/); // light buffer
+		rsg.addRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 1 /*b1*/); // camera buffer
 		rsg.addHeapRangesParameter(
 			{ // TLAS
-				{2 /*t2*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 /*2nd slot of the heap*/}
+				{2 /*t2*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 /*2nd slot of the heap*/},
 			}
 		);
 		return rsg.generate(device, true);
