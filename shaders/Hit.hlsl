@@ -37,12 +37,13 @@ cbuffer LightBuffer : register(b0)
         
         float3 worldOrigin = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
         float3 lightDir = normalize(lightPos - worldOrigin);
+        float lightDistance = length(lightPos - worldOrigin);
         
         RayDesc ray;
         ray.Origin = worldOrigin;
         ray.Direction = lightDir;
         ray.TMin = 0.01f;
-        ray.TMax = 10000.f;
+        ray.TMax = lightDistance; //10000.f;
         bool hit = true;
         
         ShadowHitInfo shadowPayload;
