@@ -9,8 +9,8 @@ Models:
     PrimativeType: None
   - Name: tex sphere
     Filename: sphere.obj
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -10.1904049, 22.8785019, -14.5017405, 1]
+    TransformMatrix: [0.100000001, 0, 0, 0, 0, 0.100000001, 0, 0, 0, 0, 0.100000001, 0, -10.1904049, 22.8785019, -14.5017405, 1]
     PrimativeType: None
 Lights:
   - Name: Light1
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 32.2792206, 23.8635864, 5.31827021, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 14.3240013, 19.0169449, -1.39267123, 1]
