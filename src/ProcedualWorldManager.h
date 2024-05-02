@@ -13,6 +13,11 @@ namespace pathtracex
 		float tessellationFactor = 50;
 		int chunkRenderDistance = 200;
 		int heightScale = 30;
+		int octaves = 6;
+
+		float stop_flat = 0.95;
+		float stop_interp = 0.85;
+
 
 		std::vector<SerializableVariable> getSerializableVariables() override
 		{
@@ -22,7 +27,10 @@ namespace pathtracex
 				{SerializableType::FLOAT, "chunkSideLength", "The side length of a chunk", &chunkSideLength},
 				{SerializableType::FLOAT, "tessellationFactor", "The tessellation factor of the procedual world", &tessellationFactor},
 				{SerializableType::INT, "chunkRenderDistance", "The render distance of the procedual world", &chunkRenderDistance},
-				{SerializableType::INT, "heightScale", "The height scale of the procedual world", &heightScale}
+				{SerializableType::INT, "heightScale", "The height scale of the procedual world", &heightScale},
+				{SerializableType::INT, "octaves", "Octaves used for generating terrain", &octaves},
+				{SerializableType::FLOAT, "stop_flat", "", &stop_flat},
+				{SerializableType::FLOAT, "stop_interp", "", &stop_interp}
 			};
 		};
 	};
@@ -49,7 +57,8 @@ namespace pathtracex
 	public:
 		ProcedualWorldManager(ProcedualWorldSettings settings) : settings(settings) {};
 
-		void updateProcedualWorld(Camera& camera);
+		void updateProcedualWorld(Camera& camera); 
+		void createMaterial();
 
 		// The active procedual world models that will be rendered
 		std::vector<std::shared_ptr<Model>> procedualWorldGroundModels;
@@ -61,12 +70,13 @@ namespace pathtracex
 		void updateProcedualWorldSettings(const ProcedualWorldSettings settings);
 
 		ProcedualWorldSettings settings;
+
+		Material base_mat;
 	private: 
 		// Mapping of chunk coordinates to model
 		// Currently not deleting models, just caching them
 		// If memory usage becomes a problem, we can limit the cache size
-		CordinateMap procedualWorldModelMap{};
-
+		CordinateMap procedualWorldModelMap{}; 
 
 		std::pair<int, int> getChunkCoordinatesAtPosition(const float3 position);
 

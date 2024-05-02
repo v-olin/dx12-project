@@ -35,7 +35,8 @@ cbuffer ConstantBuffer : register(b0)
     
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
-  };
+    bool isProcWorld;
+};
 
 cbuffer ConstantMeshBuffer : register(b1)
 {
@@ -51,6 +52,10 @@ cbuffer ConstantMeshBuffer : register(b1)
     float material_metalness;
     float material_fresnel;
     bool hasMaterial;
+		
+    //for proc world only, should maybe not be here...
+	float stop_flat;
+	float stop_interp;
 }
 
 VS_OUTPUT main(VS_INPUT input)

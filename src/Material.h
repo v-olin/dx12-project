@@ -20,11 +20,15 @@ namespace pathtracex {
 		float transparency;
 		float ior;
 		Texture colorTexture;
+		Texture colorTexture2;
+		Texture colorTexture3;
 		Texture shininessTexture;
 		Texture metalnessTexture;
 		Texture fresnelTexture;
 		Texture emissionTexture;
 		Texture normalTexture;
+		Texture normalTexture2;
+		Texture normalTexture3;
 
 		//Each material now has a descriptor heap that will contain all the textures
 		ID3D12DescriptorHeap* mainDescriptorHeap;

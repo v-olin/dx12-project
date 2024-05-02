@@ -1,0 +1,10 @@
+# Material file for the sphere.obj
+
+newmtl sphere_material
+Ka 0.0435 0.0435 0.0435
+Kd 0.5 0.5 0.5
+Ks 0.078 0.078 0.078
+Ns 0
+d 1.0
+illum 2
+map_Kd BALLS\\WALK\\Stylized_Stone_Floor_005_basecolor.jpg

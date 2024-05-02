@@ -1,7 +1,9 @@
 #include "ProcedualWorldManager.h"
+#include <DXRenderer.h>
 
 namespace pathtracex
 {
+
 	void ProcedualWorldManager::updateProcedualWorld(Camera& camera)
 	{
 		// If the camera has not moved to a different chunk, we do not need to update the world
@@ -16,6 +18,9 @@ namespace pathtracex
 	//		createSun();
 
 		settingsChanged = false;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+		renderer->setProcWordValues(settings);
 
 		int renderDistanceInChunks = settings.chunkRenderDistance / settings.chunkSideLength;
 		int currentX = (int)camera.transform.getPosition().x / settings.chunkSideLength;
@@ -34,6 +39,24 @@ namespace pathtracex
 			}
 		}
 	}
+	
+	void ProcedualWorldManager::createMaterial() {
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+		renderer->createTextureDescriptorHeap(heapDesc, &base_mat.mainDescriptorHeap);
+
+		//base_mat.colorTexture.load("../../assets/", "grass_basecolor.jpg", 4, &base_mat.mainDescriptorHeap, COLTEX);
+		base_mat.colorTexture.load("../../assets/textures/", "patchy-meadow1_albedo.png", 5, &base_mat.mainDescriptorHeap, COLTEX);
+		base_mat.colorTexture2.load("../../assets/textures/", "rock_pitted_mossy_diff_4k.jpg", 5, &base_mat.mainDescriptorHeap, COLTEX2);
+		base_mat.colorTexture3.load("../../assets/textures/", "snow_02_diff_4k.jpg", 5, &base_mat.mainDescriptorHeap, COLTEX3);
+
+	}
 
 	std::pair<int, int> ProcedualWorldManager::getChunkCoordinatesAtPosition(const float3 position)
 	{
@@ -47,7 +70,8 @@ namespace pathtracex
 	void ProcedualWorldManager::createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates)
 	{	
 		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
-		std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.seed, settings.tessellationFactor, settings.heightScale);
+		std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.seed, settings.tessellationFactor, settings.heightScale, settings.octaves);
+		model->materials.push_back(base_mat);
 		model->trans.setScale(float3(1, 1, 1));
 		model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength + settings.chunkSideLength / 2, 0, (chunkCoordinates.second) * settings.chunkSideLength + settings.chunkSideLength / 2));
 
@@ -70,6 +94,9 @@ namespace pathtracex
 	{
 		settingsChanged = true;
 		this->settings = settings;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+		renderer->setProcWordValues(settings);
 
 		procedualWorldGroundModels.clear();
 		procedualWorldModelMap.clear();

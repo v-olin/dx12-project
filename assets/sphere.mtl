@@ -9,4 +9,4 @@ d 1.0
 illum 2
 map_Bump BALLS\\WALK\\Stylized_Stone_Floor_005_normal.jpg
 map_Kd BALLS\\WALK\\Stylized_Stone_Floor_005_basecolor.jpg
-map_Ks BALLS\\WALK\\Stylized_Stone_Floor_005_roughness.jpg
+map_Pr BALLS\\WALK\\Stylized_Stone_Floor_005_roughness.jpg
