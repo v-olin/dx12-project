@@ -124,13 +124,11 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
 
     float3 normals[3] = {Vertices[indices[vertId + 0]].normal, Vertices[indices[vertId + 1]].normal, Vertices[indices[vertId + 2]].normal};
+    float3 normal = HitAttribute(normals, attrib);
     
     // TODO: transform the normal to world space, we need the model matrix
-    float3 normal = mul(float4(normalize(HitAttribute(normals, attrib)), 1), normalMatrix);
-    
-    float2 st = float2(attrib.bary.x, attrib.bary.y);
-
-    float ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), st);
+    //float3 normal = mul(float4(normalize(HitAttribute(normals, attrib)), 1), normalMatrix);
+   // float ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), st);
     
     payload.colorAndDistance = float4(hitColor, RayTCurrent());
 }
