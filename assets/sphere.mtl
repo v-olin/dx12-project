@@ -7,6 +7,7 @@ Ks 0.078 0.078 0.078
 Ns 0
 d 1.0
 illum 2
-map_Bump BALLS\\WALK\\Stylized_Stone_Floor_005_normal.jpg
-map_Kd BALLS\\WALK\\Stylized_Stone_Floor_005_basecolor.jpg
-map_Pr BALLS\\WALK\\Stylized_Stone_Floor_005_roughness.jpg
+
+map_Kd textures\\gray_rocks_diff_4k.jpg
+map_Pr textures\\gray_rocks_rough_4k.jpg
+map_Bump textures\\gray_rocks_nor_dx_4k.jpg

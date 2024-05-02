@@ -9,8 +9,8 @@ namespace pathtracex
 	struct ProcedualWorldSettings : public Serializable
 	{
 		int seed = 1432432;
-		float chunkSideLength = 50;
-		float tessellationFactor = 50;
+		float chunkSideLength = 200;
+		float tessellationFactor = 200;
 		int chunkRenderDistance = 200;
 		int heightScale = 30;
 		int octaves = 6;

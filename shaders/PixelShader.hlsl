@@ -1,13 +1,11 @@
 Texture2D colTex : register(t0);
 Texture2D colTex2 : register(t1);
-Texture2D colTex3 : register(t2);
-Texture2D normalTex : register(t3);
-Texture2D normalTex2 : register(t4);
-Texture2D normalTex3 : register(t5);
-Texture2D shinyTex : register(t6);
-Texture2D metalTex : register(t7);
-Texture2D fresnelTex : register(t8);
-Texture2D emisionTex : register(t9);
+Texture2D normalTex : register(t2);
+Texture2D normalTex2 : register(t3);
+Texture2D shinyTex : register(t4);
+Texture2D metalTex : register(t5);
+Texture2D fresnelTex : register(t6);
+Texture2D emisionTex : register(t7);
 
 SamplerState s1 : register(s0);
 struct VS_OUTPUT
@@ -158,23 +156,9 @@ float3 calcProcWorldCol(VS_OUTPUT input)
     float3 worldpos = mul(float4(input.viewSpacePos.xyz, 1.0), viewInverse);
     float slope = dot(normalize(worldNormal), float3(0, 1, 0)); // Cosine of the angle between the normal and the up vector
 
-// Invert the slope to properly skew towards brown for sloping surfaces
-    //slope = 1 - slope;
-
-// Interpolate between green and brown based on the inverted slope value
-    //float3 green = float3(0, 0.15, 0); // Green color for flat surface
-
     float3 flat_col = colTex.Sample(s1, input.texCoord);
     float3 slope_col = colTex2.Sample(s1, input.texCoord); // 
-    float snow = colTex3.Sample(s1, input.texCoord);
     float3 interpolatedColor;
-
-    //float stop_flat = 0.95;
-    //float stop_interp = 0.85;
-    float snow_start_interp = 15;
-    float snow_start = 20;
-    float height = worldpos.y;
-    
 
     if(slope > stop_flat) //flat
         interpolatedColor = flat_col;
@@ -186,7 +170,6 @@ float3 calcProcWorldCol(VS_OUTPUT input)
         float remapped_slope = saturate((slope - stop_interp) / (stop_flat - stop_interp));
         interpolatedColor = lerp(slope_col, flat_col, remapped_slope);
     }
-
     return interpolatedColor;
 }
 float4 main(VS_OUTPUT input) : SV_TARGET

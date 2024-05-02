@@ -5,12 +5,12 @@ Models:
     PrimativeType: None
   - Name: Intergalactic_Spaceship
     Filename: Intergalactic_Spaceship.obj
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.160520196, 20.1067829, -6.42008018, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0.160520196, 9.99822235, 1.46074355, 1]
     PrimativeType: None
   - Name: tex sphere
     Filename: sphere.obj
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -12.2604456, 21.7876606, -14.5076523, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -10.1904049, 22.8785019, -14.5017405, 1]
     PrimativeType: None
 Lights:
   - Name: Light1
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -8.95524979, 21.7002182, -21.3730469, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 32.2792206, 23.8635864, 5.31827021, 1]

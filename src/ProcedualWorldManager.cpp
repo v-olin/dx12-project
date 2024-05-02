@@ -54,7 +54,6 @@ namespace pathtracex
 		//base_mat.colorTexture.load("../../assets/", "grass_basecolor.jpg", 4, &base_mat.mainDescriptorHeap, COLTEX);
 		base_mat.colorTexture.load("../../assets/textures/", "patchy-meadow1_albedo.png", 5, &base_mat.mainDescriptorHeap, COLTEX);
 		base_mat.colorTexture2.load("../../assets/textures/", "rock_pitted_mossy_diff_4k.jpg", 5, &base_mat.mainDescriptorHeap, COLTEX2);
-		base_mat.colorTexture3.load("../../assets/textures/", "snow_02_diff_4k.jpg", 5, &base_mat.mainDescriptorHeap, COLTEX3);
 
 	}
 
