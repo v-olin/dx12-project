@@ -109,9 +109,6 @@ namespace pathtracex
 			if (material.emissionTexture.valid)
 				material.emissionTexture.free();
 		}
-		/*	glDeleteBuffers(1, &m_positions_bo);
-			glDeleteBuffers(1, &m_normals_bo);
-			glDeleteBuffers(1, &m_texture_coordinates_bo);*/
 	}
 	Model::Model(std::string name, std::vector<Material> materials, std::vector<Mesh> meshes, bool hasDedicatedShader, float3 max_cords, float3 min_cords, std::vector<Vertex> vertices = {}, std::vector<uint32_t> indices = {})
 		: name(name), materials(materials), meshes(meshes), maxCords(max_cords), minCords(min_cords), vertices(vertices), indices(indices)
@@ -374,10 +371,11 @@ namespace pathtracex
 			vertices.push_back(vert);
 		}
 
-		for (auto mesh : meshes)
+		for (auto& mesh : meshes)
 		{
 			for (size_t i = 0; i < mesh.numberOfVertices; i++)
 			{
+				mesh.indices.push_back(i);
 				indices.push_back(i + mesh.startIndex);
 				if (materials.size() == 0)
 					continue;
@@ -385,7 +383,14 @@ namespace pathtracex
 				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
 				
 			}
+
+			mesh.vertices.reserve(mesh.numberOfVertices);
+			mesh.vertices.insert(
+				mesh.vertices.begin(),
+				vertices.begin() + mesh.startIndex,
+				vertices.begin() + mesh.startIndex + mesh.numberOfVertices);
 		}
+
 		//compute tangents
 		for (int i = 0; i < indices.size(); i += 3) {
 			int i0 = indices.at(i);
@@ -432,9 +437,8 @@ namespace pathtracex
 			vertices.at(i0).biTangent = bitangent;
 			vertices.at(i1).biTangent = bitangent;
 			vertices.at(i2).biTangent = bitangent;
-
-	
 		}
+
 		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
 		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
 		std::cout << "done.\n";

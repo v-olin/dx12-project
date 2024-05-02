@@ -130,7 +130,7 @@ namespace pathtracex {
 			int pointLightCount; // 4 bytes
 		};
 
-		struct constantBufferPerMesh {
+		struct ConstantBufferPerMesh {
 			float4 material_emmision;
 			float4 material_color;
 			bool hasTexCoord; // 2 bytes (i think)
@@ -160,16 +160,14 @@ namespace pathtracex {
 		// buffer data to the gpu virtual address. currently we memcpy the size of our structure, which is 16 bytes here, but if we
 		// were to add the padding array, we would memcpy 64 bytes if we memcpy the size of our structure, which is 50 wasted bytes
 		// being copied.
-		//int ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
-		//int ConstantBufferPerMeshAlignedSize =  (sizeof(ConstantBufferPerObject) + 255) & ~255;
 		int ConstantBufferPerObjectAlignedSize = ALIGN_256(sizeof(ConstantBufferPerObject));
-		int ConstantBufferPerMeshAlignedSize =  ALIGN_256(sizeof(ConstantBufferPerObject));
+		int ConstantBufferPerMeshAlignedSize =  ALIGN_256(sizeof(ConstantBufferPerMesh));
 
 		ConstantBufferPerObject cbPerObject; // this is the constant buffer data we will send to the gpu 
 											// (which will be placed in the resource we created above)
-		constantBufferPerMesh cbPerMesh;
+		ConstantBufferPerMesh cbPerMesh;
 		ID3D12Resource* constantBufferUploadHeap; // this is the memory on the gpu where constant buffers for each frame will be placed
-		UINT8* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
+		UINT64* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
 		#pragma endregion
 
 		#pragma region Raytracing stuff
@@ -234,6 +232,29 @@ namespace pathtracex {
 		ID3D12DescriptorHeap* constHeap;
 		ID3D12Resource* sbtStorage;
 
+		struct MeshData {
+			float4 material_color;
+			float4 material_emmision;
+			bool hasTexCoord; // 2 bytes (i think)
+			bool pad1[3];
+			bool hasNormalTex; // 2 bytes (i think)
+			bool pad2[3];
+			bool hasShinyTex; // 2 bytes (i think)
+			bool pad3[3];
+			bool hasMetalTex;
+			bool pad4[3];
+			bool hasFresnelTex;
+			bool pad5[3];
+			bool hasEmisionTex;
+			bool pad6[3];
+			float material_shininess;
+			float material_metalness;
+			float material_fresnel;
+			bool hasMaterial;
+		};
+		ID3D12Resource* meshDataBuffer;
+		UINT numMeshes;
+
 		bool checkRaytracingSupport();
 
 		ID3D12Resource* createASBuffers(UINT64 buffSize, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initStates, const D3D12_HEAP_PROPERTIES* heapProps = nullptr);
@@ -242,17 +263,19 @@ namespace pathtracex {
 		bool createAccelerationStructures(Scene& scene);
 		bool createRaytracingPipeline();
 		bool createRaytracingOutputBuffer();
-		bool createShaderResourceHeap();
+		bool createShaderResourceHeap(Scene& scene);
 		bool createRTBuffers();
 		bool createShaderBindingTable(Scene& scene);
-		bool createInstancePropsBuffer();
+		bool createMeshDataBuffer(Scene& scene);
+		//bool createMeshDataBuffer(Scene& scene);
 
 		IDxcBlob* compileShaderLibrary(LPCWSTR libname);
 		ID3D12RootSignature* createRayGenSignature();
 		ID3D12RootSignature* createMissSignature();
 		ID3D12RootSignature* createHitSignature();
 		void updateRTBuffers(RenderSettings& settings, Scene& scene);
-		void updateInstancePropsBuffer(Scene& scene);
+		void updateMeshDataBuffers(Scene& scene);
+		void updateTLAS(Scene& scene);
 
 		#pragma endregion
 

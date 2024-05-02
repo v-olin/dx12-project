@@ -23,4 +23,5 @@ struct Vertex
     float2 texCoord;
     float3 tangent;
     float3 bitangent;
+    uint materialIdx;
 };

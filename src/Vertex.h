@@ -11,5 +11,6 @@ namespace pathtracex {
 		DirectX::XMFLOAT2 tex{};
 		DirectX::XMFLOAT3 tangent{};
 		DirectX::XMFLOAT3 biTangent{};
+		unsigned int materialIdx;
 	};
 }

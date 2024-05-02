@@ -10,6 +10,22 @@ struct PointLight
     float4 position;
 };
 
+struct MeshData
+{
+    float4 material_color;
+    float4 material_emmision;
+    bool hasColTex;
+    bool hasNormalTex;
+    bool hasShinyTex;
+    bool hasMetalTex;
+    bool hasFresnelTex;
+    bool hasEmisionTex;
+    float material_shininess;
+    float material_metalness;
+    float material_fresnel;
+    bool hasMaterial;
+};
+
 cbuffer CameraBuffer : register(b1)
 {
     float4x4 view;
@@ -21,6 +37,7 @@ cbuffer CameraBuffer : register(b1)
 StructuredBuffer<Vertex> Vertices : register(t0);
 StructuredBuffer<int> indices : register(t1);
 RaytracingAccelerationStructure SceneBVH : register(t2);
+StructuredBuffer<MeshData> meshdatas : register(t3);
 
 cbuffer LightBuffer : register(b0)
 {
@@ -52,7 +69,6 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     float ao = 0.0f;
     float3 p = position + 0.001f * normal;
     int rayCount = 10;
-    
 
     for (int i = 0; i < rayCount; i++)
     {
@@ -121,8 +137,12 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     
     hitColor = hitColor * (1.0f - shadowFactor);
   
-    payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
+    //uint matidx = Vertices[].materialIdx;
+    //float4 matcol = meshdatas[matidx].material_color;
+    //payload.colorAndDistance = float4(matcol.r, matcol.g, matcol.b, RayTCurrent());
+    //payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
 
+    /*
     float3 normals[3] = {Vertices[indices[vertId + 0]].normal, Vertices[indices[vertId + 1]].normal, Vertices[indices[vertId + 2]].normal};
     
     // TODO: transform the normal to world space, we need the model matrix
@@ -133,6 +153,7 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     float ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), st);
     
     payload.colorAndDistance = float4(hitColor, RayTCurrent());
+    */
 }
 
 [shader("closesthit")] void PlaneClosestHit(inout HitInfo payload, Attributes attrib)
