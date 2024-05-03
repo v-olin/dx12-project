@@ -133,9 +133,8 @@ namespace nvidia {
     {
         // Copy the descriptors in the target descriptor buffer
         D3D12_RAYTRACING_INSTANCE_DESC* instanceDescs;
-        descriptorsBuffer->Map(0, nullptr, reinterpret_cast<void**>(&instanceDescs));
-        if (!instanceDescs)
-        {
+        HRESULT hr = descriptorsBuffer->Map(0, nullptr, reinterpret_cast<void**>(&instanceDescs));
+        if (!instanceDescs) {
             throw std::exception("Cannot map the instance descriptor buffer - is it "
                 "in the upload heap?");
         }
@@ -200,10 +199,8 @@ namespace nvidia {
         buildDesc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
         buildDesc.Inputs.InstanceDescs = descriptorsBuffer->GetGPUVirtualAddress();
         buildDesc.Inputs.NumDescs = instanceCount;
-        buildDesc.DestAccelerationStructureData = { resultBuffer->GetGPUVirtualAddress()
-        };
-        buildDesc.ScratchAccelerationStructureData = { scratchBuffer->GetGPUVirtualAddress()
-        };
+        buildDesc.DestAccelerationStructureData = { resultBuffer->GetGPUVirtualAddress() };
+        buildDesc.ScratchAccelerationStructureData = { scratchBuffer->GetGPUVirtualAddress() };
         buildDesc.SourceAccelerationStructureData = pSourceAS;
         buildDesc.Inputs.Flags = flags;
 

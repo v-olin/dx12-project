@@ -21,4 +21,6 @@ struct Vertex
     float4 color;
     float3 normal;
     float2 texCoord;
+    float3 tangent;
+    float3 bitangent;
 };
