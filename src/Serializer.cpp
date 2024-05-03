@@ -277,11 +277,9 @@ namespace pathtracex {
 			}
 
 			scene.models.push_back(model);
-
-			//std::string filename = textureNode["fileName"].as<std::string>();
-			//Texture* texture = Texture::create(filename);
-			//deserializeTexture(*it, game, texture);
 		}
+
+		scene.initializeModelBuffers();
 	}
 
 	void Serializer::deserializeLights(YAML::Node node, Scene& scene)

@@ -10,7 +10,23 @@ struct PointLight
     float4 position;
 };
 
-cbuffer CameraBuffer : register(b1)
+struct MeshData
+{
+    float4 material_color;
+    float4 material_emmision;
+    bool hasColTex;
+    bool hasNormalTex;
+    bool hasShinyTex;
+    bool hasMetalTex;
+    bool hasFresnelTex;
+    bool hasEmisionTex;
+    float material_shininess;
+    float material_metalness;
+    float material_fresnel;
+    bool hasMaterial;
+};
+
+cbuffer CameraBuffer : register(b0)
 {
     float4x4 view;
     float4x4 proj;
@@ -21,8 +37,9 @@ cbuffer CameraBuffer : register(b1)
 StructuredBuffer<Vertex> Vertices : register(t0);
 StructuredBuffer<int> indices : register(t1);
 RaytracingAccelerationStructure SceneBVH : register(t2);
+StructuredBuffer<MeshData> meshdatas : register(t3);
 
-cbuffer LightBuffer : register(b0)
+cbuffer LightBuffer : register(b1)
 {
     PointLight lights[5];
     int lightCount;
@@ -52,7 +69,6 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     float ao = 0.0f;
     float3 p = position + 0.001f * normal;
     int rayCount = 10;
-    
 
     for (int i = 0; i < rayCount; i++)
     {
@@ -87,11 +103,44 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     return 1.0f - ao / rayCount;
 }
 
+float3 GetMaterialColor(Attributes attrib)
+{
+    uint vertId = 3 * PrimitiveIndex();
+    uint matidx = Vertices[vertId].materialIdx;
+    
+    if (meshdatas[matidx].hasMaterial)
+    {
+        float3 colors[3] =
+        {
+            meshdatas[Vertices[vertId + 0].materialIdx].material_color.rgb,
+            meshdatas[Vertices[vertId + 1].materialIdx].material_color.rgb,
+            meshdatas[Vertices[vertId + 2].materialIdx].material_color.rgb
+        };
+        
+        MeshData data = meshdatas[matidx];
+        
+        float3 hitColor = HitAttribute(colors, attrib);
+        return hitColor;
+    }
+    else
+    {
+        float3 colors[3] = 
+        {
+            Vertices[indices[vertId + 0]].color.rgb,
+            Vertices[indices[vertId + 1]].color.rgb,
+            Vertices[indices[vertId + 2]].color.rgb
+        };
+        
+        // blend them with bary
+        float3 hitColor = HitAttribute(colors, attrib);
+        return hitColor;
+    }
+}
+
 [shader("closesthit")] void ClosestHit(inout HitInfo payload, Attributes attrib) 
 {
     uint vertId = 3 * PrimitiveIndex();
-    float3 colors[3] = {Vertices[indices[vertId + 0]].color.rgb, Vertices[indices[vertId + 1]].color.rgb, Vertices[indices[vertId + 2]].color.rgb};
-    float3 hitColor = HitAttribute(colors, attrib);
+    float3 hitColor = GetMaterialColor(attrib);
     
     float shadowFactor = 0.0f;
     float3 worldOrigin = HitWorldPosition();
@@ -123,6 +172,7 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
   
     payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
 
+    /*
     float3 normals[3] = {Vertices[indices[vertId + 0]].normal, Vertices[indices[vertId + 1]].normal, Vertices[indices[vertId + 2]].normal};
     float3 normal = HitAttribute(normals, attrib);
     
@@ -131,6 +181,7 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
    // float ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), st);
     
     payload.colorAndDistance = float4(hitColor, RayTCurrent());
+    */
 }
 
 [shader("closesthit")] void PlaneClosestHit(inout HitInfo payload, Attributes attrib)
