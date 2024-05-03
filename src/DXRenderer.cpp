@@ -595,8 +595,9 @@ namespace pathtracex {
 			DirectX::XMStoreFloat4x4(&cbPerObject.viewInverse, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, viewMat)));
 			DirectX::XMStoreFloat4x4(&cbPerObject.viewMat, DirectX::XMMatrixTranspose(viewMat));
 
-
-
+			cbPerObject.isProcWorld = model->name == "Procedual mesh";
+	
+			
 
 			int k = 0;
 			PointLight pointLights[3];
@@ -608,7 +609,7 @@ namespace pathtracex {
 
 				cbPerObject.pointLightCount = k;
 
-					memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
+				memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
 				int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
 				
@@ -973,9 +974,12 @@ namespace pathtracex {
 		// create a static sampler
 		D3D12_STATIC_SAMPLER_DESC sampler = {};
 		sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-		sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		//sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		//sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		//sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		sampler.MipLODBias = 0;
 		sampler.MaxAnisotropy = 0;
 		sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
@@ -2146,5 +2150,11 @@ namespace pathtracex {
 
 		// increment fenceValue for next frame
 		fenceValue[frameIndex]++;
+	}
+
+
+	void DXRenderer::setProcWordValues(ProcedualWorldSettings settings) {
+		cbPerMesh.stop_flat = settings.stop_flat;
+		cbPerMesh.stop_interp = settings.stop_interp;
 	}
 }

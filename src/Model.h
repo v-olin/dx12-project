@@ -26,6 +26,7 @@
 
 #include "DXVertexBuffer.h"
 #include "DXIndexBuffer.h"
+#include "FastNoiseLite.h"
 
 
 namespace pathtracex {
@@ -115,7 +116,8 @@ namespace pathtracex {
 			};
 		};
 
-		static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale = 10);
+		//static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale = 10, int octaves = 6);
+		static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int tesselation, int heightScale, FastNoiseLite nGen);
 
 		std::string id = StringUtil::generateRandomString(10);
 	private:

@@ -74,6 +74,8 @@ namespace pathtracex {
 		
 		virtual void onEvent(Event& e) override;
 
+		void setProcWordValues(ProcedualWorldSettings settings);
+
 	private:
 		// I changed the commandlist to a 4 and the device to a 5 to get raytracing stuff
 		ID3D12GraphicsCommandList4* commandList; // a command list we can record commands into, then execute them to render the frame
@@ -128,6 +130,7 @@ namespace pathtracex {
 
 			PointLight pointLights[3]; // 48 bytes
 			int pointLightCount; // 4 bytes
+			bool isProcWorld;
 		};
 
 		struct ConstantBufferPerMesh {
@@ -149,6 +152,10 @@ namespace pathtracex {
 			float material_metalness;
 			float material_fresnel;
 			bool hasMaterial;
+
+			//for proc world only, should maybe not be here...
+			float stop_flat;
+			float stop_interp;
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.

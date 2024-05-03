@@ -37,6 +37,7 @@ namespace pathtracex
 
 		Serializer::deserializeScene(config.startupSceneName, scene);
 		scene.procedualWorldManager = &worldManager;
+		scene.procedualWorldManager->createMaterial();
 		defaultRenderSettings.raytracingSupported = renderer->raytracingIsSupported();
 
 		if (defaultRenderSettings.raytracingSupported) {
