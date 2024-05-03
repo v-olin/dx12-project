@@ -279,7 +279,7 @@ namespace pathtracex {
 			scene.models.push_back(model);
 		}
 
-		//scene.initializeModelBuffers();
+		scene.initializeModelBuffers();
 	}
 
 	void Serializer::deserializeLights(YAML::Node node, Scene& scene)

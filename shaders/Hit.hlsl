@@ -26,7 +26,7 @@ struct MeshData
     bool hasMaterial;
 };
 
-cbuffer CameraBuffer : register(b1)
+cbuffer CameraBuffer : register(b0)
 {
     float4x4 view;
     float4x4 proj;
@@ -39,7 +39,7 @@ StructuredBuffer<int> indices : register(t1);
 RaytracingAccelerationStructure SceneBVH : register(t2);
 StructuredBuffer<MeshData> meshdatas : register(t3);
 
-cbuffer LightBuffer : register(b0)
+cbuffer LightBuffer : register(b1)
 {
     PointLight lights[5];
     int lightCount;
@@ -107,17 +107,6 @@ float3 GetMaterialColor(Attributes attrib)
 {
     uint vertId = 3 * PrimitiveIndex();
     uint matidx = Vertices[vertId].materialIdx;
-    
-    float3 colors[3] =
-    {
-        Vertices[indices[vertId + 0]].color.rgb,
-            Vertices[indices[vertId + 1]].color.rgb,
-            Vertices[indices[vertId + 2]].color.rgb
-    };
-        
-        // blend them with bary
-    float3 hitColor = HitAttribute(colors, attrib);
-    return hitColor;
     
     if (meshdatas[matidx].hasMaterial)
     {

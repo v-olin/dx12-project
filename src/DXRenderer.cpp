@@ -1315,17 +1315,15 @@ namespace pathtracex {
 	DXRenderer::AccelerationStructureBuffers DXRenderer::createBLASFromModel(std::shared_ptr<Model> model) {
 		nv::NVBLASGenerator blasGenerator;
 
-		for (const auto& mesh : model->meshes) {
-			ID3D12Resource* vbuffer = mesh.vertexbuffer->vertexBuffer;
-			uint32_t vbufferSize = mesh.numberOfVertices;
-			ID3D12Resource* ibuffer = mesh.indexbuffer->indexBuffer;
-			uint32_t ibufferSize = mesh.numberOfVertices;
+		ID3D12Resource* vbuffer = model->vertexBuffer->vertexBuffer;
+		uint32_t vbufferSize = model->vertices.size();
+		ID3D12Resource* ibuffer = model->indexBuffer->indexBuffer;
+		uint32_t ibufferSize = model->indices.size();
 
-			blasGenerator.addVertexBuffer(vbuffer, 0,
-				vbufferSize, sizeof(Vertex),
-				ibuffer, 0,
-				ibufferSize, nullptr, 0, true);
-		}
+		blasGenerator.addVertexBuffer(vbuffer, 0,
+			vbufferSize, sizeof(Vertex),
+			ibuffer, 0,
+			ibufferSize, nullptr, 0, true);
 
 		UINT64 scratchSizeInBytes = 0;
 		UINT64 resultSizeInBytes = 0;
@@ -1390,23 +1388,6 @@ namespace pathtracex {
 	}
 
 	bool DXRenderer::createAccelerationStructures(Scene& scene) {
-		// prepare mesh buffers before creating AS
-		{
-			uint32_t modelOffset = 0;
-			for (const auto& model : scene.models) {
-				for (auto& mesh : model->meshes) {
-					for (size_t i = 0; i < mesh.numberOfVertices; i++) {
-						mesh.vertices[i].materialIdx = modelOffset + mesh.materialIdx;
-					}
-
-					mesh.vertexbuffer = std::make_shared<DXVertexBuffer>(mesh.vertices);
-					mesh.indexbuffer = std::make_shared<DXIndexBuffer>(mesh.indices);
-				}
-
-				modelOffset += model->meshes.size();
-			}
-		}
-
 		resetCommandList();
 
 		for (auto model : scene.models) {
@@ -1666,17 +1647,14 @@ namespace pathtracex {
 		sbtGenerator.addMissProgram(L"ShadowMiss", {});
 
 		for (const auto& model : scene.models) {
-			for (const auto& mesh : model->meshes) {
+			std::vector<void*> modelResources = {
+				(void*)(model->vertexBuffer->vertexBuffer->GetGPUVirtualAddress()),
+				(void*)(model->indexBuffer->indexBuffer->GetGPUVirtualAddress()),
+				(void*)(heapPtr)
+			};
 
-				std::vector<void*> meshResources = {
-					(void*)(mesh.vertexbuffer->vertexBuffer->GetGPUVirtualAddress()),
-					(void*)(mesh.indexbuffer->indexBuffer->GetGPUVirtualAddress()),
-					(void*)(heapPtr)
-				};
-
-				sbtGenerator.addHitGroup(L"HitGroup", meshResources);
-				sbtGenerator.addHitGroup(L"ShadowHitGroup", {});
-			}
+			sbtGenerator.addHitGroup(L"HitGroup", modelResources);
+			sbtGenerator.addHitGroup(L"ShadowHitGroup", {});
 		}
 
 		sbtGenerator.addHitGroup(L"PlaneHitGroup", { heapPtr });

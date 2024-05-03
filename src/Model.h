@@ -55,12 +55,6 @@ namespace pathtracex {
 		uint32_t startIndex;
 		uint32_t numberOfVertices;
 		std::string getName() override { return name; };
-
-		// for DXR
-		std::vector<Vertex> vertices;
-		std::vector<uint32_t> indices;
-		std::shared_ptr<DXVertexBuffer> vertexbuffer;
-		std::shared_ptr<DXIndexBuffer> indexbuffer;
 	};
 
 	class Model : public Selectable {

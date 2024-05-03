@@ -380,14 +380,7 @@ namespace pathtracex
 					continue;
 				auto mat = materials.at(mesh.materialIdx);
 				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
-				mesh.indices.push_back(i);
 			}
-
-			mesh.vertices.reserve(mesh.numberOfVertices);
-			mesh.vertices.insert(
-				mesh.vertices.begin(),
-				vertices.begin() + mesh.startIndex,
-				vertices.begin() + mesh.startIndex + mesh.numberOfVertices);
 		}
 
 		//compute tangents
@@ -438,8 +431,9 @@ namespace pathtracex
 			vertices.at(i2).biTangent = bitangent;
 		}
 
-		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
-		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
+		// this is now done in the scene class when deserializing
+		//vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
+		//indexBuffer = std::make_unique<DXIndexBuffer>(indices);
 		std::cout << "done.\n";
 	}
 
