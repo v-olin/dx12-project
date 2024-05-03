@@ -1,9 +1,11 @@
 Texture2D colTex : register(t0);
-Texture2D normalTex : register(t1);
-Texture2D shinyTex : register(t2);
-Texture2D metalTex : register(t3);
-Texture2D fresnelTex : register(t4);
-Texture2D emisionTex : register(t5);
+Texture2D colTex2 : register(t1);
+Texture2D normalTex : register(t2);
+Texture2D normalTex2 : register(t3);
+Texture2D shinyTex : register(t4);
+Texture2D metalTex : register(t5);
+Texture2D fresnelTex : register(t6);
+Texture2D emisionTex : register(t7);
 
 SamplerState s1 : register(s0);
 struct VS_OUTPUT
@@ -16,10 +18,7 @@ struct VS_OUTPUT
     float4 viewSpaceNormal : VIEWSPACENORMAL;
     float4 viewSpacePos : VIEWSPACEPOS;
     float3 tangent :TANGENT;
-    //float3x3 TBN : TBN;
-
 };
-
 struct PointLight
 {
     float4 position;
@@ -35,8 +34,9 @@ cbuffer ConstantBuffer : register(b0)
     
     PointLight pointLights[3]; // 48 bytes
     int pointLightCount; // 4 bytes
-};
 
+    bool isProcWorld;
+};
 cbuffer ConstantMeshBuffer : register(b1)
 {
     float4 material_emmision;
@@ -51,9 +51,19 @@ cbuffer ConstantMeshBuffer : register(b1)
     float material_metalness;
     float material_fresnel;
     bool hasMaterial;
+
+    
+    //for proc world only, should maybe not be here...
+	float stop_flat;
+	float stop_interp;
+    
 }
 
+
 #define PI 3.14159265359f
+
+
+
 
 float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float3 base_color, VS_OUTPUT input)
 {
@@ -140,8 +150,28 @@ float3 calculateIndirectIllumination(float3 wo, float3 n, float3 base_color, VS_
     return indirect_illum;
 
 }
+float3 calcProcWorldCol(VS_OUTPUT input)
+{
+    float3 worldNormal = mul(float4(input.viewSpaceNormal.xyz, 0.0), viewInverse);
+    float3 worldpos = mul(float4(input.viewSpacePos.xyz, 1.0), viewInverse);
+    float slope = dot(normalize(worldNormal), float3(0, 1, 0)); // Cosine of the angle between the normal and the up vector
 
+    float3 flat_col = colTex.Sample(s1, input.texCoord);
+    float3 slope_col = colTex2.Sample(s1, input.texCoord); // 
+    float3 interpolatedColor;
 
+    if(slope > stop_flat) //flat
+        interpolatedColor = flat_col;
+    else if(slope < stop_interp) //steep
+        interpolatedColor = slope_col;
+    else //interp
+    {
+        //remap slope from [stop_interpet, stop_flat] to [1.0]
+        float remapped_slope = saturate((slope - stop_interp) / (stop_flat - stop_interp));
+        interpolatedColor = lerp(slope_col, flat_col, remapped_slope);
+    }
+    return interpolatedColor;
+}
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
     if (pointLightCount == 0)
@@ -155,6 +185,9 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     
     if (hasColTex)
         color = colTex.Sample(s1, input.texCoord);
+    
+    if (isProcWorld)
+        color = calcProcWorldCol(input);
     
     float3 result = float3(0, 0, 0);
 
@@ -193,6 +226,5 @@ float4 main(VS_OUTPUT input) : SV_TARGET
         emision = emisionTex.Sample(s1, input.texCoord);
 
     result += emision;
-    return float4(n, 0.0);
     return float4(result, 1.0f);
 }

@@ -199,11 +199,17 @@ namespace pathtracex {
 
 		ImGui::Text("Procedual world settings");
 		static ProcedualWorldSettings procedualWorldSettings = scene.procedualWorldManager->settings;
+
 		drawSerializableVariables(&procedualWorldSettings);
+		if (ImGui::CollapsingHeader("Noise settings", ImGuiTreeNodeFlags_None)) {
+			drawSerializableVariables(&scene.procedualWorldManager->noiseGenerator);
+		}
+
 		if (ImGui::Button("Update Procedual World"))
 		{
 			scene.procedualWorldManager->updateProcedualWorldSettings(procedualWorldSettings);
 		}
+		
 	}
 
 	void GUI::drawSelectableSettings()
@@ -421,6 +427,24 @@ namespace pathtracex {
 			else if (seralizableVariable.type == SerializableType::VECTOR4)
 			{
 				ImGui::InputFloat4(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::ENUM)
+			{
+				std::string name = seralizableVariable.name;
+				EnumPair* p = (EnumPair*)seralizableVariable.data;
+				if (ImGui::BeginCombo(name.c_str(), p->items[*p->val].c_str())) {
+					for (size_t i = 0; i < p->items.size(); ++i) {
+						bool isSelected = (*p->val == i);
+						if (ImGui::Selectable(p->items[i].c_str(), isSelected)) {
+							*p->val = i;
+						}
+						if (isSelected) {
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+
 			}
 			else {
 				return;

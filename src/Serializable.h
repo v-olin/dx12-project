@@ -13,7 +13,13 @@ namespace pathtracex {
 		VECTOR3,
 		VECTOR4,
 		COLOR,
+		ENUM, // assume the data is a pair of (const char* [], &Int)
 		MATRIX4X4 // Must be given as a XMMATRIX
+	};
+
+	struct EnumPair {
+		int* val;
+		std::vector<std::string> items;
 	};
 
 	// Variable that will be serialized and be displayed in the editor

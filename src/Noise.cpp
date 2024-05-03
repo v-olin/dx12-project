@@ -32,6 +32,9 @@ namespace pathtracex
 
     float Noise::perlin(float x, float y, float size, int seed, int octaves)
     {
+        //these cant be negative, oops.
+        y += 5000;
+        x += 5000;
         float noise = 0, freq = 1.0f, amp = 1.0f;
 
         for (int i = 0; i < octaves; i++)
@@ -84,6 +87,5 @@ namespace pathtracex
         // quinitc interpolation
         return (b - a) * (3.0f - w * 2.0f) * w * w + a;
     }
-
 }
 
