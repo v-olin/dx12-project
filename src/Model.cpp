@@ -109,9 +109,6 @@ namespace pathtracex
 			if (material.emissionTexture.valid)
 				material.emissionTexture.free();
 		}
-		/*	glDeleteBuffers(1, &m_positions_bo);
-			glDeleteBuffers(1, &m_normals_bo);
-			glDeleteBuffers(1, &m_texture_coordinates_bo);*/
 	}
 	Model::Model(std::string name, std::vector<Material> materials, std::vector<Mesh> meshes, bool hasDedicatedShader, float3 max_cords, float3 min_cords, std::vector<Vertex> vertices = {}, std::vector<uint32_t> indices = {})
 		: name(name), materials(materials), meshes(meshes), maxCords(max_cords), minCords(min_cords), vertices(vertices), indices(indices)
@@ -191,12 +188,12 @@ namespace pathtracex
 			material.metalness = m.metallic;
 			if (m.metallic_texname != "")
 			{
-				//material.metalnessTexture.load(directory, m.metallic_texname, 1, &mainDescriptorHeap);
+				material.metalnessTexture.load(directory, m.metallic_texname, 1, &material.mainDescriptorHeap, METALNESSTEX);
 			}
 			material.fresnel = m.specular[0];
 			if (m.specular_texname != "")
 			{
-				//material.fresnelTexture.load(directory, m.specular_texname, 1, &mainDescriptorHeap);
+				material.fresnelTexture.load(directory, m.specular_texname, 1, &material.mainDescriptorHeap, FRESNELTEX);
 			}
 			material.shininess = m.roughness;
 			if (m.roughness_texname != "")
@@ -206,7 +203,7 @@ namespace pathtracex
 			material.emission = float3(m.emission[0], m.emission[1], m.emission[2]);
 			if (m.emissive_texname != "")
 			{
-				//material.emissionTexture.load(directory, m.emissive_texname, 4, &mainDescriptorHeap);
+				material.emissionTexture.load(directory, m.emissive_texname, 4, &material.mainDescriptorHeap, EMISIONTEX);
 			}
 			if (m.bump_texname != "")
 			{
@@ -368,13 +365,13 @@ namespace pathtracex
 		for (int i = 0; i < number_of_vertices; i++)
 		{
 			float3 n = m_normals.at(i);
-			float4 col = {n.x, n.y, n.z, 1};
+			float4 col = {0.0, 0.0, 0.0, 0.0};
 
 			Vertex vert{m_positions.at(i), col, n, m_texture_coordinates.at(i)};
 			vertices.push_back(vert);
 		}
 
-		for (auto mesh : meshes)
+		for (auto& mesh : meshes)
 		{
 			for (size_t i = 0; i < mesh.numberOfVertices; i++)
 			{
@@ -385,8 +382,58 @@ namespace pathtracex
 				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
 			}
 		}
-		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
-		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
+
+		//compute tangents
+		for (int i = 0; i < indices.size(); i += 3) {
+			int i0 = indices.at(i);
+			int i1 = indices.at(i +1);
+			int i2 = indices.at(i+2);
+			auto v0 = vertices.at(i0);
+			auto v1 = vertices.at(i1);
+			auto v2 = vertices.at(i2);
+
+			float2 uv0 = v0.tex;
+			float2 uv1 = v1.tex;
+			float2 uv2 = v2.tex;
+
+			float3 v0Pos = v0.pos;
+			float3 v1Pos = v1.pos;
+			float3 v2Pos = v2.pos;
+
+			auto edge1 = v1Pos - v0Pos;
+			auto edge2 = v2Pos - v0Pos;
+
+			auto deltaUV1 = uv1 - uv0;
+			auto deltaUV2 = uv2 - uv0;
+
+
+			float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+			float3 tangent;
+			float3 bitangent;
+			tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+			tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+			tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+			bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+			bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+		/*	float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+			float3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
+			float3 bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;*/
+
+			vertices.at(i0).tangent = tangent;
+			vertices.at(i1).tangent = tangent;
+			vertices.at(i2).tangent = tangent;
+			vertices.at(i0).biTangent = bitangent;
+			vertices.at(i1).biTangent = bitangent;
+			vertices.at(i2).biTangent = bitangent;
+		}
+
+		// this is now done in the scene class when deserializing
+		//vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
+		//indexBuffer = std::make_unique<DXIndexBuffer>(indices);
 		std::cout << "done.\n";
 	}
 
@@ -448,14 +495,17 @@ namespace pathtracex
 			return PrimitiveModelType::NONE;
 		}
 	}
-
-	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale)
+	float3 Model::cross(float3 a, float3 b) {
+		return float3(DirectX::XMVector3Cross(a, b));
+	}
+	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int tesselation, int heightScale, FastNoiseLite nGen)
 	{
 		std::vector<float3> positions{};
 		std::vector<uint32_t> indices{};
 		std::vector<float3> normals{};
 		std::vector<float2> texcoords{};
 		std::vector<Vertex> vertices{};
+
 
 		//		m_mapSize = size;
 		float sideLen = sideLength / (tesselation - 1);
@@ -470,11 +520,13 @@ namespace pathtracex
 			for (int j = 0; j < tesselation; j++)
 			{
 				float z = -sideLength / 2 + j * sideLen;
-				float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 2) // 2 is octaves
-						* heightScale;
+				float noise = nGen.GetNoise(startPos.x + x, startPos.z + z);
+				float y = noise * heightScale;
+				//float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 6) // 2 is octaves
+				//		* heightScale;
 				positions.push_back({x, y, z});
 
-				texcoords.push_back({totalX / sideLength, totalZ / sideLength});
+				texcoords.push_back({totalX / sideLength * 5, totalZ / sideLength * 5});
 
 				if (i != tesselation - 1 && j != tesselation - 1)
 				{
@@ -491,7 +543,6 @@ namespace pathtracex
 			totalZ = 0;
 			totalX += sideLen;
 		}
-		/*
 
 		// despair, k�l please fix
 		for (int i = 0; i < tesselation; i++)
@@ -501,72 +552,71 @@ namespace pathtracex
 				//  	A
 				//  B	x	C
 				//  	D
-				vec3 x, a, b, c, d, n;
-				x = vertices.at(i * tesselation + j);
+				float3 x, a, b, c, d, n;
+				x = positions.at(i * tesselation + j);
 
 				if (i == 0 && j == 0)
 				{
-					a = vertices.at((i + 1) * tesselation + j);
-					c = vertices.at(i * tesselation + j + 1);
+					a = positions.at((i + 1) * tesselation + j);
+					c = positions.at(i * tesselation + j + 1);
 
 					n = cross(c - x, a - x);
 				}
 				else if (i == tesselation - 1 && j == tesselation - 1)
 				{
-					b = vertices.at(i * tesselation + j - 1);
-					d = vertices.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					d = positions.at((i - 1) * tesselation + j);
 
 					n = cross(b - x, d - x);
 				}
 				else if (i == 0)
 				{
-					b = vertices.at(i * tesselation + j - 1);
-					c = vertices.at(i * tesselation + j + 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					c = positions.at(i * tesselation + j + 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(b - x, d - x) + cross(d - x, c - x);
 				}
 				else if (i == tesselation - 1)
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					b = vertices.at(i * tesselation + j - 1);
-					c = vertices.at(i * tesselation + j + 1);
+					a = positions.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					c = positions.at(i * tesselation + j + 1);
 
 					n = cross(a - x, b - x) + cross(c - x, a - x);
 				}
 				else if (j == 0)
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					c = vertices.at(i * tesselation + j + 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					a = positions.at((i - 1) * tesselation + j);
+					c = positions.at(i * tesselation + j + 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(c - x, a - x) + cross(d - x, c - x);
 				}
 				else if (j == tesselation - 1)
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					b = vertices.at(i * tesselation + j - 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					a = positions.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(a - x, b - x) + cross(b - x, d - x);
 				}
 				else
 				{
-					a = vertices.at((i - 1) * tesselation + j);
-					b = vertices.at(i * tesselation + j - 1);
-					c = vertices.at(i * tesselation + j + 1);
-					d = vertices.at((i + 1) * tesselation + j);
+					a = positions.at((i - 1) * tesselation + j);
+					b = positions.at(i * tesselation + j - 1);
+					c = positions.at(i * tesselation + j + 1);
+					d = positions.at((i + 1) * tesselation + j);
 
 					n = cross(a - x, b - x)
 						+ cross(b - x, d - x)
 						+ cross(d - x, c - x)
 						+ cross(c - x, a - x);
 				}
-				normals.push_back(-normalize(n));
+				normals.push_back(-float3(DirectX::XMVector3Normalize(n)));
 				//normals.push_back(vec3(0.0, 1.0, 0.0));
 			}
 		}
-			*/
 
 		float3 max_cords(positions.at(0));
 		float3 min_cords(positions.at(0));
@@ -591,7 +641,8 @@ namespace pathtracex
 			float4 color = float4(positions.at(i).y / heightScale, 0, 0, 1);
 			if (positions.at(i).y < 0)
 				color = float4(0, 0, 1, 1);
-			vertices.push_back({positions.at(i), color, float3(0, 1, 0), texcoords.at(i)});
+			float3 normal = normals.at(i);
+			vertices.push_back({positions.at(i), color, normal, texcoords.at(i)});
 		}
 
 		Mesh mesh = Mesh();
@@ -602,6 +653,7 @@ namespace pathtracex
 
 		std::vector<Material> materials;
 		std::vector<Mesh> meshes;
+
 
 		meshes.push_back(mesh);
 
@@ -621,6 +673,9 @@ namespace pathtracex
 		std::vector<float2> m_texture_coordinates;
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
+
+		materials.push_back(Material::createDefaultMaterial());
+
 		Vertex vertex;
 		size_t number_of_vertices = 36;
 
@@ -640,13 +695,11 @@ namespace pathtracex
 		indices.push_back(2);
 		indices.push_back(3);
 		indices.push_back(0);
-		Mesh front_mesh;
-		front_mesh.name = "front_mesh";
-		front_mesh.materialIdx = 0;
+		Mesh mesh;
+		mesh.name = "cube_mesh";
+		mesh.materialIdx = 0;
 
-		front_mesh.startIndex = 0;
-		front_mesh.numberOfVertices = 6;
-		meshes.push_back(front_mesh);
+
 
 		for (int i = 0; i < 6; i++)
 		{
@@ -669,13 +722,6 @@ namespace pathtracex
 		indices.push_back(4);
 		indices.push_back(7);
 		indices.push_back(6);
-		Mesh back_mesh;
-		back_mesh.name = "back_mesh";
-		back_mesh.materialIdx = 1;
-
-		back_mesh.startIndex = 6;
-		back_mesh.numberOfVertices = 6;
-		meshes.push_back(back_mesh);
 
 		for (int i = 6; i < 12; i++)
 		{
@@ -699,14 +745,6 @@ namespace pathtracex
 		indices.push_back(11);
 		indices.push_back(8);
 
-		Mesh left_mesh;
-		left_mesh.name = "left_mesh";
-		left_mesh.materialIdx = 2;
-
-		left_mesh.startIndex = 12;
-		left_mesh.numberOfVertices = 6;
-		meshes.push_back(left_mesh);
-
 		for (int i = 12; i < 18; i++)
 		{
 			vertex = tmp_vertices.at(indices.at(i));
@@ -728,13 +766,6 @@ namespace pathtracex
 		indices.push_back(12);
 		indices.push_back(15);
 		indices.push_back(14);
-		Mesh right_mesh;
-		right_mesh.name = "right_mesh";
-		right_mesh.materialIdx = 3;
-
-		right_mesh.startIndex = 18;
-		right_mesh.numberOfVertices = 6;
-		meshes.push_back(right_mesh);
 
 		for (int i = 18; i < 24; i++)
 		{
@@ -757,13 +788,6 @@ namespace pathtracex
 		indices.push_back(16);
 		indices.push_back(19);
 		indices.push_back(18);
-		Mesh top_mesh;
-		top_mesh.name = "top_mesh";
-		top_mesh.materialIdx = 4;
-
-		top_mesh.startIndex = 24;
-		top_mesh.numberOfVertices = 6;
-		meshes.push_back(top_mesh);
 
 		for (int i = 24; i < 30; i++)
 		{
@@ -787,14 +811,6 @@ namespace pathtracex
 		indices.push_back(23);
 		indices.push_back(20);
 
-		Mesh bottom_mesh;
-		bottom_mesh.name = "bottom_mesh";
-		bottom_mesh.materialIdx = 5;
-
-		bottom_mesh.startIndex = 30;
-		bottom_mesh.numberOfVertices = 6;
-		meshes.push_back(bottom_mesh);
-
 		for (int i = 30; i < 36; i++)
 		{
 			vertex = tmp_vertices.at(indices.at(i));
@@ -812,6 +828,10 @@ namespace pathtracex
 			min_cords = max_cords.Min(min_cords, m_positions.at(i));
 		}
 
+		mesh.startIndex = 0;
+		mesh.numberOfVertices = number_of_vertices;
+		meshes.push_back(mesh);
+
 		// TODO creatye materials for cube faces,
 		//  posibly 6 diffwerent ones loaded from a file so that you can tweek and save changes
 		std::vector<uint32_t> indecies;
@@ -822,11 +842,22 @@ namespace pathtracex
 				indecies.push_back(i + mesh.startIndex);
 		}
 
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
+
 		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Cube", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::CUBE;
 
 		return model;
 	}
+
 	std::shared_ptr<Model> Model::createSphere(int stacks, int slices)
 	{
 		std::vector<Vertex> tmp_vertices{};
@@ -901,6 +932,7 @@ namespace pathtracex
 			vertecies.push_back(tmp_vertices.at(idx));
 		}
 		std::vector<Material> materials;
+		materials.push_back(Material::createDefaultMaterial());
 
 		float3 max_cords(vertecies.at(0).pos);
 		float3 min_cords(vertecies.at(0).pos);
@@ -913,6 +945,16 @@ namespace pathtracex
 		std::vector<uint32_t> indecies;
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
 
 		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Sphere", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::SPHERE;
@@ -958,6 +1000,7 @@ namespace pathtracex
 		}
 		std::vector<Mesh> meshes{mesh};
 		std::vector<Material> materials;
+		materials.push_back(Material::createDefaultMaterial());
 
 		float3 max_cords(vertecies.at(0).pos);
 		float3 min_cords(vertecies.at(0).pos);
@@ -970,6 +1013,16 @@ namespace pathtracex
 		std::vector<uint32_t> indecies;
 		for (size_t i = 0; i < vertecies.size(); i++)
 			indecies.push_back(i);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
 
 		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Plane", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
 		model->primativeType = PrimitiveModelType::PLANE;

@@ -137,14 +137,6 @@ namespace pathtracex {
 		else
 			drawSelectableSettings();
 
-		ImGui::Text("Procedual world settings");
-		static ProcedualWorldSettings procedualWorldSettings = scene.procedualWorldManager->settings;
-		drawSerializableVariables(&procedualWorldSettings);
-		if (ImGui::Button("Update Procedual World"))
-		{
-			scene.procedualWorldManager->updateProcedualWorldSettings(procedualWorldSettings);
-		}
-
 		ImGui::End();
 	}
 
@@ -188,7 +180,14 @@ namespace pathtracex {
 	{
 		ImGui::Text("Rendering Settings");
 		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
-		ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+		if (renderSettings.raytracingSupported) {
+			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+		}
+		else {
+			ImGui::BeginDisabled();
+			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+			ImGui::EndDisabled();
+		}
 		ImGui::Checkbox("Draw Procedual World", &renderSettings.drawProcedualWorld);
 
 		ImGui::Text("Camera Settings");
@@ -198,6 +197,19 @@ namespace pathtracex {
 
 		drawTransformSettings(renderSettings.camera.transform);
 
+		ImGui::Text("Procedual world settings");
+		static ProcedualWorldSettings procedualWorldSettings = scene.procedualWorldManager->settings;
+
+		drawSerializableVariables(&procedualWorldSettings);
+		if (ImGui::CollapsingHeader("Noise settings", ImGuiTreeNodeFlags_None)) {
+			drawSerializableVariables(&scene.procedualWorldManager->noiseGenerator);
+		}
+
+		if (ImGui::Button("Update Procedual World"))
+		{
+			scene.procedualWorldManager->updateProcedualWorldSettings(procedualWorldSettings);
+		}
+		
 	}
 
 	void GUI::drawSelectableSettings()
@@ -208,6 +220,20 @@ namespace pathtracex {
 			{
 				drawTransformSettings(lockedModel->trans);
 			}
+
+			if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				for (auto& material : lockedModel->materials)
+				{
+					if (ImGui::CollapsingHeader(material.name.c_str()))
+					{
+						drawSerializableVariables(&material);
+					}
+				}
+			}
+
+			ImGui::NewLine();
+
 			drawSerializableVariables(lockedModel.get());
 		}
 		else if (auto lockedLight = std::dynamic_pointer_cast<Light>(selectedSelectable.lock()))
@@ -217,6 +243,21 @@ namespace pathtracex {
 				drawTransformSettings(lockedLight->transform);
 			}
 			drawSerializableVariables(lockedLight.get());
+		}
+
+		ImGui::NewLine();
+
+		if (ImGui::Button("Delete Model"))
+		{
+			if (auto lockedModel = std::dynamic_pointer_cast<Model>(selectedSelectable.lock()))
+			{
+				scene.models.erase(std::remove(scene.models.begin(), scene.models.end(), lockedModel), scene.models.end());
+			}
+			else if (auto lockedLight = std::dynamic_pointer_cast<Light>(selectedSelectable.lock()))
+			{
+				scene.lights.erase(std::remove(scene.lights.begin(), scene.lights.end(), lockedLight), scene.lights.end());
+			}
+			selectedSelectable.reset();
 		}
 	}
 
@@ -386,6 +427,24 @@ namespace pathtracex {
 			else if (seralizableVariable.type == SerializableType::VECTOR4)
 			{
 				ImGui::InputFloat4(seralizableVariable.name.c_str(), (float*)seralizableVariable.data);
+			}
+			else if (seralizableVariable.type == SerializableType::ENUM)
+			{
+				std::string name = seralizableVariable.name;
+				EnumPair* p = (EnumPair*)seralizableVariable.data;
+				if (ImGui::BeginCombo(name.c_str(), p->items[*p->val].c_str())) {
+					for (size_t i = 0; i < p->items.size(); ++i) {
+						bool isSelected = (*p->val == i);
+						if (ImGui::Selectable(p->items[i].c_str(), isSelected)) {
+							*p->val = i;
+						}
+						if (isSelected) {
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+
 			}
 			else {
 				return;

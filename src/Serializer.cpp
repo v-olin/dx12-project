@@ -92,6 +92,17 @@ namespace pathtracex {
 			out << YAML::BeginMap;
 			serializeSerializable(model.get(), out);
 			out << YAML::Key << "PrimativeType" << YAML::Value << Model::primitiveModelTypeToString(model->primativeType);
+
+			// Only serialize materials if the model is a primative
+			if (model->primativeType != PrimitiveModelType::NONE) {
+				// Currently only supporting one material per primative
+				out << YAML::Key << "Material";
+				out << YAML::Value << YAML::BeginMap;
+				serializeSerializable(&model->materials[0], out);
+				out << YAML::EndMap;
+				
+			}
+
 			out << YAML::EndMap;
 		}
 
@@ -228,6 +239,7 @@ namespace pathtracex {
 			PrimitiveModelType type = Model::stringToPrimitiveModelType(primativeType);
 			std::string filename = modelNode["Filename"].as<std::string>();
 			
+			
 			std::shared_ptr<Model> model;
 
 			if (type != PrimitiveModelType::NONE)
@@ -240,12 +252,34 @@ namespace pathtracex {
 			}
 
 			deserializeSerializable(modelNode, model.get());
-			scene.models.push_back(model);
 
-			//std::string filename = textureNode["fileName"].as<std::string>();
-			//Texture* texture = Texture::create(filename);
-			//deserializeTexture(*it, game, texture);
+
+			if (type != PrimitiveModelType::NONE && modelNode["Material"])
+			{
+				Material material = Material::createDefaultMaterial();
+
+				deserializeSerializable(modelNode["Material"], &material);
+
+				// Yikes
+				D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+				ZeroMemory(&heapDesc, sizeof(heapDesc));
+				heapDesc.NumDescriptors = NUMTEXTURETYPES;
+				heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+				heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+				DXRenderer* renderer = DXRenderer::getInstance();
+
+				renderer->createTextureDescriptorHeap(heapDesc, &material.mainDescriptorHeap);
+
+				// Currently only supporting one material per primative
+				model->materials.clear();
+				model->materials.push_back(material);
+			}
+
+			scene.models.push_back(model);
 		}
+
+		scene.initializeModelBuffers();
 	}
 
 	void Serializer::deserializeLights(YAML::Node node, Scene& scene)
@@ -269,5 +303,4 @@ namespace pathtracex {
 			scene.lights.push_back(light);
 		}
 	}
-
 }

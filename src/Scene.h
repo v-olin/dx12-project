@@ -18,7 +18,9 @@ namespace pathtracex {
 
 		std::string sceneName = "Scene";
 
-		Camera camera{};
+		//Camera camera{};
 		ProcedualWorldManager* procedualWorldManager;
+
+		void initializeModelBuffers();
 	};
 }

@@ -22,8 +22,13 @@ namespace pathtracex {
 	enum TextureType
 		{
 			COLTEX,
+			COLTEX2,
 			NORMALTEX,
+			NORMALTEX2,
 			SHININESSTEX,
+			METALNESSTEX,
+			FRESNELTEX,
+			EMISIONTEX,
 			NUMTEXTURETYPES
 		};
 	class Texture {

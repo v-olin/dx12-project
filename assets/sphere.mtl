@@ -1,0 +1,13 @@
+# Material file for the sphere.obj
+
+newmtl sphere_material
+Ka 0.0435 0.0435 0.0435
+Kd 0.5 0.5 0.5
+Ks 0.078 0.078 0.078
+Ns 0
+d 1.0
+illum 2
+
+map_Kd textures\\gray_rocks_diff_4k.jpg
+map_Pr textures\\gray_rocks_rough_4k.jpg
+map_Bump textures\\gray_rocks_nor_dx_4k.jpg
