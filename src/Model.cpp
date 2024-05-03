@@ -375,13 +375,12 @@ namespace pathtracex
 		{
 			for (size_t i = 0; i < mesh.numberOfVertices; i++)
 			{
-				mesh.indices.push_back(i);
 				indices.push_back(i + mesh.startIndex);
 				if (materials.size() == 0)
 					continue;
 				auto mat = materials.at(mesh.materialIdx);
 				vertices.at(i + mesh.startIndex).color = DirectX::XMFLOAT4(mat.color.x, mat.color.y, mat.color.z, 1.f);
-				
+				mesh.indices.push_back(i);
 			}
 
 			mesh.vertices.reserve(mesh.numberOfVertices);

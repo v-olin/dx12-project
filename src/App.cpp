@@ -41,7 +41,7 @@ namespace pathtracex
 
 		if (defaultRenderSettings.raytracingSupported) {
 			renderer->initRaytracingPipeline(scene);
-			defaultRenderSettings.useRayTracing = false;
+			//defaultRenderSettings.useRayTracing = false;
 		}
 
 		registerEventListener(&defaultCamera);

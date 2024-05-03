@@ -59,9 +59,8 @@ namespace pathtracex {
 		// for DXR
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
-		std::shared_ptr<DXVertexBuffer> vbuffer;
-		std::shared_ptr<DXIndexBuffer> ibuffer;
-		size_t globMaterialIdx{0};
+		std::shared_ptr<DXVertexBuffer> vertexbuffer;
+		std::shared_ptr<DXIndexBuffer> indexbuffer;
 	};
 
 	class Model : public Selectable {

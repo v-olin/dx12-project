@@ -113,14 +113,13 @@ namespace pathtracex {
 	}
 
 	bool DXRenderer::initRaytracingPipeline(Scene& scene) {
-		numMeshes = 0;
-		for (const auto& model : scene.models) {
-			numMeshes += model->meshes.size();
+		// count meshes in scene to size the mesh data buffer
+		{
+			numMeshes = 0;
+			for (const auto& model : scene.models) {
+				numMeshes += model->meshes.size();
+			}
 		}
-
-		// THIS FUNCTION HAS TO BE THE FIRST STEP IN THE PIPELINE
-		if (!createMeshDataBuffer(scene))
-			return false;
 
 		if (!createAccelerationStructures(scene))
 			return false;
@@ -132,6 +131,9 @@ namespace pathtracex {
 			return false;
 
 		if (!createRTBuffers())
+			return false;
+
+		if (!createMeshDataBuffer(scene))
 			return false;
 
 		if (!createShaderResourceHeap(scene))
@@ -1313,11 +1315,10 @@ namespace pathtracex {
 	DXRenderer::AccelerationStructureBuffers DXRenderer::createBLASFromModel(std::shared_ptr<Model> model) {
 		nv::NVBLASGenerator blasGenerator;
 
-		/*
 		for (const auto& mesh : model->meshes) {
-			ID3D12Resource* vbuffer = mesh.vbuffer->vertexBuffer;
+			ID3D12Resource* vbuffer = mesh.vertexbuffer->vertexBuffer;
 			uint32_t vbufferSize = mesh.numberOfVertices;
-			ID3D12Resource* ibuffer = mesh.ibuffer->indexBuffer;
+			ID3D12Resource* ibuffer = mesh.indexbuffer->indexBuffer;
 			uint32_t ibufferSize = mesh.numberOfVertices;
 
 			blasGenerator.addVertexBuffer(vbuffer, 0,
@@ -1325,17 +1326,6 @@ namespace pathtracex {
 				ibuffer, 0,
 				ibufferSize, nullptr, 0, true);
 		}
-		*/
-
-		ID3D12Resource* vbuffer = model->vertexBuffer->vertexBuffer;
-		uint32_t vbufferSize = model->vertices.size();
-		ID3D12Resource* ibuffer = model->indexBuffer->indexBuffer;
-		uint32_t ibufferSize = model->indices.size();
-
-		blasGenerator.addVertexBuffer(vbuffer, 0,
-			vbufferSize, sizeof(Vertex),
-			ibuffer, 0,
-			ibufferSize, nullptr, 0, true);
 
 		UINT64 scratchSizeInBytes = 0;
 		UINT64 resultSizeInBytes = 0;
@@ -1400,6 +1390,23 @@ namespace pathtracex {
 	}
 
 	bool DXRenderer::createAccelerationStructures(Scene& scene) {
+		// prepare mesh buffers before creating AS
+		{
+			uint32_t modelOffset = 0;
+			for (const auto& model : scene.models) {
+				for (auto& mesh : model->meshes) {
+					for (size_t i = 0; i < mesh.numberOfVertices; i++) {
+						mesh.vertices[i].materialIdx = modelOffset + mesh.materialIdx;
+					}
+
+					mesh.vertexbuffer = std::make_shared<DXVertexBuffer>(mesh.vertices);
+					mesh.indexbuffer = std::make_shared<DXIndexBuffer>(mesh.indices);
+				}
+
+				modelOffset += model->meshes.size();
+			}
+		}
+
 		resetCommandList();
 
 		for (auto model : scene.models) {
@@ -1662,8 +1669,8 @@ namespace pathtracex {
 			for (const auto& mesh : model->meshes) {
 
 				std::vector<void*> meshResources = {
-					(void*)(mesh.vbuffer->vertexBuffer->GetGPUVirtualAddress()),
-					(void*)(mesh.ibuffer->indexBuffer->GetGPUVirtualAddress()),
+					(void*)(mesh.vertexbuffer->vertexBuffer->GetGPUVirtualAddress()),
+					(void*)(mesh.indexbuffer->indexBuffer->GetGPUVirtualAddress()),
 					(void*)(heapPtr)
 				};
 
@@ -1841,7 +1848,6 @@ namespace pathtracex {
 			LightConstantBuffer temp;
 			int count = scene.lights.size();
 			for (int i = 0; i < count && i < 5; i++) {
-				// pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
 				const auto light = scene.lights.at(i);
 				const auto pos = light->transform.getPosition();
 				temp.lights[i] = {{pos.x, pos.y, pos.z, 0}};
@@ -1885,24 +1891,6 @@ namespace pathtracex {
 		}
 
 		meshDataBuffer->SetName(L"RTX Mesh data buffer");
-
-		// this is insanely cursed, do not look
-		{
-			unsigned int modelMaterialOffset = 0;
-			for (const auto& model : scene.models) {
-				for (auto& mesh : model->meshes) {
-					for (auto& vertex : mesh.vertices) {
-						vertex.materialIdx = modelMaterialOffset + mesh.materialIdx;
-					}
-
-					mesh.vbuffer = std::make_shared<DXVertexBuffer>(mesh.vertices);
-					mesh.ibuffer = std::make_shared<DXIndexBuffer>(mesh.indices);
-
-				}
-
-				modelMaterialOffset += model->materials.size();
-			}
-		}
 
 		return true;
 	}

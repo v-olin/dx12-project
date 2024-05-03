@@ -103,11 +103,55 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     return 1.0f - ao / rayCount;
 }
 
+float3 GetMaterialColor(Attributes attrib)
+{
+    uint vertId = 3 * PrimitiveIndex();
+    uint matidx = Vertices[vertId].materialIdx;
+    
+    float3 colors[3] =
+    {
+        Vertices[indices[vertId + 0]].color.rgb,
+            Vertices[indices[vertId + 1]].color.rgb,
+            Vertices[indices[vertId + 2]].color.rgb
+    };
+        
+        // blend them with bary
+    float3 hitColor = HitAttribute(colors, attrib);
+    return hitColor;
+    
+    if (meshdatas[matidx].hasMaterial)
+    {
+        float3 colors[3] =
+        {
+            meshdatas[Vertices[vertId + 0].materialIdx].material_color.rgb,
+            meshdatas[Vertices[vertId + 1].materialIdx].material_color.rgb,
+            meshdatas[Vertices[vertId + 2].materialIdx].material_color.rgb
+        };
+        
+        MeshData data = meshdatas[matidx];
+        
+        float3 hitColor = HitAttribute(colors, attrib);
+        return hitColor;
+    }
+    else
+    {
+        float3 colors[3] = 
+        {
+            Vertices[indices[vertId + 0]].color.rgb,
+            Vertices[indices[vertId + 1]].color.rgb,
+            Vertices[indices[vertId + 2]].color.rgb
+        };
+        
+        // blend them with bary
+        float3 hitColor = HitAttribute(colors, attrib);
+        return hitColor;
+    }
+}
+
 [shader("closesthit")] void ClosestHit(inout HitInfo payload, Attributes attrib) 
 {
     uint vertId = 3 * PrimitiveIndex();
-    float3 colors[3] = {Vertices[indices[vertId + 0]].color.rgb, Vertices[indices[vertId + 1]].color.rgb, Vertices[indices[vertId + 2]].color.rgb};
-    float3 hitColor = HitAttribute(colors, attrib);
+    float3 hitColor = GetMaterialColor(attrib);
     
     float shadowFactor = 0.0f;
     float3 worldOrigin = HitWorldPosition();
@@ -137,10 +181,7 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     
     hitColor = hitColor * (1.0f - shadowFactor);
   
-    //uint matidx = Vertices[].materialIdx;
-    //float4 matcol = meshdatas[matidx].material_color;
-    //payload.colorAndDistance = float4(matcol.r, matcol.g, matcol.b, RayTCurrent());
-    //payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
+    payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
 
     /*
     float3 normals[3] = {Vertices[indices[vertId + 0]].normal, Vertices[indices[vertId + 1]].normal, Vertices[indices[vertId + 2]].normal};
