@@ -1,6 +1,7 @@
 #pragma once
 #include "Model.h"
 #include "Camera.h"
+#include "FastNoiseLite.h"
 #include <unordered_map>
 #include <memory>
 
@@ -8,27 +9,23 @@ namespace pathtracex
 {
 	struct ProcedualWorldSettings : public Serializable
 	{
-		int seed = 1432432;
 		float chunkSideLength = 200;
 		float tessellationFactor = 200;
 		int chunkRenderDistance = 200;
-		int heightScale = 30;
-		int octaves = 6;
+		int heightScale = 10;
 
 		float stop_flat = 0.95;
-		float stop_interp = 0.85;
+		float stop_interp = 0.3;
 
 
 		std::vector<SerializableVariable> getSerializableVariables() override
 		{
 			return
 			{
-				{SerializableType::INT, "seed", "The seed of the procedual world", &seed},
 				{SerializableType::FLOAT, "chunkSideLength", "The side length of a chunk", &chunkSideLength},
 				{SerializableType::FLOAT, "tessellationFactor", "The tessellation factor of the procedual world", &tessellationFactor},
 				{SerializableType::INT, "chunkRenderDistance", "The render distance of the procedual world", &chunkRenderDistance},
 				{SerializableType::INT, "heightScale", "The height scale of the procedual world", &heightScale},
-				{SerializableType::INT, "octaves", "Octaves used for generating terrain", &octaves},
 				{SerializableType::FLOAT, "stop_flat", "", &stop_flat},
 				{SerializableType::FLOAT, "stop_interp", "", &stop_interp}
 			};
@@ -55,7 +52,7 @@ namespace pathtracex
 	class ProcedualWorldManager
 	{
 	public:
-		ProcedualWorldManager(ProcedualWorldSettings settings) : settings(settings) {};
+		ProcedualWorldManager(ProcedualWorldSettings settings) : settings(settings), noiseGenerator() {};
 
 		void updateProcedualWorld(Camera& camera); 
 		void createMaterial();
@@ -72,6 +69,8 @@ namespace pathtracex
 		ProcedualWorldSettings settings;
 
 		Material base_mat;
+
+		FastNoiseLite noiseGenerator;
 	private: 
 		// Mapping of chunk coordinates to model
 		// Currently not deleting models, just caching them

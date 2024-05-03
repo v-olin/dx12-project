@@ -1,6 +1,11 @@
 #pragma once
 
 #include "Helper.h"
+#include <iostream>
+#include <vector>
+#include <random>
+#include <cmath>
+
 
 namespace pathtracex {
 	class Noise {
@@ -13,6 +18,6 @@ namespace pathtracex {
 		static float dotGridGrad(int ix, int iy, float x, float y, int seed);
 		static float interp(float a, float b, float w);
 
-
+	
 	};
 }

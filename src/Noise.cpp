@@ -87,6 +87,5 @@ namespace pathtracex
         // quinitc interpolation
         return (b - a) * (3.0f - w * 2.0f) * w * w + a;
     }
-
 }
 

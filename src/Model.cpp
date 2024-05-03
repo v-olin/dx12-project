@@ -501,13 +501,14 @@ namespace pathtracex
 	float3 Model::cross(float3 a, float3 b) {
 		return float3(DirectX::XMVector3Cross(a, b));
 	}
-	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale, int octaves)
+	std::shared_ptr<Model> Model::createProcedualWorldMesh(float3 startPos, float sideLength, int tesselation, int heightScale, FastNoiseLite nGen)
 	{
 		std::vector<float3> positions{};
 		std::vector<uint32_t> indices{};
 		std::vector<float3> normals{};
 		std::vector<float2> texcoords{};
 		std::vector<Vertex> vertices{};
+
 
 		//		m_mapSize = size;
 		float sideLen = sideLength / (tesselation - 1);
@@ -522,8 +523,10 @@ namespace pathtracex
 			for (int j = 0; j < tesselation; j++)
 			{
 				float z = -sideLength / 2 + j * sideLen;
-				float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, octaves) // 2 is octaves
-						* heightScale;
+				float noise = nGen.GetNoise(startPos.x + x, startPos.z + z);
+				float y = noise * heightScale;
+				//float y = Noise::perlin(startPos.x + x, startPos.z + z, 100, seed, 6) // 2 is octaves
+				//		* heightScale;
 				positions.push_back({x, y, z});
 
 				texcoords.push_back({totalX / sideLength * 5, totalZ / sideLength * 5});
