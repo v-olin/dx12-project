@@ -1095,7 +1095,8 @@ namespace pathtracex {
 				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+				{"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"MATERIALID", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 
 		};
 
@@ -1452,7 +1453,7 @@ namespace pathtracex {
 
 		pipeline.setMaxPayloadSize(4 * sizeof(float));
 		pipeline.setMaxAttributeSize(2 * sizeof(float));
-		pipeline.setMaxRecursionDepth(2);
+		pipeline.setMaxRecursionDepth(10);
 
 		rtpipelinestate = pipeline.generate();
 
@@ -1900,6 +1901,7 @@ namespace pathtracex {
 				curr->material_color = float4(mat.color.x, mat.color.y, mat.color.z, 1);
 				
 				curr->hasMaterial = true;
+				curr->normalMatrix = DirectX::XMMatrixInverse(nullptr, model->trans.getModelMatrix());
 
 				curr++;
 			}
