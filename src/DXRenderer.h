@@ -174,7 +174,7 @@ namespace pathtracex {
 											// (which will be placed in the resource we created above)
 		ConstantBufferPerMesh cbPerMesh;
 		ID3D12Resource* constantBufferUploadHeap; // this is the memory on the gpu where constant buffers for each frame will be placed
-		UINT64* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
+		UINT8* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
 		#pragma endregion
 
 		#pragma region Raytracing stuff
