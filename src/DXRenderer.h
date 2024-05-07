@@ -258,6 +258,7 @@ namespace pathtracex {
 			float material_shininess;
 			float material_metalness;
 			float material_fresnel;
+			float material_transparency;
 			bool hasMaterial;
 		};
 		ID3D12Resource* meshDataBuffer;

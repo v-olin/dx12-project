@@ -656,6 +656,7 @@ namespace pathtracex {
 						cbPerMesh.material_shininess = mat.shininess;
 						cbPerMesh.material_metalness = mat.metalness;
 						cbPerMesh.material_fresnel = mat.fresnel;
+						
 						cbPerMesh.material_emmision = float4(mat.emission.x,mat.emission.y, mat.emission.z, 0);
 						cbPerMesh.material_color = float4(mat.color.x, mat.color.y, mat.color.z, 1);
 						cbPerMesh.hasMaterial = true;
@@ -1899,7 +1900,8 @@ namespace pathtracex {
 				curr->material_fresnel = mat.fresnel;
 				curr->material_emmision = float4(mat.emission.x, mat.emission.y, mat.emission.z, 0);
 				curr->material_color = float4(mat.color.x, mat.color.y, mat.color.z, 1);
-				
+				curr->material_transparency = mat.transparency;
+
 				curr->hasMaterial = true;
 				curr->normalMatrix = DirectX::XMMatrixInverse(nullptr, model->trans.getModelMatrix());
 

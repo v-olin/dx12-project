@@ -24,6 +24,7 @@ struct MeshData
     float material_shininess;
     float material_metalness;
     float material_fresnel;
+    float material_transparency;
     bool hasMaterial;
 };
 
@@ -73,9 +74,10 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
 
     for (int i = 0; i < rayCount; i++)
     {
-        float realSeed = random(seed);
-        float realSeed2 = random(float2(DispatchRaysIndex().x ^ 50, DispatchRaysIndex().y ^ 50));
-        float realSeed3 = random(seed + float2(DispatchRaysIndex().x, DispatchRaysIndex().y));
+        // TODO: fix randomness for the direction
+        float realSeed = random(seed); // This is shit TODO: FIX
+        float realSeed2 = random(float2(DispatchRaysIndex().x ^ 50, DispatchRaysIndex().y ^ 50)); // This is shit TODO: FIX
+        float realSeed3 = random(seed + float2(DispatchRaysIndex().x, DispatchRaysIndex().y)); // This is shit TODO: FIX
         // Shoot ray in random direction towards hemisphere
         float3 r = normalize(float3(realSeed3, 1, 0));
         
@@ -88,7 +90,9 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
         ray.Origin = position + 0.001f * r;
         ray.Direction = r;
         ray.TMin = 0.01f;
-        ray.TMax = 0.1f; //10000.f;
+        
+        
+        ray.TMax = 0.1f; // This parameter will change how much darkness is present in the corners
         
         ShadowHitInfo shadowPayload;
         shadowPayload.isHit = false;
@@ -181,8 +185,6 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
     refractPayload.colorAndDistance = float4(0, 0, 0, -101);
     TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, refractRay, refractPayload);
         
-        
-    //outColor += transparency * (hitColor * (1 - material_metalness) + refractPayload.colorAndDistance.xyz * material_metalness);
     float3 outColor = refractPayload.colorAndDistance.xyz;
         
     if (refractPayload.colorAndDistance.w == -1)
@@ -216,23 +218,21 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
     // Only accept values between 0 and 1
     // 1 is fully reflective, 0 is fully diffuse
     float material_shininess = min(meshdatas[Vertices[vertId].materialIdx].material_shininess, 1);
-    float material_metalness = min(meshdatas[Vertices[vertId].materialIdx].material_metalness, 1);
+    float material_transparency = min(meshdatas[Vertices[vertId].materialIdx].material_transparency, 1);
     
-    float transparency = material_metalness; // TODO: change this to its own property
-    float reflectiveContribution = (1 - transparency) * material_shininess;
+    float reflectiveContribution = (1 - material_transparency) * material_shininess;
     
     // In order to save ray payload mempory we encode the type of ray in the w component
     // -100 is a reflection ray
     // -101 is a transmission ray
-    
     if (payload.colorAndDistance.w != -100 && material_shininess > 0)
     {
         outColor += reflectiveContribution * calcuateReflectionRayContribution(normal, viewDir);
     }
     
-    if (payload.colorAndDistance.w != -101 && material_metalness > 0)
+    if (payload.colorAndDistance.w != -101 && material_transparency > 0)
     {
-        outColor += transparency * calculateTransparantRayContribution(normal, viewDir);
+        outColor += material_transparency * calculateTransparantRayContribution(normal, viewDir);
     }
        
     for (int i = 0; i < lightCount; i++)
@@ -260,7 +260,6 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
         
         // Rendering equation
         float3 lightColor = float3(1, 1, 1);
-        //float3 brdfColor = brdf(normal, lightDir, viewDir, hitColor, 1);
         float diffuse = max(dot(normal, lightDir), 0.0f);
         
         // specular shading
@@ -270,7 +269,7 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
         float specular = pow(max(dot(vertexToCamera, lightReflect), 0.0f), 32);
         
         
-        float directIlluminationContribution = max(1 - transparency - reflectiveContribution, 0);
+        float directIlluminationContribution = max(1 - material_transparency - reflectiveContribution, 0);
         outColor += directIlluminationContribution * hitColor * (diffuse * lightColor + specular * lightColor);
     }
 
