@@ -242,6 +242,7 @@ namespace pathtracex {
 		struct MeshData {
 			float4 material_color;
 			float4 material_emmision;
+			float4x4 normalMatrix;
 			bool hasTexCoord; // 2 bytes (i think)
 			bool pad1[3];
 			bool hasNormalTex; // 2 bytes (i think)
@@ -257,6 +258,7 @@ namespace pathtracex {
 			float material_shininess;
 			float material_metalness;
 			float material_fresnel;
+			float material_transparency;
 			bool hasMaterial;
 		};
 		ID3D12Resource* meshDataBuffer;

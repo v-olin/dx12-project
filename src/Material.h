@@ -51,7 +51,7 @@ namespace pathtracex {
 			Material material;
 			material.name = "Default Material";
 			material.color = float3(1, 1, 1);
-			material.shininess = 0.5f;
+			material.shininess = 0;
 			material.metalness = 0.0f;
 			material.fresnel = 0.0f;
 			material.emission = float3(0, 0, 0);
