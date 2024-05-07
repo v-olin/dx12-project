@@ -138,7 +138,60 @@ float3 GetMaterialColor(Attributes attrib)
     }
 }
 
+float3 calcuateReflectionRayContribution(float3 normal, float3 viewDir)
+{
+        // Reflection ray
+    float3 reflectDir = reflect(viewDir, normal);
+    RayDesc reflectRay;
+    reflectRay.Origin = HitWorldPosition() + 0.001f * reflectDir;
+    reflectRay.Direction = reflectDir;
+    reflectRay.TMin = 0.01f;
+    reflectRay.TMax = 10000.f;
+    
+        // Trace reflection ray
+    HitInfo reflectPayload;
+    reflectPayload.colorAndDistance = float4(0, 0, 0, -100);
+    TraceRay(SceneBVH, RAY_FLAG_NONE, 0xFF, 0, 0, 0, reflectRay, reflectPayload);
 
+    float3 outColor = reflectPayload.colorAndDistance.xyz;
+
+    if (reflectPayload.colorAndDistance.w == -1)
+    {
+        outColor = float3(0, 0, 0);
+    }
+        
+    return outColor;
+}
+
+float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
+{
+    // Shoot a transmission ray
+    float3 transmitDir = viewDir;
+        
+    float3 refractDir = refract(viewDir, normal, 1.125);
+    RayDesc refractRay;
+    refractRay.Origin = HitWorldPosition() + 0.1f * transmitDir;
+    refractRay.Direction = transmitDir;
+    refractRay.TMin = 0.01f;
+    refractRay.TMax = 10000.f;
+        
+        
+        // Trace transmission ray
+    HitInfo refractPayload;
+    refractPayload.colorAndDistance = float4(0, 0, 0, -101);
+    TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, refractRay, refractPayload);
+        
+        
+    //outColor += transparency * (hitColor * (1 - material_metalness) + refractPayload.colorAndDistance.xyz * material_metalness);
+    float3 outColor = refractPayload.colorAndDistance.xyz;
+        
+    if (refractPayload.colorAndDistance.w == -1)
+    {
+        outColor = float3(0, 0, 0);
+    }
+    
+    return outColor;
+}
 
 [shader("closesthit")] void ClosestHit(inout HitInfo payload, Attributes attrib) 
 {
@@ -146,7 +199,6 @@ float3 GetMaterialColor(Attributes attrib)
     
     // The color of the hit pixel without doing lighting calculations
     float3 hitColor = GetMaterialColor(attrib);
-    
     
     // The color of the hit pixel after doing lighting calculations
     float3 outColor = float3(0, 0, 0);
@@ -164,33 +216,25 @@ float3 GetMaterialColor(Attributes attrib)
     // Only accept values between 0 and 1
     // 1 is fully reflective, 0 is fully diffuse
     float material_shininess = min(meshdatas[Vertices[vertId].materialIdx].material_shininess, 1);
+    float material_metalness = min(meshdatas[Vertices[vertId].materialIdx].material_metalness, 1);
+    
+    float transparency = material_metalness; // TODO: change this to its own property
+    float reflectiveContribution = (1 - transparency) * material_shininess;
+    
+    // In order to save ray payload mempory we encode the type of ray in the w component
+    // -100 is a reflection ray
+    // -101 is a transmission ray
     
     if (payload.colorAndDistance.w != -100 && material_shininess > 0)
     {
-        // Reflection ray
-        float3 reflectDir = reflect(viewDir, normal);
-        RayDesc reflectRay;
-        reflectRay.Origin = worldOrigin + 0.001f * reflectDir;
-        reflectRay.Direction = reflectDir;
-        reflectRay.TMin = 0.01f;
-        reflectRay.TMax = 10000.f;
-    
-        // Trace reflection ray
-        HitInfo reflectPayload;
-        reflectPayload.colorAndDistance = float4(0, 0, 0, -100);
-        TraceRay(SceneBVH, RAY_FLAG_NONE, 0xFF, 0, 0, 0, reflectRay, reflectPayload);
-
-        outColor = hitColor * (1 - material_shininess) + reflectPayload.colorAndDistance.xyz * material_shininess;
-
-        if (reflectPayload.colorAndDistance.w == -1)
-        {
-            outColor = float3(0, 0, 0);
-        }
-        
-        payload.colorAndDistance = float4(outColor.x, outColor.y, outColor.z, RayTCurrent());
-        return;
+        outColor += reflectiveContribution * calcuateReflectionRayContribution(normal, viewDir);
     }
     
+    if (payload.colorAndDistance.w != -101 && material_metalness > 0)
+    {
+        outColor += transparency * calculateTransparantRayContribution(normal, viewDir);
+    }
+       
     for (int i = 0; i < lightCount; i++)
     {
         PointLight plight = lights[i];
@@ -203,7 +247,7 @@ float3 GetMaterialColor(Attributes attrib)
         ray.Origin = worldOrigin + 0.001f * lightDir;
         ray.Direction = lightDir;
         ray.TMin = 0.01f;
-        ray.TMax = lightDistance; //10000.f;
+        ray.TMax = lightDistance;
         bool hit = true;
         
         ShadowHitInfo shadowPayload;
@@ -218,30 +262,21 @@ float3 GetMaterialColor(Attributes attrib)
         float3 lightColor = float3(1, 1, 1);
         //float3 brdfColor = brdf(normal, lightDir, viewDir, hitColor, 1);
         float diffuse = max(dot(normal, lightDir), 0.0f);
-        outColor += diffuse * hitColor;
         
-      //  shadowFactor += shadowPayload.isHit ? (0.7f / float(lightCount)) : 0.0f;
+        // specular shading
+        float3 halfVector = normalize(lightDir + viewDir);
+        float3 vertexToCamera = normalize(WorldRayOrigin() - worldOrigin);
+        float3 lightReflect = reflect(-lightDir, normal);
+        float specular = pow(max(dot(vertexToCamera, lightReflect), 0.0f), 32);
+        
+        
+        float directIlluminationContribution = max(1 - transparency - reflectiveContribution, 0);
+        outColor += directIlluminationContribution * hitColor * (diffuse * lightColor + specular * lightColor);
     }
-    
-    //hitColor = hitColor * (1.0f - shadowFactor);
-    
-
-    
 
     //float3 ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), attrib.bary);
     
     payload.colorAndDistance = float4(outColor.x, outColor.y, outColor.z, RayTCurrent());
-
-    /*
-    float3 normals[3] = {Vertices[indices[vertId + 0]].normal, Vertices[indices[vertId + 1]].normal, Vertices[indices[vertId + 2]].normal};
-    float3 normal = HitAttribute(normals, attrib);
-    
-    // TODO: transform the normal to world space, we need the model matrix
-    //float3 normal = mul(float4(normalize(HitAttribute(normals, attrib)), 1), normalMatrix);
-   // float ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), st);
-    
-    payload.colorAndDistance = float4(hitColor, RayTCurrent());
-    */
 }
 
 [shader("closesthit")] void PlaneClosestHit(inout HitInfo payload, Attributes attrib)

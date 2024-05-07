@@ -7,7 +7,7 @@ Models:
       Name: Default Material
       Color: [1, 1, 1]
       Shininess: 0
-      Metalness: 0
+      Metalness: 1
       Fresnel: 0
       Emission: [0, 0, 0]
       Transparency: 0
@@ -97,12 +97,12 @@ Models:
     Material:
       Name: Default Material
       Color: [0, 0.0882353783, 1]
-      Shininess: 111
-      Metalness: 0
+      Shininess: 0.800000012
+      Metalness: 0.200000003
       Fresnel: 1
       Emission: [0, 0, 0]
       Transparency: 0
       IOR: 1
 Lights:
   - Name: Light
-    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4.12722635, 2.48336458, 2.82146931, 1]
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4.69780588, 2.90252566, -6.60319996, 1]
