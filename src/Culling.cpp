@@ -50,29 +50,61 @@ namespace pathtracex {
 		frustumPlanes[5].w = vp._44 - vp._43;
 
 		// Normalize the planes
-		for (int i = 0; i < 6; i++) {
-			DirectX::XMVECTOR plane = DirectX::XMLoadFloat4(&frustumPlanes[i]);
-			plane = DirectX::XMPlaneNormalize(plane);
-			DirectX::XMStoreFloat4(&frustumPlanes[i], plane);
+		for (int i = 0; i < 6; ++i)
+		{
+			float length = sqrt((frustumPlanes[i].x * frustumPlanes[i].x) + (frustumPlanes[i].y * frustumPlanes[i].y) + (frustumPlanes[i].z * frustumPlanes[i].z));
+			frustumPlanes[i].x /= length;
+			frustumPlanes[i].y /= length;
+			frustumPlanes[i].z /= length;
+			frustumPlanes[i].w /= length;
 		}
 	}
 
 	// Check if a AABB is inside the frustum
-	bool Culling::isAABBInFrustum(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max) {
-		for (int i = 0; i < 6; i++) {
-			DirectX::XMFLOAT3 normal = { frustumPlanes[i].x, frustumPlanes[i].y, frustumPlanes[i].z };
-			float d = frustumPlanes[i].w;
+	bool Culling::isAABBInFrustum(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max, const DirectX::XMMATRIX& modelTransformMatrix) {
+		for (DirectX::XMFLOAT4 plane : frustumPlanes) {
+			// Calculate the normal and constant of the plane
+			DirectX::XMVECTOR planeNormal = DirectX::XMVectorSet(plane.x, plane.y, plane.z, 0.0f);
+			float planeConstant = plane.w;
 
-			DirectX::XMFLOAT3 positiveVertex = { min.x, min.y, min.z };
-			if (normal.x >= 0) positiveVertex.x = max.x;
-			if (normal.y >= 0) positiveVertex.y = max.y;
-			if (normal.z >= 0) positiveVertex.z = max.z;
+			// Calculate the furthest point in the direction of the normal
+			DirectX::XMFLOAT3 furthestPoint;
 
-			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMLoadFloat3(&positiveVertex), DirectX::XMLoadFloat3(&normal))) + d < 0) {
+			// X-axis
+			if (plane.x < 0) {
+				furthestPoint.x = min.x;
+			}
+			else {
+				furthestPoint.x = max.x;
+			}
+
+			// Y-axis
+			if (plane.y < 0) {
+				furthestPoint.y = min.y;
+			}
+			else {
+				furthestPoint.y = max.y;
+			}
+
+			// Z-axis
+			if (plane.z < 0) {
+				furthestPoint.z = min.z;
+			}
+			else {
+				furthestPoint.z = max.z;
+			}
+
+			// Transform the furthest point to world space
+			DirectX::XMVECTOR transformedFurthestPoint = DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&furthestPoint), modelTransformMatrix);
+
+			// Calculate the distance from the plane
+			float distance = DirectX::XMVectorGetX(DirectX::XMVector3Dot(planeNormal, transformedFurthestPoint)) + planeConstant;
+
+			// If the distance is negative, the AABB is outside the frustum
+			if (distance < 0) {
 				return false;
 			}
 		}
-
 		return true;
 	}
 }

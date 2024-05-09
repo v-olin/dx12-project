@@ -180,6 +180,8 @@ namespace pathtracex {
 	{
 		ImGui::Text("Rendering Settings");
 		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
+		ImGui::Checkbox("Draw Bounding Box", &renderSettings.drawBoundingBox);
+		ImGui::Checkbox("Use Frustum Culling", &renderSettings.useFrustumCulling);
 		if (renderSettings.raytracingSupported) {
 			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
 		}

@@ -17,7 +17,7 @@ namespace pathtracex {
 
 		// Update the frustum planes based on the view and projection matrices
 		static void updateFrustum(const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& projection);
-		static bool isAABBInFrustum(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max);
+		static bool isAABBInFrustum(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max, const DirectX::XMMATRIX& modelTransformdMatrix);
 	private:
 		Culling() {}
 
