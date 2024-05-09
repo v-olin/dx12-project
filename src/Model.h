@@ -107,6 +107,7 @@ namespace pathtracex {
 
 		// Buffers on GPU
 		std::unique_ptr<DXVertexBuffer> vertexBuffer;
+		std::unique_ptr<DXVertexBuffer> vertexBufferBoundingBox;
 		std::unique_ptr<DXIndexBuffer> indexBuffer;
 
 		std::vector<SerializableVariable> getSerializableVariables() override

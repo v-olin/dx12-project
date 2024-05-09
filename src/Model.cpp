@@ -116,6 +116,41 @@ namespace pathtracex
 		// Create the vertex buffer and index buffer
 		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
 		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
+
+		// Create the vertex buffer for the bounding box vertices
+		std::vector<Vertex> boundingBoxVertices = {
+						{minCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom left
+						{maxCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom right
+						{maxCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom right
+						{maxCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top right
+						{maxCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top right
+						{minCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top left
+						{minCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top left
+						{minCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom left
+
+						// Repeat for the back face
+						{minCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom left
+						{maxCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom right
+						{maxCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom right
+						{maxCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top right
+						{maxCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top right
+						{minCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top left
+						{minCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top left
+						{minCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom left
+
+						// Connect the front and back faces
+						{minCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom left
+						{minCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom left
+						{maxCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom right
+						{maxCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom right
+						{maxCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top right
+						{maxCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top right
+						{minCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top left
+						{minCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top left
+		};
+		vertexBufferBoundingBox = std::make_unique<DXVertexBuffer>(boundingBoxVertices);
+		
+
 	}
 
 	Model::Model(std::string filenameWithExtension)

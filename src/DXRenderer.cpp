@@ -67,7 +67,7 @@ namespace pathtracex {
 			THROW_IF_FAILED(hr);
 		}
 		
-		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
+		hr = commandList->Reset(commandAllocator[frameIndex], trianglePipelineStateObject);
 		if (FAILED(hr))
 		{
 			LOG_ERROR("Error resetting command list, resetCommandList()");
@@ -201,6 +201,9 @@ namespace pathtracex {
 			return false;
 
 		if (!createRasterPipeline())
+			return false;
+
+		if (!createLinePipeline())
 			return false;
 
 		if (!checkRaytracingSupport())
@@ -447,7 +450,7 @@ namespace pathtracex {
 		// but in this tutorial we are only clearing the rtv, and do not actually need
 		// anything but an initial default pipeline, which is what we get by setting
 		// the second parameter to NULL
-		hr = commandList->Reset(commandAllocator[frameIndex], pipelineStateObject);
+		hr = commandList->Reset(commandAllocator[frameIndex], trianglePipelineStateObject);
 		if (FAILED(hr)) {
 			THROW_IF_FAILED(hr);
 		}
@@ -480,10 +483,7 @@ namespace pathtracex {
 			// bind access to TLAS and outputbuffer for shaders
 			ID3D12DescriptorHeap* heaps[] = { rtSrvUavHeap };
 			commandList->SetDescriptorHeaps(1, heaps);
-
-			int i = 0;
-			std::vector<std::shared_ptr<Model>> models = scene.models;
-			std::vector<std::shared_ptr<Model>> culledModels;
+			
 			// transition on output buffer to give shaders write-access
 			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				rtoutputbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
@@ -542,7 +542,7 @@ namespace pathtracex {
 			commandList->ResourceBarrier(1, &transition);
 
 			// set pipeline state to rasterization in order to draw GUI
-			commandList->SetPipelineState(pipelineStateObject);
+			commandList->SetPipelineState(trianglePipelineStateObject);
 			commandList->SetDescriptorHeaps(1, &srvHeap);
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
 		}
@@ -571,70 +571,79 @@ namespace pathtracex {
 				}
 			}
 
-		int k = 0;
-		PointLight pointLights[3];
-		for (auto light : scene.lights) {
-
-			pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
-			k++;
-		}
-
-			cbPerObject.pointLightCount = k;
-
-		// create the wvp matrix and store in constant buffer
-		DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
-		DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
-		// Update the frustum planes
-		Culling::updateFrustum(viewMat, projMat);
-
-		for (auto model : models) {
-			if (Culling::isAABBInFrustum(model->getMinCords(), model->getMaxCords())) {
-				// Add to culled models
-				culledModels.push_back(model);
-			}
-		}
-
-		int models_drawn = 0;
-		int meshes_drawn = 0;
-		for (auto model : culledModels)
-		{
-			DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;										// create wvp matrix
-			DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);													// must transpose wvp matrix for the gpu
-			DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);	// store transposed wvp matrix in constant buffer
-			DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixInverse(nullptr,model->trans.transformMatrix * viewMat);
-			DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
-			DirectX::XMMATRIX mvMat =  DirectX::XMMatrixTranspose(model->trans.transformMatrix * viewMat);										
-			DirectX::XMStoreFloat4x4(&cbPerObject.modelViewMatrix, mvMat);
-			DirectX::XMStoreFloat4x4(&cbPerObject.viewInverse, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, viewMat)));
-			DirectX::XMStoreFloat4x4(&cbPerObject.viewMat, DirectX::XMMatrixTranspose(viewMat));
-
-			cbPerObject.isProcWorld = model->name == "Procedual mesh";
-	
-			
-
 			int k = 0;
 			PointLight pointLights[3];
 			for (auto light : scene.lights) {
-				float4 lightPos = float4(light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 1);
-				pointLights[k] = { lightPos };
+
+				pointLights[k] = { {light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 0} };
 				k++;
 			}
 
-				cbPerObject.pointLightCount = k;
+			cbPerObject.pointLightCount = k;
 
-				memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
+			// create the wvp matrix and store in constant buffer
+			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
+			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
 
-				int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
+			// Create vector to store culled models
+			std::vector<std::shared_ptr<Model>> culledModels;
+
+			if (renderSettings.useFrustumCulling) {
+				// Update the frustum planes
+				Culling::updateFrustum(viewMat, projMat);
+
+				for (auto model : models) {
+					if (Culling::isAABBInFrustum(model->getMinCords(), model->getMaxCords(), model->trans.transformMatrix)) {
+						// Add to culled models
+						culledModels.push_back(model);
+					}
+				}
+			}
+			else {
+				culledModels = models;
+			}
+
+			int models_drawn = 0;
+			int meshes_drawn = 0;
+			for (auto model : culledModels)
+			{
+				DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;								// create wvp matrix
+				DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat);											// must transpose wvp matrix for the gpu
+				DirectX::XMStoreFloat4x4(&cbPerObject.wvpMat, transposed);													// store transposed wvp matrix in constant buffer
+				DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixInverse(nullptr,model->trans.transformMatrix * viewMat);  
+				DirectX::XMStoreFloat4x4(&cbPerObject.normalMatrix, normalMatrix);
+				DirectX::XMMATRIX mvMat =  DirectX::XMMatrixTranspose(model->trans.transformMatrix * viewMat);										
+				DirectX::XMStoreFloat4x4(&cbPerObject.modelViewMatrix, mvMat);
+				DirectX::XMStoreFloat4x4(&cbPerObject.viewInverse, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, viewMat)));
+				DirectX::XMStoreFloat4x4(&cbPerObject.viewMat, DirectX::XMMatrixTranspose(viewMat));
+
+				cbPerObject.isProcWorld = model->name == "Procedual mesh";
+	
+			
+
+				int k = 0;
+				PointLight pointLights[3];
+				for (auto light : scene.lights) {
+					float4 lightPos = float4(light->transform.getPosition().x, light->transform.getPosition().y, light->transform.getPosition().z, 1);
+					pointLights[k] = { lightPos };
+					k++;
+				}
+
+					cbPerObject.pointLightCount = k;
+
+					memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
+
+					int modelOffset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
 				
-				// set cube1's constant buffer
-				commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeap->GetGPUVirtualAddress() + offset);
-				commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
+					// set cube1's constant buffer
+					commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeap->GetGPUVirtualAddress() + modelOffset);
+					commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
 
-				memcpy(cbvGPUAddress + offset, &cbPerObject, sizeof(cbPerObject));
-				models_drawn++;
-				// draw first cube
-				commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
-				commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
+					memcpy(cbvGPUAddress + modelOffset, &cbPerObject, sizeof(cbPerObject));
+					models_drawn++;
+					// draw first cube
+					commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
+					commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
 
 				for (auto mesh : model->meshes) {
 					//we need to add more uniforms so that we know if there are color textures and so on, 
@@ -687,14 +696,34 @@ namespace pathtracex {
 					commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
 					meshes_drawn++;
 				}
+
+				if (renderSettings.drawBoundingBox) {
+					// Set the pipeline state to line rendering
+					commandList->SetPipelineState(linePipelineStateObject);
+					commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST); // set the primitive topology
+
+					// set constant buffer
+					commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeap->GetGPUVirtualAddress() + modelOffset);
+					commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
+
+					// set the vertex buffer (using the vertex buffer view for the bounding box)
+					commandList->IASetVertexBuffers(0, 1, &(model->vertexBufferBoundingBox->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
+
+					// Draw the bounding box
+					commandList->DrawInstanced(24, 1, 0, 0);
+
+					// Set the pipeline state and topology back to triangle rendering
+					commandList->SetPipelineState(trianglePipelineStateObject);
+					commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				}
 			}
 
 			commandList->SetDescriptorHeaps(1, &srvHeap);
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
+			// Log ammount of models drawn
+			LOG_TRACE("Drawn {} models", models_drawn);
 		}
 
-		// Log ammount of models drawn
-		LOG_TRACE("Drawn {} models", i);
 		
 		// transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
 		// warning if present is called on the render target when it's not in the present state
@@ -1150,15 +1179,128 @@ namespace pathtracex {
 		psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
 		// create the pso
-		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject));
+		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&trianglePipelineStateObject));
 		if (FAILED(hr))
 		{
-			LOG_FATAL("Error creating pipeline state object, createPipeline()");
+			LOG_FATAL("Error creating pipeline state object (triangles), createPipeline()");
 			return false;
 		}
 
 		LOG_TRACE("DirectX12 pipeline created");
 
+		return true;
+	}
+
+	bool DXRenderer::createLinePipeline()
+	{
+		LOG_TRACE("Creating DirectX12 line pipeline");
+
+		HRESULT hr;
+		// create vertex and pixel shaders
+
+		// when debugging, we can compile the shader files at runtime.
+		// but for release versions, we can compile the hlsl shaders
+		// with fxc.exe to create .cso files, which contain the shader
+		// bytecode. We can load the .cso files at runtime to get the
+		// shader bytecode, which of course is faster than compiling
+		// them at runtime
+
+		// compile vertex shader
+		ID3DBlob *vertexShader; // d3d blob for holding vertex shader bytecode
+		ID3DBlob *errorBuff;	// a buffer holding the error data if any
+		hr = D3DCompileFromFile(L"../../shaders/LineVertexShader.hlsl",
+											nullptr,
+											nullptr,
+											"main",
+											"vs_5_0",
+											D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+											0,
+											&vertexShader,
+											&errorBuff);
+		if (FAILED(hr))
+		{
+			LOG_FATAL("Error compiling vertex shader, createLinePipeline()");
+			OutputDebugStringA((char *)errorBuff->GetBufferPointer());
+			return false;
+		}
+
+		// fill out a shader bytecode structure, which is basically just a pointer
+		// to the shader bytecode and the size of the shader bytecode
+		D3D12_SHADER_BYTECODE vertexShaderBytecode = {};
+		vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
+		vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
+
+		// compile pixel shader
+		ID3DBlob *pixelShader;
+		hr = D3DCompileFromFile(L"../../shaders/LinePixelShader.hlsl",
+											nullptr,
+											nullptr,
+											"main",
+											"ps_5_0",
+											D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+											0,
+											&pixelShader,
+											&errorBuff);
+		if (FAILED(hr))
+		{
+			LOG_FATAL("Error compiling pixel shader, createLinePipeline()");
+			OutputDebugStringA((char *)errorBuff->GetBufferPointer());
+			return false;
+		}
+
+		// fill out shader bytecode structure for pixel shader
+		D3D12_SHADER_BYTECODE pixelShaderBytecode = {};
+		pixelShaderBytecode.BytecodeLength = pixelShader->GetBufferSize();
+		pixelShaderBytecode.pShaderBytecode = pixelShader->GetBufferPointer();
+
+		D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+		{
+			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		};
+
+		// fill out an input layout description structure
+		D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+
+		// we can get the number of elements in an array by "sizeof(array) / sizeof(arrayElementType)"
+		inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
+		inputLayoutDesc.pInputElementDescs = inputLayout;
+
+		// create a pipeline state object (PSO)
+
+		// In a real application, you will have many pso's. for each different shader
+		// or different combinations of shaders, different blend states or different rasterizer states,
+		// different topology types (point, line, triangle, patch), or a different number
+		// of render targets you will need a pso
+
+		// VS is the only required shader for a pso. You might be wondering when a case would be where
+		// you only set the VS. It's possible that you have a pso that only outputs data with the stream
+		// output, and not on a render target, which means you would not need anything after the stream
+		// output.
+
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};						// a structure to define a pso
+		psoDesc.InputLayout = inputLayoutDesc;									// the structure describing our input layout
+		psoDesc.pRootSignature = rootSignature;									// the root signature that describes the input data this pso needs
+		psoDesc.VS = vertexShaderBytecode;										// structure describing where to find the vertex shader bytecode and how large it is
+		psoDesc.PS = pixelShaderBytecode;										// same as VS but for pixel shader
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; // type of topology we are drawing
+		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;						// format of the render target
+		psoDesc.SampleDesc = sampleDesc;										// must be the same sample description as the swapchain and depth/stencil buffer
+		psoDesc.SampleMask = 0xffffffff;										// sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
+		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);		// a default rasterizer state.
+		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);					// a default blent state.
+		psoDesc.NumRenderTargets = 1;											// we are only binding one render target
+		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);	// a default depth stencil state
+		psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+		
+
+		// create the pso
+		hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&linePipelineStateObject));
+		if (FAILED(hr))
+		{
+			LOG_FATAL("Error creating pipeline state object (lines), createPipeline()");
+			return false;
+		}
+		
 		return true;
 	}
 

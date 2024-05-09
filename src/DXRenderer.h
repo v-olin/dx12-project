@@ -106,7 +106,8 @@ namespace pathtracex {
 
 		int rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
 		IDXGIFactory4* dxgiFactory;
-		ID3D12PipelineState* pipelineStateObject; // pso containing a pipeline state
+		ID3D12PipelineState* trianglePipelineStateObject; // pso containing a pipeline state for drawing triangles
+		ID3D12PipelineState* linePipelineStateObject; // pso containing a pipeline state for drawing lines
 		ID3D12RootSignature* rootSignature; // root signature defines data shaders will access
 		D3D12_VIEWPORT viewport; // area that output from rasterizer will be stretched to.
 		D3D12_RECT scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
@@ -174,7 +175,7 @@ namespace pathtracex {
 											// (which will be placed in the resource we created above)
 		ConstantBufferPerMesh cbPerMesh;
 		ID3D12Resource* constantBufferUploadHeap; // this is the memory on the gpu where constant buffers for each frame will be placed
-		UINT64* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
+		UINT8* cbvGPUAddress; // this is a pointer to each of the constant buffer resource heaps
 		#pragma endregion
 
 		#pragma region Raytracing stuff
@@ -303,6 +304,7 @@ namespace pathtracex {
 		bool createCommandAllocators();
 		bool createRootSignature();
 		bool createRasterPipeline();
+		bool createLinePipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
 		bool createBuffers();
