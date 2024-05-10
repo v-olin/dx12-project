@@ -46,6 +46,7 @@ namespace pathtracex {
 		SPHERE,
 		CYLINDER,
 		PLANE,
+		CONE,
 		NONE
 	};
 
@@ -125,5 +126,6 @@ namespace pathtracex {
 		static std::shared_ptr<Model> createCube();
 		static std::shared_ptr<Model> createPlane();
 		static std::shared_ptr<Model> createSphere(int stacks, int slices);
+		static std::shared_ptr<Model> createCylinder(int baseRadius, int topRadius, int height, int sectorCount);
 	};
 }

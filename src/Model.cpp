@@ -446,9 +446,12 @@ namespace pathtracex
 		case pathtracex::SPHERE:
 			return createSphere(100, 100);
 		case pathtracex::CYLINDER:
+			return createCylinder(10, 10, 20, 100);
 			break;
 		case pathtracex::PLANE:
 			return createPlane();
+		case pathtracex::CONE:
+			return createCylinder(10, 3, 20, 100);
 		case pathtracex::NONE:
 			break;
 		default:
@@ -472,6 +475,7 @@ namespace pathtracex
 		case pathtracex::PLANE:
 			return "Plane";
 			break;
+		
 		case pathtracex::NONE:
 			return "None";
 			break;
@@ -490,6 +494,8 @@ namespace pathtracex
 			return PrimitiveModelType::CYLINDER;
 		else if (type == "Sphere")
 			return PrimitiveModelType::SPHERE;
+		else if (type == "Cone")
+			return PrimitiveModelType::CONE;
 		else
 		{
 			return PrimitiveModelType::NONE;
@@ -1029,5 +1035,203 @@ namespace pathtracex
 
 		return model;
 	}
+#define PI 3.1415926535897932384626
 
+	std::shared_ptr<Model> Model::createCylinder(int baseRadius, int topRadius, int height, int sectorCount)
+	{
+		std::vector<float3> vertices;
+		std::vector<float3> normals;
+		std::vector<float2> uv;
+		std::vector<unsigned int> indices;
+		float x, y, z;                                  // vertex position
+		float radius;                                   // radius for each stack
+
+		//const float PI = acos(-1);
+		float sectorStep = 2 * PI / sectorCount;
+		float sectorAngle;  // radian
+
+		// compute the normal vector at 0 degree first
+		// tanA = (baseRadius-topRadius) / height
+		float zAngle = atan2(baseRadius - topRadius, height);
+		float x0 = cos(zAngle);     // nx
+		float y0 = 0;               // ny
+		float z0 = sin(zAngle);     // nz
+
+		// rotate (x0,y0,z0) per sector angle
+		std::vector<float> sideNormals;
+		for (int i = 0; i <= sectorCount; ++i)
+		{
+			sectorAngle = i * sectorStep;
+			sideNormals.push_back(cos(sectorAngle) * x0 - sin(sectorAngle) * y0);   // nx
+			sideNormals.push_back(sin(sectorAngle) * x0 + cos(sectorAngle) * y0);   // ny
+			sideNormals.push_back(z0);  // nz
+		}
+
+		std::vector<float> unitCircleVertices;
+		for (int i = 0; i <= sectorCount; ++i)
+		{
+			sectorAngle = i * sectorStep;
+			unitCircleVertices.push_back(cos(sectorAngle)); // x
+			unitCircleVertices.push_back(sin(sectorAngle)); // y
+			unitCircleVertices.push_back(0);                // z
+		}
+
+		// remember where the base.top vertices start
+		unsigned int baseVertexIndex = (unsigned int)vertices.size();
+		// TODO: Convert this
+		// put vertices of base of cylinder
+		z = -height * 0.5f;
+		vertices.push_back(float3(0, 0, z));
+		normals.push_back(float3(0, 0, -1));
+		uv.push_back(float2(0.5f, 0.5f));
+		for (int i = 0, j = 0; i < sectorCount; ++i, j += 3)
+		{
+			x = unitCircleVertices[j];
+			y = unitCircleVertices[j + 1];
+			vertices.push_back(float3(x * baseRadius, y * baseRadius, z));
+			normals.push_back(float3(0, 0, -1));
+			uv.push_back(float2(-x * 0.5f + 0.5f, -y * 0.5f + 0.5f));
+		}
+
+		// remember where the top vertices start
+		unsigned int topVertexIndex = (unsigned int)vertices.size();
+		// put vertices of top of cylinder
+		z = height * 0.5f;
+		vertices.push_back(float3(0, 0, z));
+		normals.push_back(float3(0, 0, 1));
+		uv.push_back(float2(0.5f, 0.5f));
+		for (int i = 0, j = 0; i < sectorCount; ++i, j += 3)
+		{
+			x = unitCircleVertices[j];
+			y = unitCircleVertices[j + 1];
+			vertices.push_back(float3(x * topRadius, y * topRadius, z));
+			normals.push_back(float3(0, 0, 1));
+			uv.push_back(float2(x * 0.5f + 0.5f, -y * 0.5f + 0.5f));
+		}
+
+
+		int k1 = 0;                         // 1st vertex index at base
+		int k2 = sectorCount + 1;           // 1st vertex index at top
+
+		for (int j = 0; j < sectorCount; ++j, ++k1, ++k2)
+		{
+			if (j == 0)
+			{
+				// 2 trianles per sector
+				indices.push_back(k1 + sectorCount);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2 + sectorCount);
+
+				indices.push_back(k2 + sectorCount);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2 + 1);
+			}
+			else
+			{
+				// 2 trianles per sector
+				indices.push_back(k1);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2);
+
+				indices.push_back(k2);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2 + 1);
+			}
+		}
+
+		// put indices for base
+		for (int i = 0, k = baseVertexIndex + 1; i < sectorCount; ++i, ++k)
+		{
+			if (i < (sectorCount - 1))
+			{
+				indices.push_back(baseVertexIndex);
+				indices.push_back(k + 1);
+				indices.push_back(k);
+			}
+			else    // last triangle
+			{
+				indices.push_back(baseVertexIndex);
+				indices.push_back(baseVertexIndex + 1);
+				indices.push_back(k);
+			}
+		}
+
+		// put indices for top
+		for (int i = 0, k = topVertexIndex + 1; i < sectorCount; ++i, ++k)
+		{
+			if (i < (sectorCount - 1))
+			{
+				indices.push_back(topVertexIndex);
+				indices.push_back(k);
+				indices.push_back(k + 1);
+			}
+			else
+			{
+				indices.push_back(topVertexIndex);
+				indices.push_back(k);
+				indices.push_back(topVertexIndex + 1);
+			}
+		}
+
+		std::vector<Vertex> vertecies;
+		std::vector<uint32_t> indecies;
+		for (size_t i = 0; i < indices.size(); i+=3)
+		{
+			int idx0 = indices.at(i);
+			int idx1 = indices.at(i + 1);
+			int idx2 = indices.at(i + 2);
+
+			float3 v0 = vertices.at(idx0);
+			float3 v1 = vertices.at(idx1);
+			float3 v2 = vertices.at(idx2);
+			v0 = float3(v0.x/10, v0.z/10, v0.y/10);
+			v1 = float3(v1.x/10, v1.z/10, v1.y/10);
+			v2 = float3(v2.x/10, v2.z/10, v2.y/10);
+
+			vertecies.push_back({ v2, float4(1, 0, 0, 1), normals.at(idx2), uv.at(idx2) });
+			vertecies.push_back({ v1, float4(1, 0, 0, 1), normals.at(idx1), uv.at(idx1) });
+			vertecies.push_back({ v0, float4(1, 0, 0, 1), normals.at(idx0), uv.at(idx0) });
+
+			indecies.push_back(i);
+			indecies.push_back(i + 1);
+			indecies.push_back(i + 2);
+		}
+		std::vector<Mesh> meshes;
+		Mesh mesh;
+		mesh.materialIdx = 0;
+		mesh.name = "Cylinder mesh";
+		mesh.startIndex = 0;
+		mesh.numberOfVertices = indices.size();
+		meshes.push_back(mesh);
+
+		float3 max_cords(vertices.at(0));
+		float3 min_cords(vertices.at(0));
+		for (size_t i = 1; i < vertices.size(); i++)
+		{
+			max_cords = max_cords.Max(max_cords, vertices.at(i));
+			min_cords = max_cords.Min(min_cords, vertices.at(i));
+		}
+		
+		Material material = Material::createDefaultMaterial();
+		std::vector<Material> materials;
+		materials.push_back(material);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
+
+
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Cone", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
+	//Model::Model(std::string name, std::vector<Material> materials, std::vector<Mesh> meshes, bool hasDedicatedShader, float3 max_cords, float3 min_cords, std::vector<Vertex> vertices = {}, std::vector<uint32_t> indices = {})
+		model->primativeType = PrimitiveModelType::CYLINDER;
+		return model;
+	}
+	
+	
 }
