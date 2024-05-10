@@ -132,6 +132,12 @@ namespace pathtracex {
 
 		ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
 
+		int drawnModels = DXRenderer::getInstance()->getModelsDrawn();
+		ImGui::Text("Drawn models: %d ", drawnModels);
+		ImGui::Text("Culled models: %d", scene.models.size() - drawnModels);
+
+		ImGui::Separator();
+
 		if (selectedSelectable.expired())
 			drawRenderingSettings(renderSettings);
 		else
@@ -192,17 +198,20 @@ namespace pathtracex {
 		}
 		ImGui::Checkbox("Draw Procedual World", &renderSettings.drawProcedualWorld);
 
+		ImGui::Separator();
+
 		ImGui::Text("Camera Settings");
 		ImGui::SliderFloat("FOV", &renderSettings.camera.fov, 0, 120);
 		ImGui::SliderFloat("Near Plane", &renderSettings.camera.nearPlane, 0.1, 50);
 		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 5000);
-
 		drawTransformSettings(renderSettings.camera.transform);
+
+		ImGui::Separator();
 
 		ImGui::Text("Procedual world settings");
 		static ProcedualWorldSettings procedualWorldSettings = scene.procedualWorldManager->settings;
-
 		drawSerializableVariables(&procedualWorldSettings);
+
 		if (ImGui::CollapsingHeader("Noise settings", ImGuiTreeNodeFlags_None)) {
 			drawSerializableVariables(&scene.procedualWorldManager->noiseGenerator);
 		}

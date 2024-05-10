@@ -603,8 +603,8 @@ namespace pathtracex {
 				culledModels = models;
 			}
 
-			int models_drawn = 0;
-			int meshes_drawn = 0;
+			modelsDrawn = 0;
+			meshesDrawn = 0;
 			for (auto model : culledModels)
 			{
 				DirectX::XMMATRIX wvpMat = model->trans.transformMatrix * viewMat * projMat;								// create wvp matrix
@@ -633,14 +633,14 @@ namespace pathtracex {
 
 					memcpy(cbPerObject.pointLights, pointLights, sizeof(pointLights));
 
-					int modelOffset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
+					int modelOffset = ConstantBufferPerObjectAlignedSize * modelsDrawn + ConstantBufferPerMeshAlignedSize * meshesDrawn;
 				
 					// set cube1's constant buffer
 					commandList->SetGraphicsRootConstantBufferView(0, constantBufferUploadHeap->GetGPUVirtualAddress() + modelOffset);
 					commandList->SetGraphicsRootSignature(rootSignature); // set the root signature
 
 					memcpy(cbvGPUAddress + modelOffset, &cbPerObject, sizeof(cbPerObject));
-					models_drawn++;
+					modelsDrawn++;
 					// draw first cube
 					commandList->IASetVertexBuffers(0, 1, &(model->vertexBuffer->vertexBufferView)); // set the vertex buffer (using the vertex buffer view)
 					commandList->IASetIndexBuffer(&model->indexBuffer->indexBufferView);
@@ -690,11 +690,11 @@ namespace pathtracex {
 					// // copy our ConstantBuffer instance to the mapped constant buffer resource
 					//here also set all uniforms for each mesh
 
-					int offset = ConstantBufferPerObjectAlignedSize * models_drawn + ConstantBufferPerMeshAlignedSize * meshes_drawn;
+					int offset = ConstantBufferPerObjectAlignedSize * modelsDrawn + ConstantBufferPerMeshAlignedSize * meshesDrawn;
 					commandList->SetGraphicsRootConstantBufferView(1, constantBufferUploadHeap->GetGPUVirtualAddress() + offset);
 					memcpy(cbvGPUAddress + offset, &cbPerMesh, sizeof(cbPerMesh));
 					commandList->DrawIndexedInstanced(mesh.numberOfVertices, 1, 0, mesh.startIndex, 0);
-					meshes_drawn++;
+					meshesDrawn++;
 				}
 
 				if (renderSettings.drawBoundingBox) {
@@ -718,10 +718,9 @@ namespace pathtracex {
 				}
 			}
 
+			// set descriptor heap for imgui
 			commandList->SetDescriptorHeaps(1, &srvHeap);
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
-			// Log ammount of models drawn
-			LOG_TRACE("Drawn {} models", models_drawn);
 		}
 
 		

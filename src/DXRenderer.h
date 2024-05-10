@@ -62,8 +62,10 @@ namespace pathtracex {
 			return &instance;
 		}
 
-		bool raytracingIsSupported() const noexcept { return raytracingSupported; }
+		int getModelsDrawn() const noexcept { return modelsDrawn; }
+		int getMeshesDrawn() const noexcept { return meshesDrawn; }
 
+		bool raytracingIsSupported() const noexcept { return raytracingSupported; }
 
 		void createTextureDescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC heapDesc, ID3D12DescriptorHeap** descriptorHeap);
 		void createTextureBuffer(ID3D12Resource** textureBuffer, ID3D12DescriptorHeap** descriptorHeap, D3D12_RESOURCE_DESC* textureDesc, BYTE* imageData, int bytesPerRow, TextureType texType);
@@ -77,11 +79,7 @@ namespace pathtracex {
 		void setProcWordValues(ProcedualWorldSettings settings);
 
 	private:
-		// I changed the commandlist to a 4 and the device to a 5 to get raytracing stuff
-		ID3D12GraphicsCommandList4* commandList; // a command list we can record commands into, then execute them to render the frame
-		ID3D12Device5* device; // direct3d device
-		ID3D12CommandQueue* commandQueue; // container for command lists
-		
+
 		DXRenderer();
 
 		HWND hwnd;
@@ -91,8 +89,15 @@ namespace pathtracex {
 		UINT resizedWidth = 0, resizedHeight = 0;
 		bool raytracingSupported = false;
 
+		int modelsDrawn = 0;
+		int meshesDrawn = 0;
 
 		#pragma region DirectX stuff
+		// I changed the commandlist to a 4 and the device to a 5 to get raytracing stuff
+		ID3D12GraphicsCommandList4* commandList; // a command list we can record commands into, then execute them to render the frame
+		ID3D12Device5* device; // direct3d device
+		ID3D12CommandQueue* commandQueue; // container for command lists
+
 		IDXGISwapChain3* swapChain; // swapchain used to switch between render targets
 		ID3D12DescriptorHeap* rtvDescriptorHeap; // a descriptor heap to hold resources like the render targets
 		ID3D12DescriptorHeap* srvHeap;
