@@ -185,7 +185,7 @@ public:
     FastNoiseLite(int seed = 1337)
     {
         mSeed = seed;
-        mFrequency = 0.03f;
+        mFrequency = 0.06f;
         mNoiseType = NoiseType_Cellular;
         mRotationType3D = RotationType3D_None;
         mTransformType3D = TransformType3D_DefaultOpenSimplex2;

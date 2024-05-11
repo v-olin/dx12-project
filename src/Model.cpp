@@ -14,6 +14,7 @@ namespace pathtracex
 {
 
 #define PATH_TO_ASSETS "../../assets/"
+#define PATH_TO_TREE_ASSETS "../../assets/TREES/"
 
 	namespace file_util
 	{
@@ -261,6 +262,8 @@ namespace pathtracex
 		int vertices_so_far = 0;
 		for (int s = 0; s < shapes.size(); ++s)
 		{
+
+			size_t index_offset = 0;
 			const auto &shape = shapes[s];
 			int next_material_index = shape.mesh.material_ids[0];
 			int next_material_starting_face = 0;
@@ -304,16 +307,6 @@ namespace pathtracex
 									   attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 1],
 									   attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 2]);
 
-							/*
-							auto elementMax = [](float3 v1, float3 v2) {
-								return float3(max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z));
-								};
-							auto elementMin = [](float3 v1, float3 v2) {
-								return float3(min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z));
-								};
-							max_cords = elementMax(m_positions[vertices_so_far + j], max_cords);
-							min_cords = elementMin(m_positions[vertices_so_far + j], min_cords);
-							*/
 							maxCords = maxCords.Max(m_positions[vertices_so_far + j], maxCords);
 							minCords = minCords.Min(minCords, m_positions[vertices_so_far + j]);
 
@@ -333,7 +326,7 @@ namespace pathtracex
 							if (shape.mesh.indices[i * 3 + j].texcoord_index == -1)
 							{
 								// No UV coordinates. Use null.
-								m_texture_coordinates[vertices_so_far + j] = float2(0.0f);
+								m_texture_coordinates[vertices_so_far + j] = float2(-1.0f, -1.0f);
 							}
 							else
 							{
@@ -415,9 +408,9 @@ namespace pathtracex
 			tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 
-			bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-			bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-			bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+			//bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+			//bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+			//bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
 
 		/*	float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
 			float3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
@@ -426,9 +419,9 @@ namespace pathtracex
 			vertices.at(i0).tangent = tangent;
 			vertices.at(i1).tangent = tangent;
 			vertices.at(i2).tangent = tangent;
-			vertices.at(i0).biTangent = bitangent;
-			vertices.at(i1).biTangent = bitangent;
-			vertices.at(i2).biTangent = bitangent;
+			//vertices.at(i0).biTangent = bitangent;
+			//vertices.at(i1).biTangent = bitangent;
+			//vertices.at(i2).biTangent = bitangent;
 		}
 
 		// this is now done in the scene class when deserializing
@@ -667,6 +660,79 @@ namespace pathtracex
 		// model->primativeType = PrimitiveModelType::CUBE;
 
 		return model;
+	}
+
+	std::vector<std::shared_ptr<Model>> Model::createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_interp, std::vector<std::shared_ptr<Model>> treeVariations){
+		int planted_trees = 0;
+
+		std::vector<std::shared_ptr<Model>> plantedTrees = {};
+
+		std::default_random_engine generator;
+		std::uniform_int_distribution<int> distribution((-sideLength/2) + 1, (sideLength/2) - 1);
+
+		int treeNum = 0;
+
+		float3 minPos = float3(0, 0, 0);
+		float3 maxPos = float3(0, 0, 0);
+
+		while (planted_trees < numTrees)
+		{
+			float x = startPos.x + distribution(generator);
+			float z = startPos.z + distribution(generator);
+			float y = nGen.GetNoise(x, z) * heightScale;
+
+			//get normal at position
+
+				//  	A
+				//  B  pos	C
+				//  	D
+
+			float3 pos = float3(x, y, z);
+
+			float3 a, b, c, d, n;
+			a = float3(x, nGen.GetNoise(x, z + 1) * heightScale, z + 1);
+			b = float3(x - 1, nGen.GetNoise(x - 1, z) * heightScale, z);
+			c = float3(x + 1, nGen.GetNoise(x + 1, z)*heightScale, z);
+			d = float3(x, nGen.GetNoise(x, z - 1) * heightScale, z - 1);
+			n =   cross(a - pos, b - pos)
+				+ cross(b - pos, d - pos)
+				+ cross(d - pos, c - pos)
+				+ cross(c - pos, a - pos);
+
+			float3 normal = -float3(DirectX::XMVector3Normalize(n));
+
+			//if dor == 1 they are the same
+			float dot = normal.Dot(float3(0, 1, 0));
+			if (dot > stop_interp)
+			{
+				if (planted_trees == 0) {
+					minPos = pos;
+					maxPos = pos;
+				}
+
+				planted_trees++;
+				auto source = treeVariations.at(treeNum);
+				auto tree = std::make_shared<Model>(source->name, source->materials, source->meshes, false, source->maxCords, source->minCords, source->vertices, source->indices);
+				tree->vertexBuffer = std::make_unique<DXVertexBuffer>(tree->vertices);
+				tree->indexBuffer = std::make_unique<DXIndexBuffer>(tree->indices);
+				//tree->trans.setScale(float3(1, 1, 1));
+
+				tree->trans.setPosition(pos);
+				tree->trans.setScale(float3(0.3, 0.3, 0.3));
+				minPos = minPos.Min(minPos, pos);
+				maxPos = maxPos.Max(maxPos, pos);
+				plantedTrees.push_back(tree);
+				treeNum++;
+				if (treeNum >= treeVariations.size())
+					treeNum = 0;
+
+				//I would like to make it so that if the tree is on a slope it should bend a bit
+				//i also want the trees to be smaller if they are on a slope, but lets wait with both of those
+
+			}
+		}
+
+		return plantedTrees;
 	}
 
 	std::shared_ptr<Model> Model::createCube()

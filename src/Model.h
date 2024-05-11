@@ -117,15 +117,22 @@ namespace pathtracex {
 			};
 		};
 
+
 		//static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale = 10, int octaves = 6);
 		static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int tesselation, int heightScale, FastNoiseLite nGen);
 
+		//static std::vector<std::shared_ptr<Model>> createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_interp);
+		static std::vector<std::shared_ptr<Model>> createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_interp, std::vector<std::shared_ptr<Model>> treeVariations);
+
+
 		std::string id = StringUtil::generateRandomString(10);
 	private:
+
 	
 		static std::shared_ptr<Model> createCube();
 		static std::shared_ptr<Model> createPlane();
 		static std::shared_ptr<Model> createSphere(int stacks, int slices);
 		static std::shared_ptr<Model> createCylinder(int baseRadius, int topRadius, int height, int sectorCount);
 	};
+
 }
