@@ -4,6 +4,8 @@
 #include "Logger.h"
 #include "Noise.h"
 #include "ProcedualWorldManager.h"
+#include <cstdlib> 
+
 
 // DON'T REMOVE DEFINES, AND DON'T DEFINE ANYWHERE ELSE!!!!!!!!!!!!!
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -674,6 +676,7 @@ namespace pathtracex
 
 		float3 minPos = float3(0, 0, 0);
 		float3 maxPos = float3(0, 0, 0);
+		srand(time(NULL));
 
 		while (planted_trees < numTrees)
 		{
@@ -718,7 +721,8 @@ namespace pathtracex
 				//tree->trans.setScale(float3(1, 1, 1));
 
 				tree->trans.setPosition(pos);
-				tree->trans.setScale(float3(0.3, 0.3, 0.3));
+				float size = ((float)(rand() % 30)) / 100.0f;
+ 				tree->trans.setScale(float3(size, size, size));
 				minPos = minPos.Min(minPos, pos);
 				maxPos = maxPos.Max(maxPos, pos);
 				plantedTrees.push_back(tree);
