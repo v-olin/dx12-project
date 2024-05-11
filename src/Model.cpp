@@ -664,7 +664,7 @@ namespace pathtracex
 		return model;
 	}
 
-	std::vector<std::shared_ptr<Model>> Model::createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_interp, std::vector<std::shared_ptr<Model>> treeVariations){
+	std::vector<std::shared_ptr<Model>> Model::createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_flat, std::vector<std::shared_ptr<Model>> treeVariations){
 		int planted_trees = 0;
 
 		std::vector<std::shared_ptr<Model>> plantedTrees = {};
@@ -706,7 +706,7 @@ namespace pathtracex
 
 			//if dor == 1 they are the same
 			float dot = normal.Dot(float3(0, 1, 0));
-			if (dot > stop_interp)
+			if (dot > stop_flat)
 			{
 				if (planted_trees == 0) {
 					minPos = pos;

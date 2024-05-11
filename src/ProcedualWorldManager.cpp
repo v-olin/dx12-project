@@ -105,7 +105,7 @@ namespace pathtracex
 	{
 
 		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
-		return Model::createTreeModels(chunkPosition, settings.chunkSideLength, settings.num_trees, settings.heightScale, noiseGenerator, settings.stop_interp, treeVariations);
+		return Model::createTreeModels(chunkPosition, settings.chunkSideLength, settings.num_trees, settings.heightScale, noiseGenerator, settings.stop_flat, treeVariations);
 	}
 
 
