@@ -108,12 +108,16 @@ namespace pathtracex {
 		float3 maxCords;
 		float3 minCords;
 
+		float3 getMinCords() { return minCords; }
+		float3 getMaxCords() { return maxCords; }
+
 		// Currently storing vertices, if this becomes a memory issue it can probably be removed
 		std::vector<Vertex> vertices{};
 		std::vector<uint32_t> indices{};
 
 		// Buffers on GPU
 		std::shared_ptr<DXVertexBuffer> vertexBuffer;
+		std::unique_ptr<DXVertexBuffer> vertexBufferBoundingBox;
 		std::shared_ptr<DXIndexBuffer> indexBuffer;
 
 		std::vector<SerializableVariable> getSerializableVariables() override

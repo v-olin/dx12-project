@@ -68,7 +68,7 @@ VS_OUTPUT main(VS_INPUT input)
     //float4 normal = float4(input.normal, 0.0f);
     //output.worldNormal = normalize(mul(normal, normalMatrix));
     //output.worldPos = mul(float4(input.pos, 1.0), modelMatrix);
-
+    
     output.viewSpaceNormal = mul(float4(input.normal, 0.0), normalMatrix);
     output.viewSpacePos = mul(float4(input.pos, 1.0), modelViewMatrix);
     output.tangent = mul(float4(input.tangent, 0.0), normalMatrix).xyz;
