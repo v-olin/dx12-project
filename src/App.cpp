@@ -38,6 +38,7 @@ namespace pathtracex
 		Serializer::deserializeScene(config.startupSceneName, scene);
 		scene.procedualWorldManager = &worldManager;
 		scene.procedualWorldManager->createMaterial();
+		scene.procedualWorldManager->loadTreeVariations();
 		defaultRenderSettings.raytracingSupported = renderer->raytracingIsSupported();
 
 		if (defaultRenderSettings.raytracingSupported) {
@@ -112,6 +113,7 @@ namespace pathtracex
 		}
 
 		scene.proceduralGroundModels = worldManager.procedualWorldGroundModels;
+		scene.proceduralTreeModels = worldManager.procedualWorldTreeModels;
 		scene.proceduralSkyModels = worldManager.procedualWorldSkyModels;
 
 		if (window.windowHasBeenResized()) {

@@ -9,13 +9,17 @@ namespace pathtracex
 {
 	struct ProcedualWorldSettings : public Serializable
 	{
-		float chunkSideLength = 200;
+
+		float chunkSideLength = 20;
 		float tessellationFactor = 200;
-		int chunkRenderDistance = 200;
-		int heightScale = 10;
+		int chunkRenderDistance = 20;
+		int heightScale = 2;
 
 		float stop_flat = 0.95;
 		float stop_interp = 0.3;
+
+		bool drawProcedualWorldTrees = false;
+		int num_trees = 100;
 
 
 		std::vector<SerializableVariable> getSerializableVariables() override
@@ -27,7 +31,9 @@ namespace pathtracex
 				{SerializableType::INT, "chunkRenderDistance", "The render distance of the procedual world", &chunkRenderDistance},
 				{SerializableType::INT, "heightScale", "The height scale of the procedual world", &heightScale},
 				{SerializableType::FLOAT, "stop_flat", "", &stop_flat},
-				{SerializableType::FLOAT, "stop_interp", "", &stop_interp}
+				{SerializableType::FLOAT, "stop_interp", "", &stop_interp},
+				{SerializableType::BOOLEAN, "Draw trees", "", &drawProcedualWorldTrees},
+				{SerializableType::INT, "Trees per chunk", "", &num_trees}
 			};
 		};
 	};
@@ -47,7 +53,7 @@ namespace pathtracex
 	};
 
 	using Cordinate = std::pair<int, int>;
-	using CordinateMap = std::unordered_map<Cordinate, std::shared_ptr<Model>, pair_hash>;
+	using CordinateMap = std::unordered_map<Cordinate,std::pair<std::shared_ptr<Model>, std::vector<std::shared_ptr<Model>>>, pair_hash>;
 
 	class ProcedualWorldManager
 	{
@@ -56,13 +62,16 @@ namespace pathtracex
 
 		void updateProcedualWorld(Camera& camera); 
 		void createMaterial();
+		void loadTreeVariations();
 
 		// The active procedual world models that will be rendered
 		std::vector<std::shared_ptr<Model>> procedualWorldGroundModels;
 
+		std::vector<std::shared_ptr<Model>> procedualWorldTreeModels;
+
 		std::vector<std::shared_ptr<Model>> procedualWorldSkyModels;
 
-		std::shared_ptr<Model> sun = nullptr;
+		//std::shared_ptr<Model> sun = nullptr;
 
 		void updateProcedualWorldSettings(const ProcedualWorldSettings settings);
 
@@ -77,10 +86,14 @@ namespace pathtracex
 		// If memory usage becomes a problem, we can limit the cache size
 		CordinateMap procedualWorldModelMap{}; 
 
+		std::vector<std::shared_ptr<Model>> treeVariations;
+
+
 		std::pair<int, int> getChunkCoordinatesAtPosition(const float3 position);
 
 		void createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates);
-		void createSun();
+		std::vector<std::shared_ptr<Model>> createTrees(const std::pair<int, int> chunkCoordinates);
+
 
 
 		bool settingsChanged = true;

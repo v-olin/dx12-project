@@ -46,6 +46,7 @@ namespace pathtracex {
 		SPHERE,
 		CYLINDER,
 		PLANE,
+		CONE,
 		NONE
 	};
 
@@ -70,6 +71,15 @@ namespace pathtracex {
 			, float3 min_cords
 			, std::vector<Vertex> vertices
 			, std::vector<uint32_t> indices);
+		Model(std::string name
+			, std::vector<Material> materials
+			, std::vector<Mesh> meshes
+			, bool hasDedicatedShader
+			, float3 max_cords
+			, float3 min_cords
+			, std::shared_ptr<DXVertexBuffer> vertexBuffer
+			, std::shared_ptr<DXIndexBuffer> indexBuffer);
+
 		~Model();
 
 		static std::shared_ptr<Model> createPrimative(PrimitiveModelType type);
@@ -106,9 +116,9 @@ namespace pathtracex {
 		std::vector<uint32_t> indices{};
 
 		// Buffers on GPU
-		std::unique_ptr<DXVertexBuffer> vertexBuffer;
+		std::shared_ptr<DXVertexBuffer> vertexBuffer;
 		std::unique_ptr<DXVertexBuffer> vertexBufferBoundingBox;
-		std::unique_ptr<DXIndexBuffer> indexBuffer;
+		std::shared_ptr<DXIndexBuffer> indexBuffer;
 
 		std::vector<SerializableVariable> getSerializableVariables() override
 		{
@@ -120,14 +130,22 @@ namespace pathtracex {
 			};
 		};
 
+
 		//static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int seed, int tesselation, int heightScale = 10, int octaves = 6);
 		static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int tesselation, int heightScale, FastNoiseLite nGen);
 
+		//static std::vector<std::shared_ptr<Model>> createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_interp);
+		static std::vector<std::shared_ptr<Model>> createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_flat, std::vector<std::shared_ptr<Model>> treeVariations);
+
+
 		std::string id = StringUtil::generateRandomString(10);
 	private:
+
 	
 		static std::shared_ptr<Model> createCube();
 		static std::shared_ptr<Model> createPlane();
 		static std::shared_ptr<Model> createSphere(int stacks, int slices);
+		static std::shared_ptr<Model> createCylinder(int baseRadius, int topRadius, int height, int sectorCount);
 	};
+
 }

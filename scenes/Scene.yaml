@@ -1,7 +1,7 @@
 Models:
   - Name: space-ship
     Filename: space-ship.obj
-    TransformMatrix: [-0.999990463, -1.81990845e-06, 0, 0, -1.81913947e-06, 0.999567926, -1.81913947e-06, 0, 3.31209843e-12, -1.81990845e-06, -0.999990463, 0, -20.7141933, -6.73671579, -3.39436674, 1]
+    TransformMatrix: [-0.999990463, -1.81990845e-06, 0, 0, -1.81913947e-06, 0.999567926, -1.81913947e-06, 0, 3.31209843e-12, -1.81990845e-06, -0.999990463, 0, -20.7141933, -31.1621475, -3.39433074, 1]
     PrimativeType: None
   - Name: Intergalactic_Spaceship
     Filename: Intergalactic_Spaceship.obj
@@ -11,6 +11,23 @@ Models:
     Filename: sphere.obj
     TransformMatrix: [0.100000001, 0, 0, 0, 0, 0.100000001, 0, 0, 0, 0, 0.100000001, 0, -10.1904049, 22.8785019, -14.5017405, 1]
     PrimativeType: None
+  - Name: test tree
+    Filename: TREES/Arbaro_3.obj
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -10.1904049, -10.0823336, -4.23676252, 1]
+    PrimativeType: None
+  - Name: Cone
+    Filename: "null"
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -15.549736, 0.312803268, -1.3525151, 1]
+    PrimativeType: Cylinder
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0.5
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
 Lights:
   - Name: Light1
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 14.3240013, 19.0169449, -1.39267123, 1]

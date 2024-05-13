@@ -1,0 +1,11 @@
+newmtl trunk
+Ka 0.0435 0.0435 0.0435
+Kd 0.7 0.7 0
+Ks 0.078 0.078 0.078
+Ns 0
+d 1.0
+illum 2
+
+map_Kd ..\\textures\\japanese_hackberry_bark_diff_4k.jpg
+map_Bump ..\\textures\\japanese_hackberry_bark_nor_dx_4k.jpg
+

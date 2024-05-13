@@ -182,8 +182,10 @@ float4 main(VS_OUTPUT input) : SV_TARGET
     
     if (hasMaterial)
         color = material_color.rgb;
+
+    bool invalidTexCoords = abs(input.texCoord.x + 1) < 0.01 && abs(input.texCoord.y + 1) < 0.01;
     
-    if (hasColTex)
+    if (hasColTex && !invalidTexCoords)
         color = colTex.Sample(s1, input.texCoord);
     
     if (isProcWorld)
@@ -195,7 +197,7 @@ float4 main(VS_OUTPUT input) : SV_TARGET
 
     float3 viewSpaceNormal = input.viewSpaceNormal;
     float3 normal = input.viewSpaceNormal.xyz;
-    if (hasNormalTex)
+    if (hasNormalTex && !invalidTexCoords)
     {
         float4 normalMap = normalTex.Sample(s1, input.texCoord);
         //Change normal map range from [0, 1] to [-1, 1]

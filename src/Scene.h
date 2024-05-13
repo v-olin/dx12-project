@@ -14,6 +14,7 @@ namespace pathtracex {
 		std::vector<std::shared_ptr<Light>> lights;
 
 		std::vector<std::shared_ptr<Model>> proceduralGroundModels;
+		std::vector<std::shared_ptr<Model>> proceduralTreeModels;
 		std::vector<std::shared_ptr<Model>> proceduralSkyModels;
 
 		std::string sceneName = "Scene";

@@ -12,6 +12,7 @@ namespace pathtracex
 			return;
 		}
 		procedualWorldGroundModels.clear();
+		procedualWorldTreeModels.clear();
 
 	// TODO: implement proper sun
 	//	if (sun == nullptr || settingsChanged)
@@ -32,12 +33,18 @@ namespace pathtracex
 			for (int z = -renderDistanceInChunks; z < renderDistanceInChunks; z++)
 			{
 				Cordinate chunkCoordinates = Cordinate(currentX + x, currentZ + z);
-				if (procedualWorldModelMap.find(chunkCoordinates) != procedualWorldModelMap.end())
-					procedualWorldGroundModels.push_back(procedualWorldModelMap[chunkCoordinates]);
+				if (procedualWorldModelMap.find(chunkCoordinates) != procedualWorldModelMap.end()) {
+					std::shared_ptr<Model> groundModel = procedualWorldModelMap[chunkCoordinates].first;
+					procedualWorldGroundModels.push_back(groundModel);
+					std::vector<std::shared_ptr<Model>> treeModels = procedualWorldModelMap[chunkCoordinates].second;
+					procedualWorldTreeModels.insert(procedualWorldTreeModels.end(), treeModels.begin(), treeModels.end());
+				}
 				else 
 					createProcedualWorldModel(chunkCoordinates);
 			}
 		}
+
+
 	}
 	
 	void ProcedualWorldManager::createMaterial() {
@@ -57,6 +64,21 @@ namespace pathtracex
 
 	}
 
+	void ProcedualWorldManager::loadTreeVariations()
+	{
+		std::vector<std::string> filenames = { "TREES/Arbaro_1.obj", "TREES/Arbaro_2.obj", "TREES/Arbaro_3.obj", "TREES/weeping_willow.obj" };
+		for (std::string filename : filenames)
+		{
+			auto model = std::make_shared<Model>(filename);
+			model->vertexBuffer = std::make_shared<DXVertexBuffer>(model->vertices);
+			model->indexBuffer = std::make_shared<DXIndexBuffer>(model->indices);
+			model->vertices.clear();
+			model->indices.clear();
+
+			treeVariations.push_back(model);
+		}
+	}
+
 	std::pair<int, int> ProcedualWorldManager::getChunkCoordinatesAtPosition(const float3 position)
 	{
 		int x = (int)position.x / settings.chunkSideLength;
@@ -69,26 +91,31 @@ namespace pathtracex
 	void ProcedualWorldManager::createProcedualWorldModel(const std::pair<int, int>& chunkCoordinates)
 	{	
 		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
-		//std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.seed, settings.tessellationFactor, settings.heightScale, settings.octaves);
-		std::shared_ptr<Model> model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.tessellationFactor, settings.heightScale, noiseGenerator);
-		model->materials.push_back(base_mat);
-		model->trans.setScale(float3(1, 1, 1));
-		model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength + settings.chunkSideLength / 2, 0, (chunkCoordinates.second) * settings.chunkSideLength + settings.chunkSideLength / 2));
+		std::shared_ptr<Model> ground_model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.tessellationFactor, settings.heightScale, noiseGenerator);
+		ground_model->materials.push_back(base_mat);
+		ground_model->trans.setScale(float3(1, 1, 1));
+		//ground_model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength));
+		ground_model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength + settings.chunkSideLength / 2, 0, (chunkCoordinates.second) * settings.chunkSideLength + settings.chunkSideLength / 2));
 
-		procedualWorldGroundModels.push_back(model);
-		procedualWorldModelMap[chunkCoordinates] = model;
+
+
+		procedualWorldGroundModels.push_back(ground_model);
+
+		// Create trees
+		std::vector<std::shared_ptr<Model>> treeModels = createTrees(chunkCoordinates);
+		procedualWorldTreeModels.insert(procedualWorldTreeModels.end(), treeModels.begin(), treeModels.end());
+		procedualWorldModelMap[chunkCoordinates] = std::make_pair(ground_model, treeModels);
+
 	}
 
-	void ProcedualWorldManager::createSun()
+
+	std::vector<std::shared_ptr<Model>> ProcedualWorldManager::createTrees(const std::pair<int, int> chunkCoordinates)
 	{
-		std::shared_ptr<Model> model = Model::createPrimative(PrimitiveModelType::SPHERE);
-		model->trans.setScale(float3(10, 10, 10));
-		model->trans.setPosition(float3(0, 500, 500));
 
-		sun = model;
-		
-		procedualWorldSkyModels.push_back(model);
+		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
+		return Model::createTreeModels(chunkPosition, settings.chunkSideLength, settings.num_trees, settings.heightScale, noiseGenerator, settings.stop_flat, treeVariations);
 	}
+
 
 	void ProcedualWorldManager::updateProcedualWorldSettings(const ProcedualWorldSettings settings)
 	{

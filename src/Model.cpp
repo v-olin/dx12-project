@@ -4,6 +4,8 @@
 #include "Logger.h"
 #include "Noise.h"
 #include "ProcedualWorldManager.h"
+#include <cstdlib> 
+
 
 // DON'T REMOVE DEFINES, AND DON'T DEFINE ANYWHERE ELSE!!!!!!!!!!!!!
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -14,6 +16,7 @@ namespace pathtracex
 {
 
 #define PATH_TO_ASSETS "../../assets/"
+#define PATH_TO_TREE_ASSETS "../../assets/TREES/"
 
 	namespace file_util
 	{
@@ -114,8 +117,8 @@ namespace pathtracex
 		: name(name), materials(materials), meshes(meshes), maxCords(max_cords), minCords(min_cords), vertices(vertices), indices(indices)
 	{
 		// Create the vertex buffer and index buffer
-		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
-		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
+		//vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
+		//indexBuffer = std::make_unique<DXIndexBuffer>(indices);
 
 		// Create the vertex buffer for the bounding box vertices
 		std::vector<Vertex> boundingBoxVertices = {
@@ -151,7 +154,46 @@ namespace pathtracex
 		vertexBufferBoundingBox = std::make_unique<DXVertexBuffer>(boundingBoxVertices);
 		
 
+		vertexBuffer = std::make_shared<DXVertexBuffer>(vertices);
+		indexBuffer = std::make_shared<DXIndexBuffer>(indices);
+
 	}
+	Model::Model(std::string name, std::vector<Material> materials, std::vector<Mesh> meshes, bool hasDedicatedShader, float3 max_cords, float3 min_cords, std::shared_ptr<DXVertexBuffer> vertexBuffer, std::shared_ptr<DXIndexBuffer> indexBuffer)
+		: name(name), materials(materials), meshes(meshes), maxCords(max_cords), minCords(min_cords), vertexBuffer(vertexBuffer), indexBuffer(indexBuffer)
+	{
+		std::vector<Vertex> boundingBoxVertices = {
+						{minCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom left
+						{maxCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom right
+						{maxCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom right
+						{maxCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top right
+						{maxCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top right
+						{minCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top left
+						{minCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top left
+						{minCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom left
+
+						// Repeat for the back face
+						{minCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom left
+						{maxCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom right
+						{maxCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom right
+						{maxCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top right
+						{maxCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top right
+						{minCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top left
+						{minCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top left
+						{minCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom left
+
+						// Connect the front and back faces
+						{minCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom left
+						{minCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom left
+						{maxCords.x, minCords.y, minCords.z, 255, 0, 0, 1}, // Front bottom right
+						{maxCords.x, minCords.y, maxCords.z, 255, 0, 0, 1}, // Back bottom right
+						{maxCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top right
+						{maxCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top right
+						{minCords.x, maxCords.y, minCords.z, 255, 0, 0, 1}, // Front top left
+						{minCords.x, maxCords.y, maxCords.z, 255, 0, 0, 1}, // Back top left
+		};
+		vertexBufferBoundingBox = std::make_unique<DXVertexBuffer>(boundingBoxVertices);
+	}
+
 
 	Model::Model(std::string filenameWithExtension)
 		// TODO: This could be fucked
@@ -296,6 +338,8 @@ namespace pathtracex
 		int vertices_so_far = 0;
 		for (int s = 0; s < shapes.size(); ++s)
 		{
+
+			size_t index_offset = 0;
 			const auto &shape = shapes[s];
 			int next_material_index = shape.mesh.material_ids[0];
 			int next_material_starting_face = 0;
@@ -339,16 +383,6 @@ namespace pathtracex
 									   attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 1],
 									   attrib.vertices[shape.mesh.indices[i * 3 + j].vertex_index * 3 + 2]);
 
-							/*
-							auto elementMax = [](float3 v1, float3 v2) {
-								return float3(max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z));
-								};
-							auto elementMin = [](float3 v1, float3 v2) {
-								return float3(min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z));
-								};
-							max_cords = elementMax(m_positions[vertices_so_far + j], max_cords);
-							min_cords = elementMin(m_positions[vertices_so_far + j], min_cords);
-							*/
 							maxCords = maxCords.Max(m_positions[vertices_so_far + j], maxCords);
 							minCords = minCords.Min(minCords, m_positions[vertices_so_far + j]);
 
@@ -368,7 +402,7 @@ namespace pathtracex
 							if (shape.mesh.indices[i * 3 + j].texcoord_index == -1)
 							{
 								// No UV coordinates. Use null.
-								m_texture_coordinates[vertices_so_far + j] = float2(0.0f);
+								m_texture_coordinates[vertices_so_far + j] = float2(-1.0f, -1.0f);
 							}
 							else
 							{
@@ -450,9 +484,9 @@ namespace pathtracex
 			tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 
-			bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-			bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-			bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+			//bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+			//bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+			//bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
 
 		/*	float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
 			float3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
@@ -461,9 +495,9 @@ namespace pathtracex
 			vertices.at(i0).tangent = tangent;
 			vertices.at(i1).tangent = tangent;
 			vertices.at(i2).tangent = tangent;
-			vertices.at(i0).biTangent = bitangent;
-			vertices.at(i1).biTangent = bitangent;
-			vertices.at(i2).biTangent = bitangent;
+			//vertices.at(i0).biTangent = bitangent;
+			//vertices.at(i1).biTangent = bitangent;
+			//vertices.at(i2).biTangent = bitangent;
 		}
 
 		// this is now done in the scene class when deserializing
@@ -481,9 +515,12 @@ namespace pathtracex
 		case pathtracex::SPHERE:
 			return createSphere(100, 100);
 		case pathtracex::CYLINDER:
+			return createCylinder(10, 10, 20, 100);
 			break;
 		case pathtracex::PLANE:
 			return createPlane();
+		case pathtracex::CONE:
+			return createCylinder(10, 3, 20, 100);
 		case pathtracex::NONE:
 			break;
 		default:
@@ -507,6 +544,7 @@ namespace pathtracex
 		case pathtracex::PLANE:
 			return "Plane";
 			break;
+		
 		case pathtracex::NONE:
 			return "None";
 			break;
@@ -525,6 +563,8 @@ namespace pathtracex
 			return PrimitiveModelType::CYLINDER;
 		else if (type == "Sphere")
 			return PrimitiveModelType::SPHERE;
+		else if (type == "Cone")
+			return PrimitiveModelType::CONE;
 		else
 		{
 			return PrimitiveModelType::NONE;
@@ -696,6 +736,88 @@ namespace pathtracex
 		// model->primativeType = PrimitiveModelType::CUBE;
 
 		return model;
+	}
+
+	std::vector<std::shared_ptr<Model>> Model::createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_flat, std::vector<std::shared_ptr<Model>> treeVariations){
+		int planted_trees = 0;
+
+		std::vector<std::shared_ptr<Model>> plantedTrees = {};
+
+		std::default_random_engine generator;
+		std::uniform_int_distribution<int> distribution((-sideLength/2)*1000 + 1, (sideLength/2)*1000 - 1);
+
+		int treeNum = 0;
+
+		float3 minPos = float3(0, 0, 0);
+		float3 maxPos = float3(0, 0, 0);
+		srand(time(NULL));
+
+		while (planted_trees < numTrees)
+		{
+			float x = startPos.x + ((float)distribution(generator))/1000.0;
+			float z = startPos.z + ((float)distribution(generator))/1000.0;
+			float y = nGen.GetNoise(x, z) * heightScale;
+
+			//get normal at position
+
+				//  	A
+				//  B  pos	C
+				//  	D
+
+			float3 pos = float3(x, y, z);
+
+			float3 a, b, c, d, n;
+			a = float3(x, nGen.GetNoise(x, z + 1) * heightScale, z + 1);
+			b = float3(x - 1, nGen.GetNoise(x - 1, z) * heightScale, z);
+			c = float3(x + 1, nGen.GetNoise(x + 1, z)*heightScale, z);
+			d = float3(x, nGen.GetNoise(x, z - 1) * heightScale, z - 1);
+			n =   cross(a - pos, b - pos)
+				+ cross(b - pos, d - pos)
+				+ cross(d - pos, c - pos)
+				+ cross(c - pos, a - pos);
+
+			float3 normal = -float3(DirectX::XMVector3Normalize(n));
+
+			//if dor == 1 they are the same
+			float dot = normal.Dot(float3(0, 1, 0));
+			if (dot > stop_flat)
+			{
+				if (planted_trees == 0) {
+					minPos = pos;
+					maxPos = pos;
+				}
+
+				planted_trees++;
+				auto source = treeVariations.at(treeNum);
+				//auto tree = std::make_shared<Model>(source->name, source->materials, source->meshes, false, source->maxCords, source->minCords, source->vertices, source->indices);
+				/*tree->vertexBuffer = std::make_unique<DXVertexBuffer>(tree->vertices);
+				tree->indexBuffer = std::make_unique<DXIndexBuffer>(tree->indices);*/
+				auto tree = std::make_shared<Model>(source->name, source->materials, source->meshes, false, source->maxCords, source->minCords, source->vertexBuffer, source->indexBuffer);
+				//tree->vertexBuffer = source->vertexBuffer;
+				//tree->indexBuffer = source->indexBuffer;
+				//tree->indices.clear();
+				//tree->vertices.clear();
+				//tree->trans.setScale(float3(1, 1, 1));
+
+				pos.x += sideLength / 2;
+				pos.z += sideLength / 2;
+				tree->trans.setPosition(pos);
+				float size = ((float)(rand() % 30)) / 100.0f;
+ 				tree->trans.setScale(float3(size, size, size));
+				minPos = minPos.Min(minPos, pos);
+				maxPos = maxPos.Max(maxPos, pos);
+				plantedTrees.push_back(tree);
+				treeNum++;
+				if (treeNum >= treeVariations.size())
+					treeNum = 0;
+
+				//I would like to make it so that if the tree is on a slope it should bend a bit
+				//i also want the trees to be smaller if they are on a slope, but lets wait with both of those
+
+			}
+		}
+
+		return plantedTrees;
 	}
 
 	std::shared_ptr<Model> Model::createCube()
@@ -1064,5 +1186,203 @@ namespace pathtracex
 
 		return model;
 	}
+#define PI 3.1415926535897932384626
 
+	std::shared_ptr<Model> Model::createCylinder(int baseRadius, int topRadius, int height, int sectorCount)
+	{
+		std::vector<float3> vertices;
+		std::vector<float3> normals;
+		std::vector<float2> uv;
+		std::vector<unsigned int> indices;
+		float x, y, z;                                  // vertex position
+		float radius;                                   // radius for each stack
+
+		//const float PI = acos(-1);
+		float sectorStep = 2 * PI / sectorCount;
+		float sectorAngle;  // radian
+
+		// compute the normal vector at 0 degree first
+		// tanA = (baseRadius-topRadius) / height
+		float zAngle = atan2(baseRadius - topRadius, height);
+		float x0 = cos(zAngle);     // nx
+		float y0 = 0;               // ny
+		float z0 = sin(zAngle);     // nz
+
+		// rotate (x0,y0,z0) per sector angle
+		std::vector<float> sideNormals;
+		for (int i = 0; i <= sectorCount; ++i)
+		{
+			sectorAngle = i * sectorStep;
+			sideNormals.push_back(cos(sectorAngle) * x0 - sin(sectorAngle) * y0);   // nx
+			sideNormals.push_back(sin(sectorAngle) * x0 + cos(sectorAngle) * y0);   // ny
+			sideNormals.push_back(z0);  // nz
+		}
+
+		std::vector<float> unitCircleVertices;
+		for (int i = 0; i <= sectorCount; ++i)
+		{
+			sectorAngle = i * sectorStep;
+			unitCircleVertices.push_back(cos(sectorAngle)); // x
+			unitCircleVertices.push_back(sin(sectorAngle)); // y
+			unitCircleVertices.push_back(0);                // z
+		}
+
+		// remember where the base.top vertices start
+		unsigned int baseVertexIndex = (unsigned int)vertices.size();
+		// TODO: Convert this
+		// put vertices of base of cylinder
+		z = -height * 0.5f;
+		vertices.push_back(float3(0, 0, z));
+		normals.push_back(float3(0, 0, -1));
+		uv.push_back(float2(0.5f, 0.5f));
+		for (int i = 0, j = 0; i < sectorCount; ++i, j += 3)
+		{
+			x = unitCircleVertices[j];
+			y = unitCircleVertices[j + 1];
+			vertices.push_back(float3(x * baseRadius, y * baseRadius, z));
+			normals.push_back(float3(0, 0, -1));
+			uv.push_back(float2(-x * 0.5f + 0.5f, -y * 0.5f + 0.5f));
+		}
+
+		// remember where the top vertices start
+		unsigned int topVertexIndex = (unsigned int)vertices.size();
+		// put vertices of top of cylinder
+		z = height * 0.5f;
+		vertices.push_back(float3(0, 0, z));
+		normals.push_back(float3(0, 0, 1));
+		uv.push_back(float2(0.5f, 0.5f));
+		for (int i = 0, j = 0; i < sectorCount; ++i, j += 3)
+		{
+			x = unitCircleVertices[j];
+			y = unitCircleVertices[j + 1];
+			vertices.push_back(float3(x * topRadius, y * topRadius, z));
+			normals.push_back(float3(0, 0, 1));
+			uv.push_back(float2(x * 0.5f + 0.5f, -y * 0.5f + 0.5f));
+		}
+
+
+		int k1 = 0;                         // 1st vertex index at base
+		int k2 = sectorCount + 1;           // 1st vertex index at top
+
+		for (int j = 0; j < sectorCount; ++j, ++k1, ++k2)
+		{
+			if (j == 0)
+			{
+				// 2 trianles per sector
+				indices.push_back(k1 + sectorCount);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2 + sectorCount);
+
+				indices.push_back(k2 + sectorCount);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2 + 1);
+			}
+			else
+			{
+				// 2 trianles per sector
+				indices.push_back(k1);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2);
+
+				indices.push_back(k2);
+				indices.push_back(k1 + 1);
+				indices.push_back(k2 + 1);
+			}
+		}
+
+		// put indices for base
+		for (int i = 0, k = baseVertexIndex + 1; i < sectorCount; ++i, ++k)
+		{
+			if (i < (sectorCount - 1))
+			{
+				indices.push_back(baseVertexIndex);
+				indices.push_back(k + 1);
+				indices.push_back(k);
+			}
+			else    // last triangle
+			{
+				indices.push_back(baseVertexIndex);
+				indices.push_back(baseVertexIndex + 1);
+				indices.push_back(k);
+			}
+		}
+
+		// put indices for top
+		for (int i = 0, k = topVertexIndex + 1; i < sectorCount; ++i, ++k)
+		{
+			if (i < (sectorCount - 1))
+			{
+				indices.push_back(topVertexIndex);
+				indices.push_back(k);
+				indices.push_back(k + 1);
+			}
+			else
+			{
+				indices.push_back(topVertexIndex);
+				indices.push_back(k);
+				indices.push_back(topVertexIndex + 1);
+			}
+		}
+
+		std::vector<Vertex> vertecies;
+		std::vector<uint32_t> indecies;
+		for (size_t i = 0; i < indices.size(); i+=3)
+		{
+			int idx0 = indices.at(i);
+			int idx1 = indices.at(i + 1);
+			int idx2 = indices.at(i + 2);
+
+			float3 v0 = vertices.at(idx0);
+			float3 v1 = vertices.at(idx1);
+			float3 v2 = vertices.at(idx2);
+			v0 = float3(v0.x/10, v0.z/10, v0.y/10);
+			v1 = float3(v1.x/10, v1.z/10, v1.y/10);
+			v2 = float3(v2.x/10, v2.z/10, v2.y/10);
+
+			vertecies.push_back({ v2, float4(1, 0, 0, 1), normals.at(idx2), uv.at(idx2) });
+			vertecies.push_back({ v1, float4(1, 0, 0, 1), normals.at(idx1), uv.at(idx1) });
+			vertecies.push_back({ v0, float4(1, 0, 0, 1), normals.at(idx0), uv.at(idx0) });
+
+			indecies.push_back(i);
+			indecies.push_back(i + 1);
+			indecies.push_back(i + 2);
+		}
+		std::vector<Mesh> meshes;
+		Mesh mesh;
+		mesh.materialIdx = 0;
+		mesh.name = "Cylinder mesh";
+		mesh.startIndex = 0;
+		mesh.numberOfVertices = indices.size();
+		meshes.push_back(mesh);
+
+		float3 max_cords(vertices.at(0));
+		float3 min_cords(vertices.at(0));
+		for (size_t i = 1; i < vertices.size(); i++)
+		{
+			max_cords = max_cords.Max(max_cords, vertices.at(i));
+			min_cords = max_cords.Min(min_cords, vertices.at(i));
+		}
+		
+		Material material = Material::createDefaultMaterial();
+		std::vector<Material> materials;
+		materials.push_back(material);
+
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		ZeroMemory(&heapDesc, sizeof(heapDesc));
+		heapDesc.NumDescriptors = NUMTEXTURETYPES;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		DXRenderer* renderer = DXRenderer::getInstance();
+
+		renderer->createTextureDescriptorHeap(heapDesc, &materials[0].mainDescriptorHeap);
+
+
+		std::shared_ptr<Model> model = std::make_shared<Model>("Primative Cone", materials, meshes, false, max_cords, min_cords, vertecies, indecies);
+	//Model::Model(std::string name, std::vector<Material> materials, std::vector<Mesh> meshes, bool hasDedicatedShader, float3 max_cords, float3 min_cords, std::vector<Vertex> vertices = {}, std::vector<uint32_t> indices = {})
+		model->primativeType = PrimitiveModelType::CYLINDER;
+		return model;
+	}
+	
+	
 }
