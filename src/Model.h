@@ -71,6 +71,15 @@ namespace pathtracex {
 			, float3 min_cords
 			, std::vector<Vertex> vertices
 			, std::vector<uint32_t> indices);
+		Model(std::string name
+			, std::vector<Material> materials
+			, std::vector<Mesh> meshes
+			, bool hasDedicatedShader
+			, float3 max_cords
+			, float3 min_cords
+			, std::shared_ptr<DXVertexBuffer> vertexBuffer
+			, std::shared_ptr<DXIndexBuffer> indexBuffer);
+
 		~Model();
 
 		static std::shared_ptr<Model> createPrimative(PrimitiveModelType type);
@@ -104,8 +113,8 @@ namespace pathtracex {
 		std::vector<uint32_t> indices{};
 
 		// Buffers on GPU
-		std::unique_ptr<DXVertexBuffer> vertexBuffer;
-		std::unique_ptr<DXIndexBuffer> indexBuffer;
+		std::shared_ptr<DXVertexBuffer> vertexBuffer;
+		std::shared_ptr<DXIndexBuffer> indexBuffer;
 
 		std::vector<SerializableVariable> getSerializableVariables() override
 		{

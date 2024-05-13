@@ -9,6 +9,7 @@ namespace pathtracex
 {
 	struct ProcedualWorldSettings : public Serializable
 	{
+
 		float chunkSideLength = 20;
 		float tessellationFactor = 200;
 		int chunkRenderDistance = 20;
@@ -17,7 +18,8 @@ namespace pathtracex
 		float stop_flat = 0.95;
 		float stop_interp = 0.3;
 
-		int num_trees = 200;
+		bool drawProcedualWorldTrees = false;
+		int num_trees = 100;
 
 
 		std::vector<SerializableVariable> getSerializableVariables() override
@@ -30,7 +32,8 @@ namespace pathtracex
 				{SerializableType::INT, "heightScale", "The height scale of the procedual world", &heightScale},
 				{SerializableType::FLOAT, "stop_flat", "", &stop_flat},
 				{SerializableType::FLOAT, "stop_interp", "", &stop_interp},
-				{SerializableType::INT, "num_trees", "", &num_trees}
+				{SerializableType::BOOLEAN, "Draw trees", "", &drawProcedualWorldTrees},
+				{SerializableType::INT, "Trees per chunk", "", &num_trees}
 			};
 		};
 	};

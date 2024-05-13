@@ -561,8 +561,10 @@ namespace pathtracex {
 				for (auto model : scene.proceduralGroundModels) {
 					models.push_back(model);
 				}
-				for (auto model : scene.proceduralTreeModels) {
-					models.push_back(model);
+				if (scene.procedualWorldManager->settings.drawProcedualWorldTrees) {
+					for (auto model : scene.proceduralTreeModels) {
+						models.push_back(model);
+					}
 				}
 
 				for (auto model : scene.proceduralSkyModels) {

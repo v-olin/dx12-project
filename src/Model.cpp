@@ -117,9 +117,16 @@ namespace pathtracex
 		: name(name), materials(materials), meshes(meshes), maxCords(max_cords), minCords(min_cords), vertices(vertices), indices(indices)
 	{
 		// Create the vertex buffer and index buffer
-		vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
-		indexBuffer = std::make_unique<DXIndexBuffer>(indices);
+		//vertexBuffer = std::make_unique<DXVertexBuffer>(vertices);
+		//indexBuffer = std::make_unique<DXIndexBuffer>(indices);
+		vertexBuffer = std::make_shared<DXVertexBuffer>(vertices);
+		indexBuffer = std::make_shared<DXIndexBuffer>(indices);
+
 	}
+	Model::Model(std::string name, std::vector<Material> materials, std::vector<Mesh> meshes, bool hasDedicatedShader, float3 max_cords, float3 min_cords, std::shared_ptr<DXVertexBuffer> vertexBuffer, std::shared_ptr<DXIndexBuffer> indexBuffer)
+		: name(name), materials(materials), meshes(meshes), maxCords(max_cords), minCords(min_cords), vertexBuffer(vertexBuffer), indexBuffer(indexBuffer)
+	{}
+
 
 	Model::Model(std::string filenameWithExtension)
 		// TODO: This could be fucked
@@ -670,7 +677,7 @@ namespace pathtracex
 		std::vector<std::shared_ptr<Model>> plantedTrees = {};
 
 		std::default_random_engine generator;
-		std::uniform_int_distribution<int> distribution((-sideLength/2) + 1, (sideLength/2) - 1);
+		std::uniform_int_distribution<int> distribution((-sideLength/2)*1000 + 1, (sideLength/2)*1000 - 1);
 
 		int treeNum = 0;
 
@@ -680,8 +687,8 @@ namespace pathtracex
 
 		while (planted_trees < numTrees)
 		{
-			float x = startPos.x + distribution(generator);
-			float z = startPos.z + distribution(generator);
+			float x = startPos.x + ((float)distribution(generator))/1000.0;
+			float z = startPos.z + ((float)distribution(generator))/1000.0;
 			float y = nGen.GetNoise(x, z) * heightScale;
 
 			//get normal at position
@@ -715,11 +722,18 @@ namespace pathtracex
 
 				planted_trees++;
 				auto source = treeVariations.at(treeNum);
-				auto tree = std::make_shared<Model>(source->name, source->materials, source->meshes, false, source->maxCords, source->minCords, source->vertices, source->indices);
-				tree->vertexBuffer = std::make_unique<DXVertexBuffer>(tree->vertices);
-				tree->indexBuffer = std::make_unique<DXIndexBuffer>(tree->indices);
+				//auto tree = std::make_shared<Model>(source->name, source->materials, source->meshes, false, source->maxCords, source->minCords, source->vertices, source->indices);
+				/*tree->vertexBuffer = std::make_unique<DXVertexBuffer>(tree->vertices);
+				tree->indexBuffer = std::make_unique<DXIndexBuffer>(tree->indices);*/
+				auto tree = std::make_shared<Model>(source->name, source->materials, source->meshes, false, source->maxCords, source->minCords, source->vertexBuffer, source->indexBuffer);
+				//tree->vertexBuffer = source->vertexBuffer;
+				//tree->indexBuffer = source->indexBuffer;
+				//tree->indices.clear();
+				//tree->vertices.clear();
 				//tree->trans.setScale(float3(1, 1, 1));
 
+				pos.x += sideLength / 2;
+				pos.z += sideLength / 2;
 				tree->trans.setPosition(pos);
 				float size = ((float)(rand() % 30)) / 100.0f;
  				tree->trans.setScale(float3(size, size, size));

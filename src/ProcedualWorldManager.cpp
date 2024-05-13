@@ -66,11 +66,16 @@ namespace pathtracex
 
 	void ProcedualWorldManager::loadTreeVariations()
 	{
-		std::vector<std::string> filenames = { "TREES/Arbaro_1.obj", "TREES/Arbaro_2.obj", "TREES/Arbaro_3.obj"};
+		std::vector<std::string> filenames = { "TREES/Arbaro_1.obj", "TREES/Arbaro_2.obj", "TREES/Arbaro_3.obj", "TREES/weeping_willow.obj" };
 		for (std::string filename : filenames)
 		{
 			auto model = std::make_shared<Model>(filename);
-			treeVariations.push_back(std::make_shared<Model>(filename));
+			model->vertexBuffer = std::make_shared<DXVertexBuffer>(model->vertices);
+			model->indexBuffer = std::make_shared<DXIndexBuffer>(model->indices);
+			model->vertices.clear();
+			model->indices.clear();
+
+			treeVariations.push_back(model);
 		}
 	}
 
@@ -89,7 +94,10 @@ namespace pathtracex
 		std::shared_ptr<Model> ground_model = Model::createProcedualWorldMesh(chunkPosition, settings.chunkSideLength, settings.tessellationFactor, settings.heightScale, noiseGenerator);
 		ground_model->materials.push_back(base_mat);
 		ground_model->trans.setScale(float3(1, 1, 1));
-		ground_model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength));
+		//ground_model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength));
+		ground_model->trans.setPosition(float3((chunkCoordinates.first) * settings.chunkSideLength + settings.chunkSideLength / 2, 0, (chunkCoordinates.second) * settings.chunkSideLength + settings.chunkSideLength / 2));
+
+
 
 		procedualWorldGroundModels.push_back(ground_model);
 

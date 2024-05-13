@@ -11,10 +11,14 @@ Models:
     Filename: sphere.obj
     TransformMatrix: [0.100000001, 0, 0, 0, 0, 0.100000001, 0, 0, 0, 0, 0.100000001, 0, -10.1904049, 22.8785019, -14.5017405, 1]
     PrimativeType: None
+  - Name: test tree
+    Filename: TREES/Arbaro_3.obj
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -10.1904049, -10.0823336, -4.23676252, 1]
+    PrimativeType: None
   - Name: Cone
     Filename: "null"
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -15.549736, 0.312803268, -1.3525151, 1]
-    PrimativeType: Cone
+    PrimativeType: Cylinder
     Material:
       Name: Default Material
       Color: [1, 1, 1]
