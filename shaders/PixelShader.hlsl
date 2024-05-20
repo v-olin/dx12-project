@@ -68,6 +68,18 @@ cbuffer ConstantMeshBuffer : register(b1)
 float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float3 base_color, VS_OUTPUT input)
 {
     float3 direct_illum = base_color;
+    float shininess = material_shininess; 
+    if(hasShinyTex)
+    {
+        float4 shiny = shinyTex.Sample(s1, input.texCoord);
+        shininess = shiny.r;
+    }
+    float metalness = material_metalness;
+    if (hasMetalTex)
+    {
+        float4 metal = metalTex.Sample(s1, input.texCoord);
+        metalness = metal.r;
+    }
 	///////////////////////////////////////////////////////////////////////////
 	// Task 1.2 - Calculate the radiance Li from the light, and the direction
 	//            to the light. If the light is backfacing the triangle,
@@ -104,7 +116,7 @@ float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float
     float ndotwh = max(0.0001, dot(n, wh));
     float ndotwo = max(0.0001, dot(n, wo));
     float wodotwh = max(0.0001, dot(wo, wh));
-    float D = ((material_shininess + 2) / (2.0 * PI)) * pow(ndotwh, material_shininess);
+    float D = ((shininess + 2) / (2.0 * PI)) * pow(ndotwh, shininess);
     float G = min(1.0, min(2.0 * ndotwh * ndotwo / wodotwh, 2.0 * ndotwh * ndotwi / wodotwh));
     float F = material_fresnel + (1.0 - material_fresnel) * pow(1.0 - wodotwh, 5.0);
     float denominator = 4.0 * clamp(ndotwo * ndotwi, 0.0001, 1.0);
@@ -117,7 +129,7 @@ float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float
 	///////////////////////////////////////////////////////////////////////////
     float3 dielectric_term = brdf * ndotwi * Li + (1 - F) * diffuse_term;
     float3 metal_term = brdf * base_color * ndotwi * Li;
-    direct_illum = material_metalness * metal_term + (1 - material_metalness) * dielectric_term;
+    direct_illum = metalness * metal_term + (1 - metalness) * dielectric_term;
 
 
     return direct_illum;
