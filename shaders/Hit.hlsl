@@ -125,6 +125,7 @@ float3 GetMaterialColor(Attributes attrib)
         MeshData data = meshdatas[matidx];
         
         float3 hitColor = HitAttribute(colors, attrib);
+        return float3(1, 0, 0);
         return hitColor;
     }
     else
@@ -138,6 +139,7 @@ float3 GetMaterialColor(Attributes attrib)
         
         // blend them with bary
         float3 hitColor = HitAttribute(colors, attrib);
+        return float3(0, 0, 1);
         return hitColor;
     }
 }
@@ -210,7 +212,7 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
     float3 normals[3] = { Vertices[indices[vertId + 0]].normal, Vertices[indices[vertId + 1]].normal, Vertices[indices[vertId + 2]].normal };
     float3 normal = HitAttribute(normals, attrib);
     // Transform to world space
-    normal = normalize(mul(float4(normal, 0.0f), meshdatas[Vertices[vertId].materialIdx].normal_matrix).xyz);
+    normal = normalize(mul(float4(normalize(normal), 0.0f), meshdatas[Vertices[vertId].materialIdx].normal_matrix).xyz);
     
     // Dir from camera to hit point
     float3 viewDir = normalize(worldOrigin - WorldRayOrigin());

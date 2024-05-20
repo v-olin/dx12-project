@@ -1,0 +1,108 @@
+Models:
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [2, 0, 0, 0, 0, 4, 0, 0, 0, 0, 2, 0, 1.68557942, -2.84503269, 1.69744086, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 1
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, -4.80085611, -3.968153, -0.1256091, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 1
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [10, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0.00100000005, 0, 3.45418549, 0, 4.40657377, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [9.09740083e-06, 1.65565721e-11, -9.99755096, 0, 2.50068924e-11, 9.99831581, 1.6557861e-11, 0, 0.0010000004, -2.50111148e-15, 9.09963271e-10, 0, -1.47883511, 0.0410231352, -0.483822465, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 0, 0]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Floor
+    Filename: ""
+    TransformMatrix: [10, 0, 0, 0, 0, 0.00100000005, 0, 0, 0, 0, 10, 0, 3.46248579, -4.8298254, -0.624222755, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [9.09963001e-06, 0, -10.000001, 0, -1.81854975e-05, -9.99243832, -1.65481275e-11, 0, -0.999999881, 1.81992561e-06, -9.09962807e-07, 0, 9.05495739, 0, -0.512599587, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [0.29411757, 1, 0]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Primative Cube
+    Filename: ""
+    TransformMatrix: [10, 0, 0, 0, 0, 1, 0, 0, 0, 0, 10, 0, 3.62290335, 5.20651054, 0, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [0.990196049, 0, 0.582468331]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Primative Sphere
+    Filename: ""
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 6.58336163, -0.749141693, 1.70010567, 1]
+    PrimativeType: Sphere
+    Material:
+      Name: Default Material
+      Color: [0, 0.0882353783, 1]
+      Shininess: 0.800000012
+      Metalness: 0.200000003
+      Fresnel: 1
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+Lights:
+  - Name: Light
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4.69780588, 2.90252566, -6.60319996, 1]
