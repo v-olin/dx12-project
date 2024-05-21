@@ -185,13 +185,13 @@ public:
     FastNoiseLite(int seed = 1337)
     {
         mSeed = seed;
-        mFrequency = 0.1f;
-        mNoiseType = NoiseType_Cellular;
+        mFrequency = 0.01f;
+        mNoiseType = NoiseType_OpenSimplex2;
         mRotationType3D = RotationType3D_None;
         mTransformType3D = TransformType3D_DefaultOpenSimplex2;
 
-        mFractalType = FractalType_PingPong;
-        mOctaves = 3;
+        mFractalType = FractalType_FBm;
+        mOctaves = 5;
         mLacunarity = 2.0f;
         mGain = 0.5f;
         mWeightedStrength = 0.0f;

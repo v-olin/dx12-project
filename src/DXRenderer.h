@@ -162,6 +162,7 @@ namespace pathtracex {
 			//for proc world only, should maybe not be here...
 			float stop_flat;
 			float stop_interp;
+			int colorTexIndex;
 		};
 
 		// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.

@@ -21,6 +21,7 @@ namespace pathtracex {
 		float ior;
 		Texture colorTexture;
 		Texture colorTexture2;
+		Texture colorTexture3;
 		Texture shininessTexture;
 		Texture metalnessTexture;
 		Texture fresnelTexture;

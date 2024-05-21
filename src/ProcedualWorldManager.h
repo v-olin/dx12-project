@@ -10,20 +10,30 @@ namespace pathtracex
 	struct ProcedualWorldSettings : public Serializable
 	{
 
-		float chunkSideLength = 20;
+		float chunkSideLength = 200;
 		float tessellationFactor = 200;
-		int chunkRenderDistance = 20;
-		int heightScale = 2;
+		int chunkRenderDistance = 200;
+		int heightScale = 8;
 
-		float stop_flat = 0.95;
-		float stop_interp = 0.3;
+		float stop_flat = 0.999;
+		float stop_interp = 0.8;
+		enum ProcWordColorType
+		{
+			GRASS,
+			SNOW
+		};
+		int colTexIndex;
+
+		EnumPair colTexIndexEnum = { &colTexIndex,{ "Grass", "Snow" } };
 
 		bool drawProcedualWorldTrees = false;
 		int num_trees = 100;
+		float stop_flat_trees = 0.95;
 
 
 		std::vector<SerializableVariable> getSerializableVariables() override
 		{
+			colTexIndexEnum.val = &colTexIndex;
 			return
 			{
 				{SerializableType::FLOAT, "chunkSideLength", "The side length of a chunk", &chunkSideLength},
@@ -33,7 +43,10 @@ namespace pathtracex
 				{SerializableType::FLOAT, "stop_flat", "", &stop_flat},
 				{SerializableType::FLOAT, "stop_interp", "", &stop_interp},
 				{SerializableType::BOOLEAN, "Draw trees", "", &drawProcedualWorldTrees},
-				{SerializableType::INT, "Trees per chunk", "", &num_trees}
+				{SerializableType::INT, "Trees per chunk", "", &num_trees},
+				{SerializableType::FLOAT, "stop_flat_trees", "", &stop_flat_trees},
+				{SerializableType::ENUM, "Flat texture", "", &colTexIndexEnum},
+
 			};
 		};
 	};
