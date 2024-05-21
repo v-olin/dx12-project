@@ -2322,5 +2322,6 @@ namespace pathtracex {
 	void DXRenderer::setProcWordValues(ProcedualWorldSettings settings) {
 		cbPerMesh.stop_flat = settings.stop_flat;
 		cbPerMesh.stop_interp = settings.stop_interp;
+		cbPerMesh.colorTexIndex = settings.colTexIndex;
 	}
 }

@@ -1,11 +1,12 @@
 Texture2D colTex : register(t0);
 Texture2D colTex2 : register(t1);
-Texture2D normalTex : register(t2);
-Texture2D normalTex2 : register(t3);
-Texture2D shinyTex : register(t4);
-Texture2D metalTex : register(t5);
-Texture2D fresnelTex : register(t6);
-Texture2D emisionTex : register(t7);
+Texture2D colTex3 : register(t2);
+Texture2D normalTex : register(t3);
+Texture2D normalTex2 : register(t4);
+Texture2D shinyTex : register(t5);
+Texture2D metalTex : register(t6);
+Texture2D fresnelTex : register(t7);
+Texture2D emisionTex : register(t8);
 
 SamplerState s1 : register(s0);
 struct VS_OUTPUT
@@ -56,6 +57,7 @@ cbuffer ConstantMeshBuffer : register(b1)
     //for proc world only, should maybe not be here...
 	float stop_flat;
 	float stop_interp;
+    int colTexIndex;
     
 }
 
@@ -73,12 +75,20 @@ float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float
     {
         float4 shiny = shinyTex.Sample(s1, input.texCoord);
         shininess = shiny.r;
+        shininess = lerp(0, 100, shininess); //remap from [0, 1] to [0, 100])
     }
     float metalness = material_metalness;
     if (hasMetalTex)
     {
         float4 metal = metalTex.Sample(s1, input.texCoord);
         metalness = metal.r;
+
+    }
+    float fresnel = material_fresnel;
+    if (hasFresnelTex)
+    {
+        float4 fresnel = fresnelTex.Sample(s1, input.texCoord);
+        fresnel = fresnel.r;
     }
 	///////////////////////////////////////////////////////////////////////////
 	// Task 1.2 - Calculate the radiance Li from the light, and the direction
@@ -118,7 +128,7 @@ float3 calculateDirectIllumiunation(PointLight light, float3 wo, float3 n, float
     float wodotwh = max(0.0001, dot(wo, wh));
     float D = ((shininess + 2) / (2.0 * PI)) * pow(ndotwh, shininess);
     float G = min(1.0, min(2.0 * ndotwh * ndotwo / wodotwh, 2.0 * ndotwh * ndotwi / wodotwh));
-    float F = material_fresnel + (1.0 - material_fresnel) * pow(1.0 - wodotwh, 5.0);
+    float F = fresnel + (1.0 - fresnel) * pow(1.0 - wodotwh, 5.0);
     float denominator = 4.0 * clamp(ndotwo * ndotwi, 0.0001, 1.0);
     float brdf = D * F * G / denominator;
 
@@ -168,8 +178,12 @@ float3 calcProcWorldCol(VS_OUTPUT input)
     float3 worldpos = mul(float4(input.viewSpacePos.xyz, 1.0), viewInverse);
     float slope = dot(normalize(worldNormal), float3(0, 1, 0)); // Cosine of the angle between the normal and the up vector
 
-    float3 flat_col = colTex.Sample(s1, input.texCoord);
-    float3 slope_col = colTex2.Sample(s1, input.texCoord); // 
+    float3 flat_col = float3(0, 0, 0);
+    if(colTexIndex == 0)
+        flat_col = colTex.Sample(s1, input.texCoord);
+    if(colTexIndex == 1)
+        flat_col = colTex2.Sample(s1, input.texCoord);
+    float3 slope_col = colTex3.Sample(s1, input.texCoord); // 
     float3 interpolatedColor;
 
     if(slope > stop_flat) //flat

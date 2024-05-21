@@ -23,6 +23,7 @@ namespace pathtracex {
 		{
 			COLTEX,
 			COLTEX2,
+			COLTEX3,
 			NORMALTEX,
 			NORMALTEX2,
 			SHININESSTEX,

@@ -16,8 +16,10 @@ namespace pathtracex {
 
 	class AppConfig : public Serializable {
 	public:
-		int initialWindowWidth = 1280;
-		int initialWindowHeight = 720;
+		//int initialWindowWidth = 1280;
+		//int initialWindowHeight = 720;
+		int initialWindowWidth = 3440;
+		int initialWindowHeight = 1440;
 		std::string startupSceneName = "Default";
 
 		std::vector<SerializableVariable> getSerializableVariables() override {
