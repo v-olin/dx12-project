@@ -36,6 +36,7 @@ cbuffer CameraBuffer : register(b0)
     float4x4 projInv;
 }
 
+RWTexture2D<float4> noiseTex : register(u0);
 StructuredBuffer<Vertex> Vertices : register(t0);
 StructuredBuffer<int> indices : register(t1);
 RaytracingAccelerationStructure SceneBVH : register(t2);
@@ -75,11 +76,11 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     for (int i = 0; i < rayCount; i++)
     {
         // TODO: fix randomness for the direction
-        float realSeed = random(seed); // This is shit TODO: FIX
+        //float realSeed = random(seed); // This is shit TODO: FIX
         float realSeed2 = random(float2(DispatchRaysIndex().x ^ 50, DispatchRaysIndex().y ^ 50)); // This is shit TODO: FIX
-        float realSeed3 = random(seed + float2(DispatchRaysIndex().x, DispatchRaysIndex().y)); // This is shit TODO: FIX
+        //float realSeed3 = random(seed + float2(DispatchRaysIndex().x, DispatchRaysIndex().y)); // This is shit TODO: FIX
         // Shoot ray in random direction towards hemisphere
-        float3 r = normalize(float3(realSeed3, 1, 0));
+        float3 r = normalize(float3(realSeed2, 1, 0));
         
         if (dot(normal, r) < 0.0f)
         {
@@ -122,10 +123,7 @@ float3 GetMaterialColor(Attributes attrib)
             meshdatas[Vertices[vertId + 2].materialIdx].material_color.rgb
         };
         
-        MeshData data = meshdatas[matidx];
-        
         float3 hitColor = HitAttribute(colors, attrib);
-        return float3(1, 0, 0);
         return hitColor;
     }
     else
@@ -139,7 +137,6 @@ float3 GetMaterialColor(Attributes attrib)
         
         // blend them with bary
         float3 hitColor = HitAttribute(colors, attrib);
-        return float3(0, 0, 1);
         return hitColor;
     }
 }
@@ -224,7 +221,7 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
     
     float reflectiveContribution = (1 - material_transparency) * material_shininess;
     
-    // In order to save ray payload mempory we encode the type of ray in the w component
+    // In order to save ray payload memory we encode the type of ray in the w component
     // -100 is a reflection ray
     // -101 is a transmission ray
     if (payload.colorAndDistance.w != -100 && material_shininess > 0)
@@ -270,14 +267,19 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
         float3 lightReflect = reflect(-lightDir, normal);
         float specular = pow(max(dot(vertexToCamera, lightReflect), 0.0f), 32);
         
-        
         float directIlluminationContribution = max(1 - material_transparency - reflectiveContribution, 0);
+        //float directIlluminationContribution = max(1 - material_transparency - 0.5, 0);
         outColor += directIlluminationContribution * hitColor * (diffuse * lightColor + specular * lightColor);
     }
 
-    //float3 ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), attrib.bary);
+    float3 ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), attrib.bary);
+    //ao = ao * outColor;
+    payload.colorAndDistance = float4(ao.x, ao.y, ao.z, RayTCurrent());
     
-    payload.colorAndDistance = float4(outColor.x, outColor.y, outColor.z, RayTCurrent());
+    uint2 testIdx = uint2(100, 200);
+    payload.colorAndDistance = noiseTex[testIdx];
+    //payload.colorAndDistance = float4(outColor.x, outColor.y, outColor.z, RayTCurrent());
+    //payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
 }
 
 [shader("closesthit")] void PlaneClosestHit(inout HitInfo payload, Attributes attrib)
