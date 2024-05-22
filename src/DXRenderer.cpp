@@ -666,7 +666,7 @@ namespace pathtracex {
 			// bind access to TLAS and outputbuffer for shaders
 			ID3D12DescriptorHeap* heaps[] = { rtSrvUavHeap };
 			commandList->SetDescriptorHeaps(1, heaps);
-			//commandList->SetGraphicsRootDescriptorTable(0, rtSrvUavHeap->GetGPUDescriptorHandleForHeapStart());
+			commandList->SetComputeRootDescriptorTable(0, rtSrvUavHeap->GetGPUDescriptorHandleForHeapStart());
 			
 			// transition on output buffer to give shaders write-access
 			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
