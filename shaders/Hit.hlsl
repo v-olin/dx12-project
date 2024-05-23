@@ -77,10 +77,11 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
     {
         // TODO: fix randomness for the direction
         //float realSeed = random(seed); // This is shit TODO: FIX
-        float realSeed2 = random(float2(DispatchRaysIndex().x ^ 50, DispatchRaysIndex().y ^ 50)); // This is shit TODO: FIX
+        //float realSeed2 = random(float2(DispatchRaysIndex().x ^ 50, DispatchRaysIndex().y ^ 50)); // This is shit TODO: FIX
         //float realSeed3 = random(seed + float2(DispatchRaysIndex().x, DispatchRaysIndex().y)); // This is shit TODO: FIX
         // Shoot ray in random direction towards hemisphere
-        float3 r = normalize(float3(realSeed2, 1, 0));
+        float rand = noiseTex[DispatchRaysIndex().xy].r;
+        float3 r = normalize(float3(rand, 1, 0));
         
         if (dot(normal, r) < 0.0f)
         {
@@ -273,12 +274,12 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
     }
 
     float3 ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), attrib.bary);
-    //ao = ao * outColor;
+    ao = ao * outColor;
     payload.colorAndDistance = float4(ao.x, ao.y, ao.z, RayTCurrent());
     
-    uint2 testIdx = uint2(DispatchRaysIndex().x, DispatchRaysIndex().y);
-    float3 noise = noiseTex[testIdx].rgb;
-    payload.colorAndDistance = float4(noise.r, noise.g, noise.b, RayTCurrent());
+    //uint2 testIdx = uint2(DispatchRaysIndex().x, DispatchRaysIndex().y);
+    //float3 noise = noiseTex[testIdx].rgb;
+    //payload.colorAndDistance = float4(noise.r, noise.g, noise.b, RayTCurrent());
     //payload.colorAndDistance = float4(outColor.x, outColor.y, outColor.z, RayTCurrent());
     //payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
 }
