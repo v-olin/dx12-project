@@ -357,6 +357,7 @@ namespace pathtracex {
 		bool createTAATextures();
 		bool createTAAComputePass();
 		void performTAAPass(RenderSettings& renderSettings);
+		void performBloomingEffect(RenderSettings& renderSettings);
 
 		std::vector<std::wstring> texNames{};
 

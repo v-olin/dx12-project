@@ -95,6 +95,6 @@ void main(uint3 groupID : SV_GroupID, uint3 tid : SV_DispatchThreadID, uint3 loc
         
         float4 baseColor = textureBuffer1[threadIdx];
         float4 bloomColor = textureBuffer2[threadIdx];
-        textureBuffer1[threadIdx] = baseColor + bloomColor;
+        textureBuffer1[threadIdx] = baseColor + bloomColor * 0.5f;
     }
 }

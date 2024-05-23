@@ -784,10 +784,10 @@ namespace pathtracex {
 		}
 	}
 
-	void DX::Renderer::preformBloomingEffect(RenderSettings& renderSettings) {
+	void DXRenderer::performBloomingEffect(RenderSettings& renderSettings) {
 		if (renderSettings.useBloomingEffect) {
 			// Set the post process render target as copy destination
-			transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				postProcessTarget[0], D3D12_RESOURCE_STATE_COPY_SOURCE,
 				D3D12_RESOURCE_STATE_COPY_DEST);
 			commandList->ResourceBarrier(1, &transition);
@@ -815,9 +815,16 @@ namespace pathtracex {
 			commandList->SetComputeRootDescriptorTable(0, postProcessHeap->GetGPUDescriptorHandleForHeapStart());
 
 			// Dispatch the bloom effect
-			UINT xgroups = static_cast<UINT>(ceil(float(width) / 32.f));
-			UINT ygroups = static_cast<UINT>(ceil(float(height) / 32.f));
-			commandList->Dispatch(xgroups, ygroups, 1);
+			int width, height;
+			window->getSize(width, height);
+
+			float fwidth = static_cast<float>(width);
+			float fheight = static_cast<float>(height);
+
+			UINT xwidth = static_cast<UINT>(ceil(fwidth / 32.f));
+			UINT xheight = static_cast<UINT>(ceil(fheight / 32.f));
+
+			commandList->Dispatch(xwidth, xheight, 1);
 
 			// Transition the post process target to be a copy source
 			transition = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -1034,6 +1041,7 @@ namespace pathtracex {
 			performNoisePass();
 			performRaytracingPass();
 			performTAAPass(renderSettings);
+			performBloomingEffect(renderSettings);
 
 			// set pipeline state to rasterization in order to draw GUI
 			commandList->SetPipelineState(trianglePipelineStateObject);
