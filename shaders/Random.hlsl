@@ -2,7 +2,8 @@ RWTexture2D<float4> gOutput : register(u0);
 
 cbuffer NoiseConstBuff : register(b0)
 {
-    uint frameNr;
+    //uint frameNr;
+    uint randomNumber;
 }
 
 // PRNG stuff
@@ -44,13 +45,15 @@ uint random(inout uint state, uint lower, uint upper)
 }
 
 // CS stuff
-#define TEX_WIDTH 1280
-#define TEX_HEIGHT 720
 
 [numthreads(32, 32, 1)]
 void main(uint3 groupID : SV_GroupID, uint3 tid : SV_DispatchThreadID, uint3 localTID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
 {
     uint2 threadIdx = uint2(0, 0);
+    
+    uint TEX_WIDTH = 0;
+    uint TEX_HEIGHT = 0;
+    gOutput.GetDimensions(TEX_WIDTH, TEX_HEIGHT);
     
     threadIdx.x = groupID.x * 32 + localTID.x;
     threadIdx.y = groupID.y * 32 + localTID.y;
@@ -59,9 +62,11 @@ void main(uint3 groupID : SV_GroupID, uint3 tid : SV_DispatchThreadID, uint3 loc
     {
         uint threadSeed = threadIdx.x * TEX_WIDTH + threadIdx.y;
         uint threadState = seedThread(threadSeed);
-        uint frameState = seedThread(frameNr);
-        uint finalState = threadState * frameState;
-        float rand = random1inclusive(finalState);
+        //uint frameState = seedThread(frameNr);
+        //uint timeState = seedThread(time);
+        //uint finalState = threadState * frameState;
+        //float rand = random1inclusive(finalState);
+        float rand = random1inclusive(seedThread(randomNumber));
         
         gOutput[threadIdx] = float4(rand, rand, rand, 1);
     }
