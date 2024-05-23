@@ -3,10 +3,28 @@ Models:
     Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -0.477197826, 0, 1]
     PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
   - Name: Primative Cube
     Filename: ""
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -2.14458847, 1.76107705, -0.0288581848, 1]
     PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
 Lights:
   - Name: Light1
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -1.71682549, 3.25203443, -0.498931885, 1]

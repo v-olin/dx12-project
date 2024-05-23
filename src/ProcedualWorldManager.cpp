@@ -70,6 +70,7 @@ namespace pathtracex
 
 	void ProcedualWorldManager::loadTreeVariations()
 	{
+		return;
 		std::vector<std::string> filenames = { "TREES/Arbaro_1.obj", "TREES/Arbaro_2.obj", "TREES/Arbaro_3.obj", "TREES/weeping_willow.obj" };
 		LOG_TRACE("Loading tree variations");
 		for (std::string filename : filenames)

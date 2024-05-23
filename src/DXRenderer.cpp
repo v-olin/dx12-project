@@ -206,6 +206,9 @@ namespace pathtracex {
 		if (!createLinePipeline())
 			return false;
 
+		if (!createPostProcessPipeline())
+			return false;
+
 		if (!checkRaytracingSupport())
 			return false;
 
@@ -524,22 +527,77 @@ namespace pathtracex {
 				D3D12_RESOURCE_STATE_COPY_SOURCE);
 			commandList->ResourceBarrier(1, &transition);
 
-			// when it's a copy source we need to transition the
-			// current render target into a copy destination
-			transition = CD3DX12_RESOURCE_BARRIER::Transition(
-				renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
-				D3D12_RESOURCE_STATE_COPY_DEST);
-			commandList->ResourceBarrier(1, &transition);
+			
+			if (renderSettings.useBloomingEffect) {
+				// Set the post process render target as copy destination
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					postProcessTarget[0], D3D12_RESOURCE_STATE_COPY_SOURCE,
+					D3D12_RESOURCE_STATE_COPY_DEST);
+				commandList->ResourceBarrier(1, &transition);
 
-			// then we can copy from the outputbuffer into the rendertarget
-			commandList->CopyResource(renderTargets[frameIndex], rtoutputbuffer);
+				// Copy the raytracing output buffer to the post process target
+				commandList->CopyResource(postProcessTarget[0], rtoutputbuffer);
 
-			// after copying we can transition back the rendertarget from a
-			// copy destination to a rendertarget
-			transition = CD3DX12_RESOURCE_BARRIER::Transition(
-				renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-			commandList->ResourceBarrier(1, &transition);
+				// Transition the post process target to be UAV for the bloom effect
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					postProcessTarget[0], D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				commandList->ResourceBarrier(1, &transition);
+
+				// Set the bloom effect pipeline state
+				commandList->SetPipelineState(postProcessPipelineStateObject);
+				commandList->SetComputeRootSignature(postProcessRootSignature);
+				ID3D12DescriptorHeap* heaps[1] = { postProcessHeap };
+				commandList->SetDescriptorHeaps(1, heaps);
+				commandList->SetComputeRootDescriptorTable(0, postProcessHeap->GetGPUDescriptorHandleForHeapStart());
+
+				// Dispatch the bloom effect
+				UINT xgroups = static_cast<UINT>(ceil(float(width) / 32.f));
+				UINT ygroups = static_cast<UINT>(ceil(float(height) / 32.f));
+				commandList->Dispatch(xgroups, ygroups, 1);
+
+				// Transition the post process target to be a copy source
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					postProcessTarget[0], D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+					D3D12_RESOURCE_STATE_COPY_SOURCE);
+				commandList->ResourceBarrier(1, &transition);
+
+				// then transition render target to copy dest
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
+					D3D12_RESOURCE_STATE_COPY_DEST);
+				commandList->ResourceBarrier(1, &transition);
+
+				// then we can copy from the post processing buffer into the rendertarget
+				commandList->CopyResource(renderTargets[frameIndex], postProcessTarget[0]);
+
+				// transition render target to be render target
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_RENDER_TARGET);
+				commandList->ResourceBarrier(1, &transition);
+
+			}
+			else {
+			
+			
+				// when it's a copy source we need to transition the
+				// current render target into a copy destination
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
+					D3D12_RESOURCE_STATE_COPY_DEST);
+				commandList->ResourceBarrier(1, &transition);
+
+				// then we can copy from the outputbuffer into the rendertarget
+				commandList->CopyResource(renderTargets[frameIndex], rtoutputbuffer);
+
+				// after copying we can transition back the rendertarget from a
+				// copy destination to a rendertarget
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_RENDER_TARGET);
+				commandList->ResourceBarrier(1, &transition);
+			}
 
 			// set pipeline state to rasterization in order to draw GUI
 			commandList->SetPipelineState(trianglePipelineStateObject);
@@ -972,7 +1030,7 @@ namespace pathtracex {
 			// we increment the rtv handle by the rtv descriptor size we got above
 			rtvHandle.Offset(1, rtvDescriptorSize);
 		}
-	
+
 		LOG_TRACE("DirectX12 descriptor heaps created");
 
 		return true;
@@ -1177,7 +1235,7 @@ namespace pathtracex {
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;						// format of the render target
 		psoDesc.SampleDesc = sampleDesc;										// must be the same sample description as the swapchain and depth/stencil buffer
-		psoDesc.SampleMask = 0xffffffff;										// sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
+		psoDesc.SampleMask = UINT_MAX;										// sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);		// a default rasterizer state.
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);					// a default blent state.
 		psoDesc.NumRenderTargets = 1;											// we are only binding one render target
@@ -1202,14 +1260,6 @@ namespace pathtracex {
 		LOG_TRACE("Creating DirectX12 line pipeline");
 
 		HRESULT hr;
-		// create vertex and pixel shaders
-
-		// when debugging, we can compile the shader files at runtime.
-		// but for release versions, we can compile the hlsl shaders
-		// with fxc.exe to create .cso files, which contain the shader
-		// bytecode. We can load the .cso files at runtime to get the
-		// shader bytecode, which of course is faster than compiling
-		// them at runtime
 
 		// compile vertex shader
 		ID3DBlob *vertexShader; // d3d blob for holding vertex shader bytecode
@@ -1273,16 +1323,6 @@ namespace pathtracex {
 
 		// create a pipeline state object (PSO)
 
-		// In a real application, you will have many pso's. for each different shader
-		// or different combinations of shaders, different blend states or different rasterizer states,
-		// different topology types (point, line, triangle, patch), or a different number
-		// of render targets you will need a pso
-
-		// VS is the only required shader for a pso. You might be wondering when a case would be where
-		// you only set the VS. It's possible that you have a pso that only outputs data with the stream
-		// output, and not on a render target, which means you would not need anything after the stream
-		// output.
-
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};						// a structure to define a pso
 		psoDesc.InputLayout = inputLayoutDesc;									// the structure describing our input layout
 		psoDesc.pRootSignature = rootSignature;									// the root signature that describes the input data this pso needs
@@ -1291,7 +1331,7 @@ namespace pathtracex {
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; // type of topology we are drawing
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;						// format of the render target
 		psoDesc.SampleDesc = sampleDesc;										// must be the same sample description as the swapchain and depth/stencil buffer
-		psoDesc.SampleMask = 0xffffffff;										// sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
+		psoDesc.SampleMask = UINT_MAX;										// sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);		// a default rasterizer state.
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);					// a default blent state.
 		psoDesc.NumRenderTargets = 1;											// we are only binding one render target
@@ -1309,6 +1349,122 @@ namespace pathtracex {
 		
 		return true;
 	}
+
+	bool DXRenderer::createPostProcessPipeline()
+	{
+		LOG_TRACE("Creating DirectX12 post-processing pipeline");
+		// Create post-processing target
+		{
+			int width, height;
+			window->getSize(width, height);
+
+			D3D12_RESOURCE_DESC renderTargetDesc = {};
+			ZeroMemory(&renderTargetDesc, sizeof(renderTargetDesc));
+			renderTargetDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			renderTargetDesc.Width = width;
+			renderTargetDesc.Height = height;
+			renderTargetDesc.DepthOrArraySize = 1;
+			renderTargetDesc.MipLevels = 1;
+			renderTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Choose the appropriate format
+			renderTargetDesc.SampleDesc.Count = 1;
+			renderTargetDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			renderTargetDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // Allow it to be used as a render target
+		 
+		 	HRESULT hr = device->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &renderTargetDesc, D3D12_RESOURCE_STATE_COPY_SOURCE, nullptr, IID_PPV_ARGS(&postProcessTarget[0]));
+		 	if (FAILED(hr)) {
+		 		LOG_ERROR("Could not create post-processing target, createPostProcessPipeline()");
+		 		return false;
+		 	}
+			HRESULT hr2 = device->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &renderTargetDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&postProcessTarget[1]));
+			if (FAILED(hr2)) {
+				LOG_ERROR("Could not create post-processing target, createPostProcessPipeline()");
+				return false;
+			}
+			HRESULT hr3 = device->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &renderTargetDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&postProcessTarget[2]));
+			if (FAILED(hr3)) {
+				LOG_ERROR("Could not create post-processing target, createPostProcessPipeline()");
+				return false;
+			}
+		}
+
+		// Crate post-processing root signature
+		{
+			CD3DX12_ROOT_PARAMETER1 rootParameters[1] = {};
+
+			CD3DX12_DESCRIPTOR_RANGE1 target(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+			rootParameters[0].InitAsDescriptorTable(1, &target);
+
+			CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootdsc(1, rootParameters, 0, nullptr);
+
+			ID3DBlob* rootSignBlob;
+			ID3DBlob* errBlob;
+
+			HRESULT h = D3DX12SerializeVersionedRootSignature(&rootdsc, D3D_ROOT_SIGNATURE_VERSION_1_1, &rootSignBlob, &errBlob);
+			HRESULT hr = device->CreateRootSignature(0, rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize(), IID_PPV_ARGS(&postProcessRootSignature));
+		
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create root signature for post-processing pipeline, createPostProcessPipeline()");
+				return false;
+			}
+		}
+
+		// Load post-processing compute shader
+		{
+
+			D3DReadFileToBlob(L"../../shaders/PostProcessing.so", &bloomCsShaderBlob);
+
+			struct PipelineStateStream
+			{
+				CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+				CD3DX12_PIPELINE_STATE_STREAM_CS CS;
+			} pipelineStateStream;
+
+			// Setting the root signature and the compute shader to the PSO
+			pipelineStateStream.pRootSignature = postProcessRootSignature;
+			pipelineStateStream.CS = CD3DX12_SHADER_BYTECODE(bloomCsShaderBlob);
+
+			D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+				sizeof(PipelineStateStream), &pipelineStateStream
+			};
+
+			HRESULT hr = device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&postProcessPipelineStateObject));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create post-processing pipeline state, createPostProcessPipeline()");
+				return false;
+			}
+		}
+
+		// create resource heap for compute shader
+		{
+			{
+				D3D12_DESCRIPTOR_HEAP_DESC desc{};
+				ZeroMemory(&desc, sizeof(desc));
+				desc.NumDescriptors = 3;
+				desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+				desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+				HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&postProcessHeap));
+				if (FAILED(hr)) {
+					LOG_ERROR("Could not create descriptor heap for post-processing, createPostProcessPipeline()");
+					return false;
+				}
+			}
+
+			D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = postProcessHeap->GetCPUDescriptorHandleForHeapStart();
+
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			device->CreateUnorderedAccessView(postProcessTarget[0], nullptr, &uavDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			device->CreateUnorderedAccessView(postProcessTarget[1], nullptr, &uavDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			device->CreateUnorderedAccessView(postProcessTarget[2], nullptr, &uavDesc, srvHandle);
+		}
+
+		return true;
+	}
+
 
 	bool DXRenderer::createCommandList()
 	{
