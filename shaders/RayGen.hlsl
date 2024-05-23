@@ -1,7 +1,7 @@
 #include "Common.hlsl"
 
 // Raytracing output texture, accessed as a UAV
-RWTexture2D< float4 > gOutput : register(u0);
+RWTexture2D<float4> gOutput : register(u0);
 
 // Raytracing acceleration structure, accessed as a SRV
 RaytracingAccelerationStructure SceneBVH : register(t0);
