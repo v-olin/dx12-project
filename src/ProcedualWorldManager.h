@@ -105,6 +105,7 @@ namespace pathtracex
 		// If memory usage becomes a problem, we can limit the cache size
 		CordinateMap procedualWorldModelMap{}; 
 
+		bool treeVariationsLoaded = false;
 		std::vector<std::shared_ptr<Model>> treeVariations;
 
 

@@ -82,6 +82,7 @@ namespace pathtracex
 
 			treeVariations.push_back(model);
 		}
+		LOG_TRACE("Loading tree variations DONE");
 	}
 
 	std::pair<int, int> ProcedualWorldManager::getChunkCoordinatesAtPosition(const float3 position)
@@ -107,9 +108,11 @@ namespace pathtracex
 		procedualWorldGroundModels.push_back(ground_model);
 
 		// Create trees
-		std::vector<std::shared_ptr<Model>> treeModels = createTrees(chunkCoordinates);
-		procedualWorldTreeModels.insert(procedualWorldTreeModels.end(), treeModels.begin(), treeModels.end());
-		procedualWorldModelMap[chunkCoordinates] = std::make_pair(ground_model, treeModels);
+		if (settings.drawProcedualWorldTrees) {
+			std::vector<std::shared_ptr<Model>> treeModels = createTrees(chunkCoordinates);
+			procedualWorldTreeModels.insert(procedualWorldTreeModels.end(), treeModels.begin(), treeModels.end());
+			procedualWorldModelMap[chunkCoordinates] = std::make_pair(ground_model, treeModels);
+		}
 
 	}
 
@@ -118,6 +121,11 @@ namespace pathtracex
 	{
 
 		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
+		if (!treeVariationsLoaded)
+		{
+			loadTreeVariations();
+			treeVariationsLoaded = true;
+		}
 		return Model::createTreeModels(chunkPosition, settings.chunkSideLength, settings.num_trees, settings.stop_flat_trees, settings.min_tree_dist, settings.heightScale, noiseGenerator, settings.stop_flat, treeVariations, settings.min_tree_scale, settings.max_tree_scale);
 	}
 
