@@ -29,6 +29,9 @@ namespace pathtracex
 		bool drawProcedualWorldTrees = false;
 		int num_trees = 100;
 		float stop_flat_trees = 0.95;
+		float max_tree_scale = 0.5;
+		float min_tree_scale = 0.2;
+		float min_tree_dist = 0.001;
 
 
 		std::vector<SerializableVariable> getSerializableVariables() override
@@ -44,8 +47,11 @@ namespace pathtracex
 				{SerializableType::FLOAT, "stop_interp", "", &stop_interp},
 				{SerializableType::BOOLEAN, "Draw trees", "", &drawProcedualWorldTrees},
 				{SerializableType::INT, "Trees per chunk", "", &num_trees},
+				{SerializableType::FLOAT, "Max tree scale", "", &max_tree_scale},
+				{SerializableType::FLOAT, "Min tree scale", "", &min_tree_scale},
 				{SerializableType::FLOAT, "stop_flat_trees", "", &stop_flat_trees},
 				{SerializableType::ENUM, "Flat texture", "", &colTexIndexEnum},
+				{SerializableType::FLOAT, "Min tree distance", "", &min_tree_dist}
 
 			};
 		};

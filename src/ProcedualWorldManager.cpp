@@ -1,5 +1,6 @@
 #include "Logger.h"
 #include "ProcedualWorldManager.h"
+#include "Texture.h"
 #include <DXRenderer.h>
 
 namespace pathtracex
@@ -117,7 +118,7 @@ namespace pathtracex
 	{
 
 		float3 chunkPosition = float3((chunkCoordinates.first) * settings.chunkSideLength, 0, (chunkCoordinates.second) * settings.chunkSideLength);
-		return Model::createTreeModels(chunkPosition, settings.chunkSideLength, settings.num_trees, settings.heightScale, noiseGenerator, settings.stop_flat_trees, treeVariations);
+		return Model::createTreeModels(chunkPosition, settings.chunkSideLength, settings.num_trees, settings.stop_flat_trees, settings.min_tree_dist, settings.heightScale, noiseGenerator, settings.stop_flat, treeVariations, settings.min_tree_scale, settings.max_tree_scale);
 	}
 
 

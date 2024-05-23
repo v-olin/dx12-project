@@ -135,7 +135,7 @@ namespace pathtracex {
 		static std::shared_ptr<Model> createProcedualWorldMesh(float3 startPos, float sideLength, int tesselation, int heightScale, FastNoiseLite nGen);
 
 		//static std::vector<std::shared_ptr<Model>> createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_interp);
-		static std::vector<std::shared_ptr<Model>> createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_flat, std::vector<std::shared_ptr<Model>> treeVariations);
+		static std::vector<std::shared_ptr<Model>> createTreeModels(float3 startPos, float sideLength, int numTrees, float stop_flat_trees, float min_tree_dist, int heightScale, FastNoiseLite nGen, float stop_flat, std::vector<std::shared_ptr<Model>> treeVariations, float min_tree_scale, float max_tree_scale);
 
 
 		std::string id = StringUtil::generateRandomString(10);

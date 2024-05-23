@@ -738,13 +738,17 @@ namespace pathtracex
 		return model;
 	}
 
-	std::vector<std::shared_ptr<Model>> Model::createTreeModels(float3 startPos, float sideLength, int numTrees, int heightScale, FastNoiseLite nGen, float stop_flat, std::vector<std::shared_ptr<Model>> treeVariations){
+	std::vector<std::shared_ptr<Model>> Model::createTreeModels(float3 startPos, float sideLength, int numTrees, float stop_flat_trees, float min_tree_dist, int heightScale, FastNoiseLite nGen, float stop_flat, std::vector<std::shared_ptr<Model>> treeVariations, float min_tree_scale, float max_tree_scale){
 		int planted_trees = 0;
+		int tries = 0;
+		int maxTries = 100000;
 
 		std::vector<std::shared_ptr<Model>> plantedTrees = {};
+		std::vector<float2> positions = {};
 
 		std::default_random_engine generator;
-		std::uniform_int_distribution<int> distribution((-sideLength/2)*1000 + 1, (sideLength/2)*1000 - 1);
+		int rand_mul = 1000000;
+		std::uniform_int_distribution<int> distribution((-sideLength/2)*rand_mul + 1, (sideLength/2)*rand_mul - 1);
 
 		int treeNum = 0;
 
@@ -752,10 +756,11 @@ namespace pathtracex
 		float3 maxPos = float3(0, 0, 0);
 		srand(time(NULL));
 
-		while (planted_trees < numTrees)
+		while (planted_trees < numTrees && tries < maxTries)
 		{
-			float x = startPos.x + ((float)distribution(generator))/1000.0;
-			float z = startPos.z + ((float)distribution(generator))/1000.0;
+			tries++;
+			float x = startPos.x + ((float)distribution(generator))/(float)rand_mul;
+			float z = startPos.z + ((float)distribution(generator))/(float)rand_mul;
 			float y = nGen.GetNoise(x, z) * heightScale;
 
 			//get normal at position
@@ -780,7 +785,14 @@ namespace pathtracex
 
 			//if dor == 1 they are the same
 			float dot = normal.Dot(float3(0, 1, 0));
-			if (dot > stop_flat)
+			float min_dist = 1000000;
+			for (auto p : positions)
+			{
+				float dist = (p - float2(x, z)).Length();
+				if (dist < min_dist)
+					min_dist = dist;
+			}
+			if (dot > stop_flat_trees && min_dist > min_tree_dist)
 			{
 				if (planted_trees == 0) {
 					minPos = pos;
@@ -802,11 +814,13 @@ namespace pathtracex
 				pos.x += sideLength / 2;
 				pos.z += sideLength / 2;
 				tree->trans.setPosition(pos);
-				float size = ((float)(rand() % 30)) / 100.0f;
+				float random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+				float size = min_tree_scale + random * (max_tree_scale - min_tree_scale);
  				tree->trans.setScale(float3(size, size, size));
 				minPos = minPos.Min(minPos, pos);
 				maxPos = maxPos.Max(maxPos, pos);
 				plantedTrees.push_back(tree);
+				positions.push_back(float2(x, z));
 				treeNum++;
 				if (treeNum >= treeVariations.size())
 					treeNum = 0;
