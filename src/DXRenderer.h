@@ -225,6 +225,8 @@ namespace pathtracex {
 			dx::XMMATRIX viewInv;
 			dx::XMMATRIX projInv;
 		};
+
+		unsigned int rtxFrameCount = 0;
 		
 		ID3D12Resource* cameraConstantBuffer;
 		const uint32_t cameraConstantBufferSize = ALIGN_256(sizeof(CameraConstantBuffer));
@@ -291,7 +293,6 @@ namespace pathtracex {
 		bool createRTBuffers();
 		bool createShaderBindingTable(Scene& scene);
 		bool createMeshDataBuffer(Scene& scene);
-		//bool createMeshDataBuffer(Scene& scene);
 
 		IDxcBlob* compileShaderLibrary(LPCWSTR libname);
 		ID3D12RootSignature* createRayGenSignature();
@@ -300,6 +301,64 @@ namespace pathtracex {
 		void updateRTBuffers(RenderSettings& settings, Scene& scene);
 		void updateMeshDataBuffers(Scene& scene);
 		void updateTLAS(Scene& scene);
+		void performRaytracingPass();
+
+		#pragma endregion
+
+		#pragma region Random compute pass
+		
+		ID3D12Resource* noiseTexture;
+		ID3D12Resource* noiseTextureRTX;
+		ID3D12RootSignature* noisePassRootSignature;
+		ID3D12PipelineState* noisePassPipelineState;
+		ID3D12DescriptorHeap* noiseUavHeap;
+		ID3DBlob* noiseCSBlob;
+
+		struct NoiseConstBuffer {
+			unsigned int frameNr;
+		};
+
+		unsigned int currentRTFrame = 0;
+
+		const uint32_t noiseConstBuffSize = ALIGN_256(sizeof(NoiseConstBuffer));
+		ID3D12Resource* noiseCBuffer;
+
+		struct PipelineStateStream
+		{
+			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+			CD3DX12_PIPELINE_STATE_STREAM_CS CS;
+		};
+
+		bool createRandomTexture();
+		bool createRandomComputePass();
+		bool createNoiseConstBuffer();
+		void performNoisePass();
+
+		#pragma endregion
+
+		#pragma region TAA pass
+
+		struct TAAFrame {
+			ID3D12Resource* frame;
+			D3D12_RESOURCE_STATES currState;
+		};
+		
+		const UINT numTAAFrames = 16;
+		UINT numSavedFrames = 0;
+		bool lastFrameTAAState = false;
+		TAAFrame savedFrames[16];
+		ID3D12Resource* taaOutput;
+		D3D12_RESOURCE_STATES taaOutputState;
+		ID3D12RootSignature* taaPassRootSignature;
+		ID3D12PipelineState* taaPassPipelineState;
+		ID3D12DescriptorHeap* taaDescriptorHeap;
+		ID3DBlob* taaCSBlob;
+
+		bool createTAATextures();
+		bool createTAAComputePass();
+		void performTAAPass(RenderSettings& renderSettings);
+
+		std::vector<std::wstring> texNames{};
 
 		#pragma endregion
 

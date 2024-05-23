@@ -13,6 +13,7 @@ namespace pathtracex {
 		bool drawProcedualWorld = false;
 		bool useRayTracing = false;
 		bool raytracingSupported = false;
+		bool useTAA = false;
 		int rayBounces = 10;
 		Camera& camera;
 
