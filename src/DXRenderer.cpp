@@ -143,6 +143,12 @@ namespace pathtracex {
 		if (!createShaderBindingTable(scene))
 			return false;
 
+		if (!createRandomTexture())
+			return false;
+
+		if (!createRandomComputePass())
+			return false;
+
 		return true;
 	}
 
@@ -159,6 +165,29 @@ namespace pathtracex {
 		resizedWidth = wre.getWidth();
 		resizedHeight = wre.getHeight();
 		
+		return true;
+	}
+
+	bool DXRenderer::createNoiseConstBuffer() {
+
+		// create the noise constant buffer
+		{
+			CD3DX12_RESOURCE_DESC dsc = CD3DX12_RESOURCE_DESC::Buffer(noiseConstBuffSize);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&deafultUploadHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&dsc, D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr, IID_PPV_ARGS(&noiseCBuffer));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create constant buffer for noise, createNoiseConstBuffer()");
+				return false;
+			}
+
+			noiseCBuffer->SetName(L"Noise constant buffer");
+		}
+
 		return true;
 	}
 
@@ -420,6 +449,134 @@ namespace pathtracex {
 		frameIndex = 0;
 	}
 
+	bool DXRenderer::createRandomTexture() {
+		int size = 1024;
+		int width, height;
+		window->getSize(width, height);
+		
+		D3D12_RESOURCE_DESC rdsc{};
+		rdsc.DepthOrArraySize = 1;
+		rdsc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		rdsc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		rdsc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		rdsc.Width = width;
+		rdsc.Height = height;
+		rdsc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		rdsc.MipLevels = 1;
+		rdsc.SampleDesc.Count = 1;
+
+		// this is for the compute shader
+		HRESULT hr = device->CreateCommittedResource(
+			&defaultHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&rdsc,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			nullptr,
+			IID_PPV_ARGS(&noiseTexture)
+		);
+		
+		if (FAILED(hr)) {
+			LOG_ERROR("Could not create noise texture origin, createRandomTexture()");
+			return false;
+		}
+
+		noiseTexture->SetName(L"Noise texture origin");
+
+		return true;
+	}
+
+	bool DXRenderer::createRandomComputePass() {
+		// set up root signature
+		{
+			CD3DX12_DESCRIPTOR_RANGE1 noiseTex(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+			CD3DX12_ROOT_PARAMETER1 rootparams[2];
+			rootparams[0].InitAsDescriptorTable(1, &noiseTex);
+			rootparams[1].InitAsConstantBufferView(0);
+
+			CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rsd(_countof(rootparams), rootparams, 0, nullptr);
+
+			ID3DBlob* rsblob;
+			ID3DBlob* errblob;
+
+			HRESULT hr = D3DX12SerializeVersionedRootSignature(&rsd, D3D_ROOT_SIGNATURE_VERSION_1_1, &rsblob, &errblob);
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not serialize root signature for noise compute pass, createRandomComputePass()");
+				return false;
+			}
+
+			hr = device->CreateRootSignature(0, rsblob->GetBufferPointer(), rsblob->GetBufferSize(), IID_PPV_ARGS(&noisePassRootSignature));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create root signature for noise compute pass, createRandomComputePass()");
+				return false;
+			}
+		}
+
+		// compile and load compute shader
+		{
+			HRESULT hr = D3DReadFileToBlob(L"../../shaders/Random.so", &noiseCSBlob);
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not read shader file Random.so, createRandomComputePass()");
+				return false;
+			}
+
+			PipelineStateStream pss;
+			pss.pRootSignature = noisePassRootSignature;
+			pss.CS = CD3DX12_SHADER_BYTECODE(noiseCSBlob);
+
+			D3D12_PIPELINE_STATE_STREAM_DESC pssdsc{
+				sizeof(PipelineStateStream), &pss
+			};
+
+			hr = device->CreatePipelineState(&pssdsc, IID_PPV_ARGS(&noisePassPipelineState));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create pipeline state for noise pass, createRandomComputePass()");
+				return false;
+			}
+		}
+
+		// create resource heap for noise pass
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC dsc{};
+			dsc.NumDescriptors = 2;
+			dsc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			dsc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+			HRESULT hr = device->CreateDescriptorHeap(&dsc, IID_PPV_ARGS(&noiseUavHeap));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create noise descriptor heap, createRandomComputePass()");
+				return false;
+			}
+
+			noiseUavHeap->SetName(L"Noise UAV heap");
+
+			D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = noiseUavHeap->GetCPUDescriptorHandleForHeapStart();
+
+			// add UAV for tex
+			{
+				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+				device->CreateUnorderedAccessView(noiseTexture, nullptr, &uavDesc, srvHandle);
+				srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			}
+			
+			// add cbv for const buff
+			{
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
+				cbvdsc.BufferLocation = noiseCBuffer->GetGPUVirtualAddress();
+				cbvdsc.SizeInBytes = noiseConstBuffSize;
+				device->CreateConstantBufferView(&cbvdsc, srvHandle);
+				//srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			}
+		}
+
+		return true;
+	}
+
 	void DXRenderer::updatePipeline(RenderSettings &renderSettings, Scene &scene)
 	{
 		HRESULT hr;
@@ -477,12 +634,59 @@ namespace pathtracex {
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 		if (renderSettings.useRayTracing) {
+			// execute noise pass
+			{
+				commandList->SetPipelineState(noisePassPipelineState);
+				commandList->SetComputeRootSignature(noisePassRootSignature);
+				commandList->SetDescriptorHeaps(1, &noiseUavHeap);
+
+				// here we should do a transition but i dont think it is necessary because it will always be in the unordered access state
+
+				commandList->SetComputeRootDescriptorTable(0, noiseUavHeap->GetGPUDescriptorHandleForHeapStart());
+				commandList->SetComputeRootConstantBufferView(1, noiseCBuffer->GetGPUVirtualAddress());
+
+				int width, height;
+				window->getSize(width, height);
+
+				float fwidth = static_cast<float>(width);
+				float fheight = static_cast<float>(height);
+
+				UINT xwidth = static_cast<UINT>(ceil(fwidth / 32.f));
+				UINT xheight = static_cast<UINT>(ceil(fheight / 32.f));
+
+				commandList->Dispatch(xwidth, xheight, 1);
+
+				CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					noiseTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+					D3D12_RESOURCE_STATE_COPY_SOURCE);
+				commandList->ResourceBarrier(1, &transition);
+
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					noiseTextureRTX, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+					D3D12_RESOURCE_STATE_COPY_DEST);
+				commandList->ResourceBarrier(1, &transition);
+
+				commandList->CopyResource(noiseTextureRTX, noiseTexture);
+
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					noiseTextureRTX, D3D12_RESOURCE_STATE_COPY_DEST,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				commandList->ResourceBarrier(1, &transition);
+
+				transition = CD3DX12_RESOURCE_BARRIER::Transition(
+					noiseTexture, D3D12_RESOURCE_STATE_COPY_SOURCE,
+					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				commandList->ResourceBarrier(1, &transition);
+			}
+
 			// update the TLAS
 			createTLASFromBLAS(asInstances, true);
 
+			commandList->SetPipelineState1(rtpipelinestate);
 			// bind access to TLAS and outputbuffer for shaders
 			ID3D12DescriptorHeap* heaps[] = { rtSrvUavHeap };
 			commandList->SetDescriptorHeaps(1, heaps);
+			commandList->SetComputeRootDescriptorTable(0, rtSrvUavHeap->GetGPUDescriptorHandleForHeapStart());
 			
 			// transition on output buffer to give shaders write-access
 			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -514,7 +718,6 @@ namespace pathtracex {
 			dsc.Depth = 1;
 
 			// bind ray-tracing pipeline
-			commandList->SetPipelineState1(rtpipelinestate);
 			commandList->DispatchRays(&dsc);
 
 			// after shaders are done writing to the outputbuffer
@@ -1635,40 +1838,43 @@ namespace pathtracex {
 		int width, height;
 		window->getSize(width, height);
 
-		D3D12_RESOURCE_DESC rdesc{};
-		ZeroMemory(&rdesc, sizeof(rdesc));
-		rdesc.DepthOrArraySize = 1;
-		rdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		rdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		rdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-		rdesc.Width = width;
-		rdesc.Height = height;
-		rdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		rdesc.MipLevels = 1;
-		rdesc.SampleDesc.Count = 1;
+		// create output texture
+		{
+			D3D12_RESOURCE_DESC rdesc{};
+			ZeroMemory(&rdesc, sizeof(rdesc));
+			rdesc.DepthOrArraySize = 1;
+			rdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			rdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+			rdesc.Width = width;
+			rdesc.Height = height;
+			rdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			rdesc.MipLevels = 1;
+			rdesc.SampleDesc.Count = 1;
 
-		const D3D12_HEAP_PROPERTIES heapProps = {
-			D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0
-		};
-		
-		HRESULT hr = device->CreateCommittedResource(
-			&heapProps,
-			D3D12_HEAP_FLAG_NONE,
-			&rdesc,
-			D3D12_RESOURCE_STATE_COPY_SOURCE,
-			nullptr,
-			IID_PPV_ARGS(&rtoutputbuffer));
+			const D3D12_HEAP_PROPERTIES heapProps = {
+				D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0
+			};
 
-		if (FAILED(hr)) {
-			LOG_ERROR("Could not create raytracing output buffer, createRaytracingOutputBuffer()");
-			return false;
+			HRESULT hr = device->CreateCommittedResource(
+				&heapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&rdesc,
+				D3D12_RESOURCE_STATE_COPY_SOURCE,
+				nullptr,
+				IID_PPV_ARGS(&rtoutputbuffer));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create raytracing output buffer, createRaytracingOutputBuffer()");
+				return false;
+			}
 		}
-
+		
 		return true;
 	}
 
 	bool DXRenderer::createShaderResourceHeap(Scene& scene) {
-		UINT numResources = 5;
+		UINT numResources = 6;
 		
 		// create the descriptor heap for our 4 buffers
 		// 1: UAV for gBuffer for RT output
@@ -1676,6 +1882,7 @@ namespace pathtracex {
 		// 3: CBV for camera
 		// 4: CBV for light sources
 		// 5: SRV for material data
+		// 6: UAV for noise
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC desc{};
 			ZeroMemory(&desc, sizeof(desc));
@@ -1688,6 +1895,8 @@ namespace pathtracex {
 				LOG_ERROR("Could not create descriptor heaps for shaders, createShaderResourceHeap()");
 				return false;
 			}
+
+			rtSrvUavHeap->SetName(L"RTX Resource Heap");
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = rtSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
@@ -1747,6 +1956,16 @@ namespace pathtracex {
 			srvdsc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
 			device->CreateShaderResourceView(meshDataBuffer, &srvdsc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
+
+		// Then add UAV for noise sampling
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+			device->CreateUnorderedAccessView(noiseTextureRTX, nullptr, &uavDesc, srvHandle);
+			//srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 
 		return true;
@@ -1796,6 +2015,61 @@ namespace pathtracex {
 
 			if (FAILED(hr)) {
 				LOG_ERROR("Could not create constant buffer for lights, createRTBuffers()");
+				return false;
+			}
+		}
+
+		// create noise input texture
+		{
+			int width, height;
+			window->getSize(width, height);
+
+			D3D12_RESOURCE_DESC rdesc{};
+			ZeroMemory(&rdesc, sizeof(rdesc));
+			rdesc.DepthOrArraySize = 1;
+			rdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			rdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+			rdesc.Width = width;
+			rdesc.Height = height;
+			rdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			rdesc.MipLevels = 1;
+			rdesc.SampleDesc.Count = 1;
+
+			// this is for the raytracing
+			// every frame copy random texture to this resource
+			HRESULT hr = device->CreateCommittedResource(
+				&defaultHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&rdesc,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				nullptr,
+				IID_PPV_ARGS(&noiseTextureRTX)
+			);
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create noise texture destination, createRandomTexture()");
+				return false;
+			}
+
+			noiseTextureRTX->SetName(L"Noise texture using");
+		}
+
+		// create the noise constant buffer
+		{
+			CD3DX12_RESOURCE_DESC dsc = CD3DX12_RESOURCE_DESC::Buffer(noiseConstBuffSize);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&deafultUploadHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&dsc, D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr, IID_PPV_ARGS(&noiseCBuffer)
+			);
+
+			noiseCBuffer->SetName(L"Noise constant buffer");
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create constant buffer for noise, createRTBuffers()");
 				return false;
 			}
 		}
@@ -1960,7 +2234,8 @@ namespace pathtracex {
 				{2 /*t2*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 /*2nd slot of the heap*/}, // TLAS
 				{0 /*b0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2 /*3rd slot of the heap*/}, // camera
 				{1 /*b1*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 3 /*4th slot of the heap*/}, // light
-				{3 /*t3*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4 /*5th slot of the heap*/} // mesh data
+				{3 /*t3*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4 /*5th slot of the heap*/}, // mesh data
+				{0 /*u0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 5 /*6th slot of the heap*/} // noise sampling
 			}
 		);
 		return rsg.generate(device, true);
@@ -2004,6 +2279,19 @@ namespace pathtracex {
 			lightConstantBuffer->Map(0, nullptr, (void**)&data);
 			memcpy(data, &temp, lightConstantBufferSize);
 			lightConstantBuffer->Unmap(0, nullptr);
+		}
+
+		// update the noise constant buffer
+		{
+			currentRTFrame = currentRTFrame + 1;
+			NoiseConstBuffer temp{
+				currentRTFrame
+			};
+
+			uint8_t* data;
+			noiseCBuffer->Map(0, nullptr, (void**)&data);
+			memcpy(data, &temp, noiseConstBuffSize);
+			noiseCBuffer->Unmap(0, nullptr);
 		}
 	}
 
