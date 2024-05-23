@@ -140,6 +140,9 @@ namespace pathtracex {
 		if (!createRandomTexture())
 			return false;
 
+		//if (!createNoiseConstBuffer())
+		//	return false;
+
 		if (!createRandomComputePass())
 			return false;
 
@@ -165,6 +168,29 @@ namespace pathtracex {
 		resizedWidth = wre.getWidth();
 		resizedHeight = wre.getHeight();
 		
+		return true;
+	}
+
+	bool DXRenderer::createNoiseConstBuffer() {
+
+		// create the noise constant buffer
+		{
+			CD3DX12_RESOURCE_DESC dsc = CD3DX12_RESOURCE_DESC::Buffer(noiseConstBuffSize);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&deafultUploadHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&dsc, D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr, IID_PPV_ARGS(&noiseCBuffer));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create constant buffer for noise, createNoiseConstBuffer()");
+				return false;
+			}
+
+			noiseCBuffer->SetName(L"Noise constant buffer");
+		}
+
 		return true;
 	}
 
@@ -484,10 +510,11 @@ namespace pathtracex {
 		// set up root signature
 		{
 			CD3DX12_DESCRIPTOR_RANGE1 noiseTex(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
-			CD3DX12_ROOT_PARAMETER1 rootparams[1];
+			CD3DX12_ROOT_PARAMETER1 rootparams[2];
 			rootparams[0].InitAsDescriptorTable(1, &noiseTex);
+			rootparams[1].InitAsConstantBufferView(0);
 
-			CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rsd(1, rootparams, 0, nullptr);
+			CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rsd(_countof(rootparams), rootparams, 0, nullptr);
 
 			ID3DBlob* rsblob;
 			ID3DBlob* errblob;
@@ -550,9 +577,18 @@ namespace pathtracex {
 
 			D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = noiseUavHeap->GetCPUDescriptorHandleForHeapStart();
 
+			// add UAV for tex
 			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 			device->CreateUnorderedAccessView(noiseTexture, nullptr, &uavDesc, srvHandle);
+			//srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			//
+			//// add cbv for const buff
+			//D3D12_CONSTANT_BUFFER_VIEW_DESC cbvdsc{};
+			//cbvdsc.BufferLocation = noiseCBuffer->GetGPUVirtualAddress();
+			//cbvdsc.SizeInBytes = noiseConstBuffSize;
+			//device->CreateConstantBufferView(&cbvdsc, srvHandle);
+			////srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 
 		return true;
@@ -2202,6 +2238,20 @@ namespace pathtracex {
 			memcpy(data, &temp, lightConstantBufferSize);
 			lightConstantBuffer->Unmap(0, nullptr);
 		}
+
+		// update noise constant buffer
+		//{
+		//	currentRTFrame = currentRTFrame + 1;
+		//
+		//	NoiseConstBuffer temp{
+		//		currentRTFrame
+		//	};
+		//
+		//	uint8_t* data;
+		//	noiseCBuffer->Map(0, nullptr, (void**)&data);
+		//	memcpy(data, &temp, noiseConstBuffSize);
+		//	noiseCBuffer->Unmap(0, nullptr);
+		//}
 	}
 
 	bool DXRenderer::createMeshDataBuffer(Scene& scene) {

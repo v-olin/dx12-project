@@ -1,5 +1,10 @@
 RWTexture2D<float4> gOutput : register(u0);
 
+//cbuffer NoiseConstBuff : register(b0)
+//{
+//    uint frameNr;
+//}
+
 // PRNG stuff
 
 uint seedThread(uint seed)
@@ -48,11 +53,16 @@ void main(uint3 groupID : SV_GroupID, uint3 tid : SV_DispatchThreadID, uint3 loc
 {
     uint2 threadIdx = uint2(0, 0);
     
-    uint threadColumn = groupID.x * 32 + localTID.x;
-    uint threadRow = groupID.y * 32 + localTID.y;
+    threadIdx.x = groupID.x * 32 + localTID.x;
+    threadIdx.y = groupID.y * 32 + localTID.y;
     
-    if (threadColumn < TEX_WIDTH && threadRow < TEX_HEIGHT)
+    if (threadIdx.x < TEX_WIDTH && threadIdx.y < TEX_HEIGHT)
     {
-        gOutput[threadIdx] = float4(0.5, 0.7, 0.1, 1);
+        uint threadSeed = threadIdx.x * TEX_WIDTH + threadIdx.y;
+        uint frameSeed = 0; //frameNr;
+        uint state = seedThread(threadSeed + frameSeed);
+        float rand = random1inclusive(state);
+        
+        gOutput[threadIdx] = float4(rand, rand, rand, 1);
     }
 }

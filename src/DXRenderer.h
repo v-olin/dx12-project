@@ -304,6 +304,15 @@ namespace pathtracex {
 		ID3D12DescriptorHeap* noiseUavHeap;
 		ID3DBlob* noiseCSBlob;
 
+		struct NoiseConstBuffer {
+			unsigned int frameNr;
+		};
+
+		unsigned int currentRTFrame = 0;
+
+		const uint32_t noiseConstBuffSize = ALIGN_256(sizeof(NoiseConstBuffer));
+		ID3D12Resource* noiseCBuffer;
+
 		struct PipelineStateStream
 		{
 			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
@@ -312,6 +321,7 @@ namespace pathtracex {
 
 		bool createRandomTexture();
 		bool createRandomComputePass();
+		bool createNoiseConstBuffer();
 
 		#pragma endregion
 

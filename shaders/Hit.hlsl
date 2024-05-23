@@ -276,8 +276,9 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
     //ao = ao * outColor;
     payload.colorAndDistance = float4(ao.x, ao.y, ao.z, RayTCurrent());
     
-    uint2 testIdx = uint2(100, 200);
-    payload.colorAndDistance = noiseTex[testIdx];
+    uint2 testIdx = uint2(DispatchRaysIndex().x, DispatchRaysIndex().y);
+    float3 noise = noiseTex[testIdx].rgb;
+    payload.colorAndDistance = float4(noise.r, noise.g, noise.b, RayTCurrent());
     //payload.colorAndDistance = float4(outColor.x, outColor.y, outColor.z, RayTCurrent());
     //payload.colorAndDistance = float4(hitColor.x, hitColor.y, hitColor.z, RayTCurrent());
 }
