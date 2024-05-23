@@ -80,7 +80,12 @@ float ambientOcclusion(float3 normal, float3 position, float3 rayDir, float2 see
         //float realSeed2 = random(float2(DispatchRaysIndex().x ^ 50, DispatchRaysIndex().y ^ 50)); // This is shit TODO: FIX
         //float realSeed3 = random(seed + float2(DispatchRaysIndex().x, DispatchRaysIndex().y)); // This is shit TODO: FIX
         // Shoot ray in random direction towards hemisphere
-        float rand = noiseTex[DispatchRaysIndex().xy].r;
+        
+        float xp = noiseTex[DispatchRaysIndex().xy].r;
+        float yp = noiseTex[DispatchRaysIndex().yx].r;
+        
+        uint2 test = uint2(xp * 1280, yp * 720);
+        float rand = noiseTex[test].r;
         float3 r = normalize(float3(rand, 1, 0));
         
         if (dot(normal, r) < 0.0f)

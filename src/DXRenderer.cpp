@@ -149,6 +149,12 @@ namespace pathtracex {
 		if (!createRandomComputePass())
 			return false;
 
+		if (!createTAATextures())
+			return false;
+
+		if (!createTAAComputePass())
+			return false;
+
 		return true;
 	}
 
@@ -329,6 +335,50 @@ namespace pathtracex {
 		ImGui_ImplDX12_CreateDeviceObjects();
 	}
 
+	void DXRenderer::performNoisePass() {
+		commandList->SetPipelineState(noisePassPipelineState);
+		commandList->SetComputeRootSignature(noisePassRootSignature);
+		commandList->SetDescriptorHeaps(1, &noiseUavHeap);
+
+		// here we should do a transition but i dont think it is necessary because it will always be in the unordered access state
+
+		commandList->SetComputeRootDescriptorTable(0, noiseUavHeap->GetGPUDescriptorHandleForHeapStart());
+		commandList->SetComputeRootConstantBufferView(1, noiseCBuffer->GetGPUVirtualAddress());
+
+		int width, height;
+		window->getSize(width, height);
+
+		float fwidth = static_cast<float>(width);
+		float fheight = static_cast<float>(height);
+
+		UINT xwidth = static_cast<UINT>(ceil(fwidth / 32.f));
+		UINT xheight = static_cast<UINT>(ceil(fheight / 32.f));
+
+		commandList->Dispatch(xwidth, xheight, 1);
+
+		CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			noiseTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COPY_SOURCE);
+		commandList->ResourceBarrier(1, &transition);
+
+		transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			noiseTextureRTX, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COPY_DEST);
+		commandList->ResourceBarrier(1, &transition);
+
+		commandList->CopyResource(noiseTextureRTX, noiseTexture);
+
+		transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			noiseTextureRTX, D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		commandList->ResourceBarrier(1, &transition);
+
+		transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			noiseTexture, D3D12_RESOURCE_STATE_COPY_SOURCE,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		commandList->ResourceBarrier(1, &transition);
+	}
+
 	void DXRenderer::onResizeUpdateRenderTargets() {
 		auto bbi = swapChain->GetCurrentBackBufferIndex();
 		for (int i = 0; i < frameBufferCount; i++) {
@@ -447,6 +497,288 @@ namespace pathtracex {
 		}
 
 		frameIndex = 0;
+	}
+
+	bool DXRenderer::createTAATextures() {
+		int size = 1024;
+		int width, height;
+		window->getSize(width, height);
+
+		D3D12_RESOURCE_DESC rdsc{};
+		rdsc.DepthOrArraySize = 1;
+		rdsc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		rdsc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		rdsc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		rdsc.Width = width;
+		rdsc.Height = height;
+		rdsc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		rdsc.MipLevels = 1;
+		rdsc.SampleDesc.Count = 1;
+
+		HRESULT hr = device->CreateCommittedResource(
+			&defaultHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&rdsc,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			nullptr,
+			IID_PPV_ARGS(&taaOutput)
+		);
+
+		taaOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+		if (FAILED(hr)) {
+			LOG_ERROR("Could not create TAA output texture, createTAATextures()");
+			return false;
+		}
+
+		taaOutput->SetName(L"TAA Output Texture");
+
+		std::wstring baseName{ L"TAA Texture Holder #" };
+
+		for (size_t i = 0; i < numTAAFrames; ++i) {
+			HRESULT hr = device->CreateCommittedResource(
+				&defaultHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&rdsc,
+				D3D12_RESOURCE_STATE_COMMON,
+				nullptr,
+				IID_PPV_ARGS(&(savedFrames[i].frame))
+			);
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create TAA textures, createTAATextures()");
+				return false;
+			}
+
+			savedFrames[i].currState = D3D12_RESOURCE_STATE_COMMON;
+
+			std::wstring texName = baseName + std::to_wstring(i);
+			texNames.push_back(texName);
+			savedFrames[i].frame->SetName(texNames.at(texNames.size() - 1).c_str());
+		}
+		
+		return true;
+	}
+
+	bool DXRenderer::createTAAComputePass() {
+		// set up root signature
+		{
+			CD3DX12_DESCRIPTOR_RANGE1 texRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 17, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+			CD3DX12_ROOT_PARAMETER1 rootparams[1]; // 1 output + 8 inputs 
+			rootparams[0].InitAsDescriptorTable(1, &texRange);
+
+			CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rsd(_countof(rootparams), rootparams, 0, nullptr);
+
+			ID3DBlob* rsblob;
+			ID3DBlob* errblob;
+
+			HRESULT hr = D3DX12SerializeVersionedRootSignature(&rsd, D3D_ROOT_SIGNATURE_VERSION_1_1, &rsblob, &errblob);
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not serialize root signature for noise compute pass, createTAAComputePass()");
+				return false;
+			}
+
+			hr = device->CreateRootSignature(0, rsblob->GetBufferPointer(), rsblob->GetBufferSize(), IID_PPV_ARGS(&taaPassRootSignature));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create root signature for noise compute pass, createTAAComputePass()");
+				return false;
+			}
+		}
+
+		// compile and load TAA compute shader
+		{
+			HRESULT hr = D3DReadFileToBlob(L"../../shaders/TAA.so", &taaCSBlob);
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not read shader file TAA.so, createTAAComputePass()");
+				return false;
+			}
+
+			PipelineStateStream pss;
+			pss.pRootSignature = taaPassRootSignature;
+			pss.CS = CD3DX12_SHADER_BYTECODE(taaCSBlob);
+
+			D3D12_PIPELINE_STATE_STREAM_DESC pssdsc{
+				sizeof(PipelineStateStream), &pss
+			};
+
+			hr = device->CreatePipelineState(&pssdsc, IID_PPV_ARGS(&taaPassPipelineState));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create pipeline state for TAA pass, createTAAComputePass()");
+				return false;
+			}
+		}
+
+		// create resource heap for noise pass
+		{
+			D3D12_DESCRIPTOR_HEAP_DESC dsc{};
+			dsc.NumDescriptors = 17;
+			dsc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			dsc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+			HRESULT hr = device->CreateDescriptorHeap(&dsc, IID_PPV_ARGS(&taaDescriptorHeap));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create noise descriptor heap, createTAAComputePass()");
+				return false;
+			}
+
+			taaDescriptorHeap->SetName(L"TAA UAV heap");
+
+			D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = taaDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+			device->CreateUnorderedAccessView(taaOutput, nullptr, &uavDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+			for (size_t i = 0; i < numTAAFrames; ++i) {
+				device->CreateUnorderedAccessView(savedFrames[i].frame, nullptr, &uavDesc, srvHandle);
+				srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			}
+		}
+
+		return true;
+	}
+
+	void DXRenderer::performTAAPass(RenderSettings& renderSettings) {
+
+		if (renderSettings.useTAA) {
+			if (numSavedFrames < 16) {
+				TAAFrame& frameStorage = savedFrames[numSavedFrames++];
+
+				// copy frame from renderTargets[frameIndex] to TAA frame storage
+				{
+					// transition frame storage to copy dest
+					if (frameStorage.currState != D3D12_RESOURCE_STATE_COPY_DEST) {
+						CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+							frameStorage.frame, frameStorage.currState,
+							D3D12_RESOURCE_STATE_COPY_DEST);
+						commandList->ResourceBarrier(1, &transition);
+						frameStorage.currState = D3D12_RESOURCE_STATE_COPY_DEST;
+					}
+					
+					// transition render target to copy src
+					CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
+						D3D12_RESOURCE_STATE_COPY_SOURCE);
+					commandList->ResourceBarrier(1, &transition);
+
+					commandList->CopyResource(frameStorage.frame, renderTargets[frameIndex]);
+
+					// transition frame storage to UA for TAA CS launch
+					transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						frameStorage.frame, frameStorage.currState,
+						D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					commandList->ResourceBarrier(1, &transition);
+					frameStorage.currState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+					// transition back render target to render target
+					transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_SOURCE,
+						D3D12_RESOURCE_STATE_RENDER_TARGET);
+					commandList->ResourceBarrier(1, &transition);
+				}
+			}
+			else {
+				TAAFrame& frameStorage = savedFrames[numSavedFrames % 16];
+				++numSavedFrames;
+
+				// copy rendered frame to TAA storage
+				{
+					CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
+						D3D12_RESOURCE_STATE_COPY_SOURCE);
+					commandList->ResourceBarrier(1, &transition);
+
+					if (frameStorage.currState != D3D12_RESOURCE_STATE_COPY_DEST) {
+						transition = CD3DX12_RESOURCE_BARRIER::Transition(
+							frameStorage.frame, frameStorage.currState,
+							D3D12_RESOURCE_STATE_COPY_DEST);
+						commandList->ResourceBarrier(1, &transition);
+						frameStorage.currState = D3D12_RESOURCE_STATE_COPY_DEST;
+					}
+
+					commandList->CopyResource(frameStorage.frame, renderTargets[frameIndex]);
+
+					transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						frameStorage.frame, frameStorage.currState,
+						D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					commandList->ResourceBarrier(1, &transition);
+					frameStorage.currState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+					// transition render target to copy dest for after TAA process
+					transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_SOURCE,
+						D3D12_RESOURCE_STATE_RENDER_TARGET);
+					commandList->ResourceBarrier(1, &transition);
+				}
+
+				// launch TAA process
+				{
+					commandList->SetPipelineState(taaPassPipelineState);
+					commandList->SetComputeRootSignature(taaPassRootSignature);
+					commandList->SetDescriptorHeaps(1, &taaDescriptorHeap);
+
+					commandList->SetComputeRootDescriptorTable(0, taaDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+					int width, height;
+					window->getSize(width, height);
+
+					float fwidth = static_cast<float>(width);
+					float fheight = static_cast<float>(height);
+
+					UINT xwidth = static_cast<UINT>(ceil(fwidth / 32.f));
+					UINT xheight = static_cast<UINT>(ceil(fheight / 32.f));
+
+					if (taaOutputState != D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+						CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+							taaOutput, taaOutputState,
+							D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+						commandList->ResourceBarrier(1, &transition);
+
+						taaOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+					}
+
+					commandList->Dispatch(xwidth, xheight, 1);
+				}
+
+				// restore render target
+				{
+					if (taaOutputState != D3D12_RESOURCE_STATE_COPY_SOURCE) {
+						CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+							taaOutput, taaOutputState,
+							D3D12_RESOURCE_STATE_COPY_SOURCE);
+						commandList->ResourceBarrier(1, &transition);
+						taaOutputState = D3D12_RESOURCE_STATE_COPY_SOURCE;
+					}
+
+					CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
+						D3D12_RESOURCE_STATE_COPY_DEST);
+					commandList->ResourceBarrier(1, &transition);
+
+					commandList->CopyResource(renderTargets[frameIndex], taaOutput);
+
+					transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
+						D3D12_RESOURCE_STATE_RENDER_TARGET);
+					commandList->ResourceBarrier(1, &transition);
+
+					transition = CD3DX12_RESOURCE_BARRIER::Transition(
+						taaOutput, taaOutputState,
+						D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					commandList->ResourceBarrier(1, &transition);
+					taaOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+				}
+			}
+		}
+		else {
+			numSavedFrames = 0;
+		}
 	}
 
 	bool DXRenderer::createRandomTexture() {
@@ -614,11 +946,9 @@ namespace pathtracex {
 
 
 		// here we start recording commands into the commandList (which all the commands will be stored in the commandAllocator)
-
 		if (resizeOnNextFrame) [[unlikely]] {
 			onResizeUpdatePipeline();
 		}
-
 
 		// transition the "frameIndex" render target from the present state to the render target state so the command list draws to it starting from here
 		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -635,114 +965,13 @@ namespace pathtracex {
 
 		if (renderSettings.useRayTracing) {
 			// execute noise pass
-			{
-				commandList->SetPipelineState(noisePassPipelineState);
-				commandList->SetComputeRootSignature(noisePassRootSignature);
-				commandList->SetDescriptorHeaps(1, &noiseUavHeap);
-
-				// here we should do a transition but i dont think it is necessary because it will always be in the unordered access state
-
-				commandList->SetComputeRootDescriptorTable(0, noiseUavHeap->GetGPUDescriptorHandleForHeapStart());
-				commandList->SetComputeRootConstantBufferView(1, noiseCBuffer->GetGPUVirtualAddress());
-
-				int width, height;
-				window->getSize(width, height);
-
-				float fwidth = static_cast<float>(width);
-				float fheight = static_cast<float>(height);
-
-				UINT xwidth = static_cast<UINT>(ceil(fwidth / 32.f));
-				UINT xheight = static_cast<UINT>(ceil(fheight / 32.f));
-
-				commandList->Dispatch(xwidth, xheight, 1);
-
-				CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
-					noiseTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-					D3D12_RESOURCE_STATE_COPY_SOURCE);
-				commandList->ResourceBarrier(1, &transition);
-
-				transition = CD3DX12_RESOURCE_BARRIER::Transition(
-					noiseTextureRTX, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-					D3D12_RESOURCE_STATE_COPY_DEST);
-				commandList->ResourceBarrier(1, &transition);
-
-				commandList->CopyResource(noiseTextureRTX, noiseTexture);
-
-				transition = CD3DX12_RESOURCE_BARRIER::Transition(
-					noiseTextureRTX, D3D12_RESOURCE_STATE_COPY_DEST,
-					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				commandList->ResourceBarrier(1, &transition);
-
-				transition = CD3DX12_RESOURCE_BARRIER::Transition(
-					noiseTexture, D3D12_RESOURCE_STATE_COPY_SOURCE,
-					D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				commandList->ResourceBarrier(1, &transition);
+			if (renderSettings.useTAA) {
+				LOG_INFO("Rendering with TAA postprocessing");
 			}
 
-			// update the TLAS
-			createTLASFromBLAS(asInstances, true);
-
-			commandList->SetPipelineState1(rtpipelinestate);
-			// bind access to TLAS and outputbuffer for shaders
-			ID3D12DescriptorHeap* heaps[] = { rtSrvUavHeap };
-			commandList->SetDescriptorHeaps(1, heaps);
-			commandList->SetComputeRootDescriptorTable(0, rtSrvUavHeap->GetGPUDescriptorHandleForHeapStart());
-			
-			// transition on output buffer to give shaders write-access
-			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
-				rtoutputbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
-				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			commandList->ResourceBarrier(1, &transition);
-
-			// setup ray-dispatching
-			D3D12_DISPATCH_RAYS_DESC dsc{};
-			uint32_t rgssb = sbtGenerator.getRayGenSectionSize();
-			dsc.RayGenerationShaderRecord.StartAddress = sbtStorage->GetGPUVirtualAddress();
-			dsc.RayGenerationShaderRecord.SizeInBytes = rgssb;
-
-			uint32_t mssb = sbtGenerator.getMissSectionSize();
-			dsc.MissShaderTable.StartAddress = sbtStorage->GetGPUVirtualAddress() + rgssb;
-			dsc.MissShaderTable.SizeInBytes = mssb;
-			dsc.MissShaderTable.StrideInBytes = sbtGenerator.getMissEntrySize();
-
-			uint32_t hgssb = sbtGenerator.getHitGroupSectionSize();
-			dsc.HitGroupTable.StartAddress = sbtStorage->GetGPUVirtualAddress() + rgssb + mssb;
-			dsc.HitGroupTable.SizeInBytes = hgssb;
-			dsc.HitGroupTable.StrideInBytes = sbtGenerator.getHitGroupEntrySize();
-
-			// setup output buffer size
-			int width, height;
-			window->getSize(width, height);
-			dsc.Width = width;
-			dsc.Height = height;
-			dsc.Depth = 1;
-
-			// bind ray-tracing pipeline
-			commandList->DispatchRays(&dsc);
-
-			// after shaders are done writing to the outputbuffer
-			// we need to transition the outputbuffer into a copy source
-			transition = CD3DX12_RESOURCE_BARRIER::Transition(
-				rtoutputbuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-				D3D12_RESOURCE_STATE_COPY_SOURCE);
-			commandList->ResourceBarrier(1, &transition);
-
-			// when it's a copy source we need to transition the
-			// current render target into a copy destination
-			transition = CD3DX12_RESOURCE_BARRIER::Transition(
-				renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
-				D3D12_RESOURCE_STATE_COPY_DEST);
-			commandList->ResourceBarrier(1, &transition);
-
-			// then we can copy from the outputbuffer into the rendertarget
-			commandList->CopyResource(renderTargets[frameIndex], rtoutputbuffer);
-
-			// after copying we can transition back the rendertarget from a
-			// copy destination to a rendertarget
-			transition = CD3DX12_RESOURCE_BARRIER::Transition(
-				renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-			commandList->ResourceBarrier(1, &transition);
+			performNoisePass();
+			performRaytracingPass();
+			performTAAPass(renderSettings);
 
 			// set pipeline state to rasterization in order to draw GUI
 			commandList->SetPipelineState(trianglePipelineStateObject);
@@ -1157,6 +1386,8 @@ namespace pathtracex {
 			return false;
 		}
 
+		std::wstring baseName{ L"Render target #" };
+
 		// Create a RTV for each buffer (double buffering is two buffers, tripple buffering is 3).
 		for (int i = 0; i < frameBufferCount; i++)
 		{
@@ -1171,6 +1402,9 @@ namespace pathtracex {
 
 			// the we "create" a render target view which binds the swap chain buffer (ID3D12Resource[n]) to the rtv handle
 			device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
+
+			std::wstring texName = baseName + std::to_wstring(i);
+			renderTargets[i]->SetName(texName.c_str());
 
 			// we increment the rtv handle by the rtv descriptor size we got above
 			rtvHandle.Offset(1, rtvDescriptorSize);
@@ -2220,6 +2454,73 @@ namespace pathtracex {
 		return rsg.generate(device, true);
 	}
 
+	void DXRenderer::performRaytracingPass() {
+		// update the TLAS
+		createTLASFromBLAS(asInstances, true);
+
+		commandList->SetPipelineState1(rtpipelinestate);
+		// bind access to TLAS and outputbuffer for shaders
+		ID3D12DescriptorHeap* heaps[] = { rtSrvUavHeap };
+		commandList->SetDescriptorHeaps(1, heaps);
+		commandList->SetComputeRootDescriptorTable(0, rtSrvUavHeap->GetGPUDescriptorHandleForHeapStart());
+
+		// transition on output buffer to give shaders write-access
+		CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			rtoutputbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		commandList->ResourceBarrier(1, &transition);
+
+		// setup ray-dispatching
+		D3D12_DISPATCH_RAYS_DESC dsc{};
+		uint32_t rgssb = sbtGenerator.getRayGenSectionSize();
+		dsc.RayGenerationShaderRecord.StartAddress = sbtStorage->GetGPUVirtualAddress();
+		dsc.RayGenerationShaderRecord.SizeInBytes = rgssb;
+
+		uint32_t mssb = sbtGenerator.getMissSectionSize();
+		dsc.MissShaderTable.StartAddress = sbtStorage->GetGPUVirtualAddress() + rgssb;
+		dsc.MissShaderTable.SizeInBytes = mssb;
+		dsc.MissShaderTable.StrideInBytes = sbtGenerator.getMissEntrySize();
+
+		uint32_t hgssb = sbtGenerator.getHitGroupSectionSize();
+		dsc.HitGroupTable.StartAddress = sbtStorage->GetGPUVirtualAddress() + rgssb + mssb;
+		dsc.HitGroupTable.SizeInBytes = hgssb;
+		dsc.HitGroupTable.StrideInBytes = sbtGenerator.getHitGroupEntrySize();
+
+		// setup output buffer size
+		int width, height;
+		window->getSize(width, height);
+		dsc.Width = width;
+		dsc.Height = height;
+		dsc.Depth = 1;
+
+		// bind ray-tracing pipeline
+		commandList->DispatchRays(&dsc);
+
+		// after shaders are done writing to the outputbuffer
+		// we need to transition the outputbuffer into a copy source
+		transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			rtoutputbuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COPY_SOURCE);
+		commandList->ResourceBarrier(1, &transition);
+
+		// when it's a copy source we need to transition the
+		// current render target into a copy destination
+		transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_COPY_DEST);
+		commandList->ResourceBarrier(1, &transition);
+
+		// then we can copy from the outputbuffer into the rendertarget
+		commandList->CopyResource(renderTargets[frameIndex], rtoutputbuffer);
+
+		// after copying we can transition back the rendertarget from a
+		// copy destination to a rendertarget
+		transition = CD3DX12_RESOURCE_BARRIER::Transition(
+			renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+		commandList->ResourceBarrier(1, &transition);
+	}
+
 	ID3D12RootSignature* DXRenderer::createMissSignature() {
 		nv::NVRootSignatureGenerator rsg;
 		return rsg.generate(device, true);
@@ -2284,8 +2585,9 @@ namespace pathtracex {
 		// update the noise constant buffer
 		{
 			currentRTFrame = currentRTFrame + 1;
+			unsigned int randomNum = rand();
 			NoiseConstBuffer temp{
-				currentRTFrame
+				randomNum
 			};
 
 			uint8_t* data;

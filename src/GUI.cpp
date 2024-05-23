@@ -190,6 +190,7 @@ namespace pathtracex {
 		ImGui::Checkbox("Use Frustum Culling", &renderSettings.useFrustumCulling);
 		if (renderSettings.raytracingSupported) {
 			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
+			ImGui::Checkbox("Use TAA", &renderSettings.useTAA);
 		}
 		else {
 			ImGui::BeginDisabled();

@@ -293,6 +293,7 @@ namespace pathtracex {
 		void updateRTBuffers(RenderSettings& settings, Scene& scene);
 		void updateMeshDataBuffers(Scene& scene);
 		void updateTLAS(Scene& scene);
+		void performRaytracingPass();
 
 		#pragma endregion
 
@@ -323,6 +324,33 @@ namespace pathtracex {
 		bool createRandomTexture();
 		bool createRandomComputePass();
 		bool createNoiseConstBuffer();
+		void performNoisePass();
+
+		#pragma endregion
+
+		#pragma region TAA pass
+
+		struct TAAFrame {
+			ID3D12Resource* frame;
+			D3D12_RESOURCE_STATES currState;
+		};
+		
+		const UINT numTAAFrames = 16;
+		UINT numSavedFrames = 0;
+		bool lastFrameTAAState = false;
+		TAAFrame savedFrames[16];
+		ID3D12Resource* taaOutput;
+		D3D12_RESOURCE_STATES taaOutputState;
+		ID3D12RootSignature* taaPassRootSignature;
+		ID3D12PipelineState* taaPassPipelineState;
+		ID3D12DescriptorHeap* taaDescriptorHeap;
+		ID3DBlob* taaCSBlob;
+
+		bool createTAATextures();
+		bool createTAAComputePass();
+		void performTAAPass(RenderSettings& renderSettings);
+
+		std::vector<std::wstring> texNames{};
 
 		#pragma endregion
 
