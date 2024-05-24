@@ -122,6 +122,14 @@ namespace pathtracex {
 		ID3D12Resource* depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
 		ID3D12DescriptorHeap* dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
 		ID3D12DescriptorHeap* mainDescriptorHeap; // this heap will store the descripor to our constant buffer
+
+		// Bloom stuff
+		ID3D12PipelineState* postProcessPipelineStateObject; // pso containing a pipeline state for post processing
+		ID3D12Resource* postProcessTarget[3];
+		ID3D12DescriptorHeap* postProcessHeap;
+		ID3D12RootSignature* postProcessRootSignature;
+		ID3D10Blob* bloomCsShaderBlob;
+
 		#pragma endregion
 
 		#pragma region Constant buffers
@@ -349,6 +357,7 @@ namespace pathtracex {
 		bool createTAATextures();
 		bool createTAAComputePass();
 		void performTAAPass(RenderSettings& renderSettings);
+		void performBloomingEffect(RenderSettings& renderSettings);
 
 		std::vector<std::wstring> texNames{};
 
@@ -372,6 +381,7 @@ namespace pathtracex {
 		bool createRootSignature();
 		bool createRasterPipeline();
 		bool createLinePipeline();
+		bool createPostProcessPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
 		bool createBuffers();
