@@ -339,16 +339,14 @@ namespace pathtracex {
 		#pragma region TAA pass
 
 		struct TAAFrame {
-			ID3D12Resource* frame;
+			ID3D12Resource* texture;
 			D3D12_RESOURCE_STATES currState;
 		};
-		
-		const UINT numTAAFrames = 16;
-		UINT numSavedFrames = 0;
-		bool lastFrameTAAState = false;
-		TAAFrame savedFrames[16];
-		ID3D12Resource* taaOutput;
-		D3D12_RESOURCE_STATES taaOutputState;
+
+		TAAFrame taaOutputFrame;
+		TAAFrame historyBuffer;
+		TAAFrame currentFrame;
+		bool taaUsedLastFrame = false;
 		ID3D12RootSignature* taaPassRootSignature;
 		ID3D12PipelineState* taaPassPipelineState;
 		ID3D12DescriptorHeap* taaDescriptorHeap;
@@ -358,8 +356,8 @@ namespace pathtracex {
 		bool createTAAComputePass();
 		void performTAAPass(RenderSettings& renderSettings);
 		void performBloomingEffect(RenderSettings& renderSettings);
-
-		std::vector<std::wstring> texNames{};
+		void transitionTAAFrame(TAAFrame& frame, D3D12_RESOURCE_STATES toState);
+		void transitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState);
 
 		#pragma endregion
 
