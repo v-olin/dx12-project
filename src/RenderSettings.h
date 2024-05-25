@@ -14,6 +14,7 @@ namespace pathtracex {
 		bool useRayTracing = false;
 		bool raytracingSupported = false;
 		bool useTAA = false;
+		bool useVSYNC = false;
 		int rayBounces = 10;
 		Camera& camera;
 

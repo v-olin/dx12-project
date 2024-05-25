@@ -25,6 +25,8 @@ namespace pathtracex {
 
 		DirectX::XMMATRIX getViewMatrix() const;
 		DirectX::XMMATRIX getProjectionMatrix(int width, int height) const;
+		DirectX::XMMATRIX getJitteredProjectionMatrix(int width, int height) const;
+		
 	private:
 		
 		struct Movement {

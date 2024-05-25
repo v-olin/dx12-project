@@ -185,13 +185,14 @@ namespace pathtracex {
 	void GUI::drawRenderingSettings(RenderSettings& renderSettings)
 	{
 		ImGui::Text("Rendering Settings");
+		ImGui::Checkbox("Use VSYNC", &renderSettings.useVSYNC);
 		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
 		ImGui::Checkbox("Draw Bounding Box", &renderSettings.drawBoundingBox);
 		ImGui::Checkbox("Use Frustum Culling", &renderSettings.useFrustumCulling);
 		ImGui::Checkbox("Use Blooming Effect", &renderSettings.useBloomingEffect);
+		ImGui::Checkbox("Use TAA", &renderSettings.useTAA);
 		if (renderSettings.raytracingSupported) {
 			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
-			ImGui::Checkbox("Use TAA", &renderSettings.useTAA);
 		}
 		else {
 			ImGui::BeginDisabled();

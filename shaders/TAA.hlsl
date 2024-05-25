@@ -13,11 +13,12 @@ void main(uint3 groupID : SV_GroupID, uint3 tid : SV_DispatchThreadID, uint3 loc
     uint TEX_HEIGHT = 0;
     gOutput.GetDimensions(TEX_WIDTH, TEX_HEIGHT);
     
-    const float w = 1.0 / 8.0;
+    const float w = 1.0 / 10.0;
     
     if (threadIdx.x < TEX_WIDTH && threadIdx.y < TEX_HEIGHT)
     {
         float3 final = gCurrent[threadIdx].rgb * w + gHistory[threadIdx].rgb * (1.0 - w);
         gOutput[threadIdx] = float4(final, 1);
+        gHistory[threadIdx] = float4(final, 1);
     }
 }

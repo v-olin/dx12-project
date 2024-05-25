@@ -705,6 +705,7 @@ namespace pathtracex {
 					UINT xheight = static_cast<UINT>(ceil(fheight / 32.f));
 
 					transitionTAAFrame(taaOutputFrame, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 					commandList->Dispatch(xwidth, xheight, 1);
 				}
@@ -719,20 +720,21 @@ namespace pathtracex {
 						D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
 				}
 			}
-			else {
-				// copy render target to history buffer
-				{
-					transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
-					transitionResource(renderTargets[frameIndex],
-						D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+			
+			// copy render target to history buffer
+			{
+				transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+				transitionResource(renderTargets[frameIndex],
+					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-					commandList->CopyResource(historyBuffer.texture, renderTargets[frameIndex]);
+				commandList->CopyResource(historyBuffer.texture, renderTargets[frameIndex]);
 
-					transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-					transitionResource(renderTargets[frameIndex],
-						D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-				}
+				transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				transitionResource(renderTargets[frameIndex],
+					D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			}
+
+			taaUsedLastFrame = true;
 		}
 		else {
 			taaUsedLastFrame = false;
@@ -1067,8 +1069,10 @@ namespace pathtracex {
 			cbPerObject.pointLightCount = k;
 
 			// create the wvp matrix and store in constant buffer
-			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix();													// load view matrix
-			DirectX::XMMATRIX projMat = renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height); // load projection matrix
+			DirectX::XMMATRIX viewMat = renderSettings.camera.getViewMatrix(); // load view matrix
+			DirectX::XMMATRIX projMat = renderSettings.useTAA
+				? renderSettings.camera.getJitteredProjectionMatrix(renderSettings.width, renderSettings.height)
+				: renderSettings.camera.getProjectionMatrix(renderSettings.width, renderSettings.height);
 
 			// Create vector to store culled models
 			std::vector<std::shared_ptr<Model>> culledModels;
@@ -1204,6 +1208,10 @@ namespace pathtracex {
 				}
 			}
 
+			if (renderSettings.useTAA) {
+				performTAAPass(renderSettings);
+			}
+
 			// set descriptor heap for imgui
 			commandList->SetDescriptorHeaps(1, &srvHeap);
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -1249,8 +1257,9 @@ namespace pathtracex {
 			THROW_IF_FAILED(hr);
 		}
 
+		UINT vblank = renderSettings.useVSYNC ? 1 : 0;
 		// present the current backbuffer
-		hr = swapChain->Present(0, 0);
+		hr = swapChain->Present(vblank, 0);
 		if (FAILED(hr))
 		{
 			HRESULT reason = device->GetDeviceRemovedReason();
