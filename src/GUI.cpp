@@ -206,7 +206,7 @@ namespace pathtracex {
 		ImGui::Text("Camera Settings");
 		ImGui::SliderFloat("FOV", &renderSettings.camera.fov, 0, 120);
 		ImGui::SliderFloat("Near Plane", &renderSettings.camera.nearPlane, 0.1, 50);
-		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 5000);
+		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 1000.0);
 		drawTransformSettings(renderSettings.camera.transform);
 
 		ImGui::Separator();

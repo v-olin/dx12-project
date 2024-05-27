@@ -146,10 +146,16 @@ namespace pathtracex {
 		if (!createRandomTexture())
 			return false;
 
+		if (!createNoiseConstBuffer())
+			return false;
+
 		if (!createRandomComputePass())
 			return false;
 
 		if (!createTAATextures())
+			return false;
+
+		if (!createTAAConstBuffer())
 			return false;
 
 		if (!createTAAComputePass())
@@ -175,7 +181,6 @@ namespace pathtracex {
 	}
 
 	bool DXRenderer::createNoiseConstBuffer() {
-
 		// create the noise constant buffer
 		{
 			CD3DX12_RESOURCE_DESC dsc = CD3DX12_RESOURCE_DESC::Buffer(noiseConstBuffSize);
@@ -581,15 +586,37 @@ namespace pathtracex {
 			currentFrame.texture->SetName(L"TAA Current frame texture");
 		}
 
+		// create TAA depth buffer
+		{
+			HRESULT hr = device->CreateCommittedResource(
+				&defaultHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&rdsc,
+				D3D12_RESOURCE_STATE_COMMON,
+				nullptr,
+				IID_PPV_ARGS(&taadepthBuffer.texture)
+			);
+
+			taadepthBuffer.currState = D3D12_RESOURCE_STATE_COMMON;
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create TAA depth buffer, createTAATextures()");
+				return false;
+			}
+
+			taadepthBuffer.texture->SetName(L"TAA Depth buffer");
+		}
+
 		return true;
 	}
 
 	bool DXRenderer::createTAAComputePass() {
 		// set up root signature
 		{
-			CD3DX12_DESCRIPTOR_RANGE1 texRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
-			CD3DX12_ROOT_PARAMETER1 rootparams[1];
+			CD3DX12_DESCRIPTOR_RANGE1 texRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 4, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+			CD3DX12_ROOT_PARAMETER1 rootparams[2];
 			rootparams[0].InitAsDescriptorTable(1, &texRange);
+			rootparams[1].InitAsConstantBufferView(0);
 
 			CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rsd(_countof(rootparams), rootparams, 0, nullptr);
 
@@ -639,7 +666,7 @@ namespace pathtracex {
 		// create resource heap for TAA pass
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC dsc{};
-			dsc.NumDescriptors = 3;
+			dsc.NumDescriptors = 5;
 			dsc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			dsc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
@@ -653,16 +680,32 @@ namespace pathtracex {
 			taaDescriptorHeap->SetName(L"TAA UAV heap");
 
 			D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = taaDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
-			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			
+			// create UAVs for textures
+			{
+				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
-			device->CreateUnorderedAccessView(taaOutputFrame.texture, nullptr, &uavDesc, srvHandle);
-			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				device->CreateUnorderedAccessView(taaOutputFrame.texture, nullptr, &uavDesc, srvHandle);
+				srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			device->CreateUnorderedAccessView(historyBuffer.texture, nullptr, &uavDesc, srvHandle);
-			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				device->CreateUnorderedAccessView(historyBuffer.texture, nullptr, &uavDesc, srvHandle);
+				srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			device->CreateUnorderedAccessView(currentFrame.texture, nullptr, &uavDesc, srvHandle);
+				device->CreateUnorderedAccessView(currentFrame.texture, nullptr, &uavDesc, srvHandle);
+				srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+				device->CreateUnorderedAccessView(taadepthBuffer.texture, nullptr, &uavDesc, srvHandle);
+				srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			}
+
+			// create CBV for const buffer
+			{
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
+				cbvDesc.BufferLocation = taaConstBuffer->GetGPUVirtualAddress();
+				cbvDesc.SizeInBytes = taaConstBuffSize;
+				device->CreateConstantBufferView(&cbvDesc, srvHandle);
+			}
 		}
 
 		return true;
@@ -687,6 +730,15 @@ namespace pathtracex {
 						D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
 				}
 
+				// copy depth buffer to TAA buffer
+				{
+					transitionTAAFrame(taadepthBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+					transitionResource(rtdepthbuffer, rtdepthstate, D3D12_RESOURCE_STATE_COPY_SOURCE);
+					commandList->CopyResource(taadepthBuffer.texture, rtdepthbuffer);
+					transitionResource(rtdepthbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, rtdepthstate);
+					transitionTAAFrame(taadepthBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				}
+
 				// launch the compute shader
 				{
 					commandList->SetPipelineState(taaPassPipelineState);
@@ -694,6 +746,7 @@ namespace pathtracex {
 					commandList->SetDescriptorHeaps(1, &taaDescriptorHeap);
 
 					commandList->SetComputeRootDescriptorTable(0, taaDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+					commandList->SetComputeRootConstantBufferView(1, taaConstBuffer->GetGPUVirtualAddress());
 
 					int width, height;
 					window->getSize(width, height);
@@ -710,7 +763,7 @@ namespace pathtracex {
 					commandList->Dispatch(xwidth, xheight, 1);
 				}
 
-				// copy TAA output to render target
+				// copy TAA output to render target and to history buffer
 				{
 					transitionTAAFrame(taaOutputFrame, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
@@ -718,23 +771,26 @@ namespace pathtracex {
 
 					transitionResource(renderTargets[frameIndex],
 						D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+					transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+					
+					commandList->CopyResource(historyBuffer.texture, taaOutputFrame.texture);
+
+					transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				}
 			}
-			
-			// copy render target to history buffer
-			{
+			else {
+				// copy current frame to history buffer
 				transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
-				transitionResource(renderTargets[frameIndex],
-					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+				transitionResource(renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
 				commandList->CopyResource(historyBuffer.texture, renderTargets[frameIndex]);
 
 				transitionTAAFrame(historyBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				transitionResource(renderTargets[frameIndex],
-					D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			}
+				transitionResource(renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			taaUsedLastFrame = true;
+				taaUsedLastFrame = true;
+			}
 		}
 		else {
 			taaUsedLastFrame = false;
@@ -828,6 +884,29 @@ namespace pathtracex {
 		CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
 			resource, fromState, toState);
 		commandList->ResourceBarrier(1, &transition);
+	}
+
+	bool DXRenderer::createTAAConstBuffer() {
+
+		// create the TAA constant buffer
+		{
+			CD3DX12_RESOURCE_DESC dsc = CD3DX12_RESOURCE_DESC::Buffer(taaConstBuffSize);
+
+			HRESULT hr = device->CreateCommittedResource(
+				&deafultUploadHeapProps,
+				D3D12_HEAP_FLAG_NONE,
+				&dsc, D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr, IID_PPV_ARGS(&taaConstBuffer));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create constant buffer for TAA, createTAAConstBuffer()");
+				return false;
+			}
+
+			taaConstBuffer->SetName(L"TAA constant buffer");
+		}
+
+		return true;
 	}
 
 	bool DXRenderer::createRandomTexture() {
@@ -1014,10 +1093,6 @@ namespace pathtracex {
 
 		if (renderSettings.useRayTracing) {
 			// execute noise pass
-			if (renderSettings.useTAA) {
-				LOG_INFO("Rendering with TAA postprocessing");
-			}
-
 			performNoisePass();
 			performRaytracingPass();
 			performTAAPass(renderSettings);
@@ -1108,8 +1183,6 @@ namespace pathtracex {
 
 				cbPerObject.isProcWorld = model->name == "Procedual mesh";
 	
-			
-
 				int k = 0;
 				PointLight pointLights[3];
 				for (auto light : scene.lights) {
@@ -1206,10 +1279,6 @@ namespace pathtracex {
 					commandList->SetPipelineState(trianglePipelineStateObject);
 					commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				}
-			}
-
-			if (renderSettings.useTAA) {
-				performTAAPass(renderSettings);
 			}
 
 			// set descriptor heap for imgui
@@ -1663,6 +1732,13 @@ namespace pathtracex {
 		// output, and not on a render target, which means you would not need anything after the stream
 		// output.
 
+		D3D12_DEPTH_STENCIL_DESC depthDesc;
+		ZeroMemory(&depthDesc, sizeof(D3D12_DEPTH_STENCIL_DESC));
+		depthDesc.DepthEnable = TRUE;
+		depthDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		depthDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		depthDesc.StencilEnable = FALSE;
+
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};						// a structure to define a pso
 		psoDesc.InputLayout = inputLayoutDesc;									// the structure describing our input layout
 		psoDesc.pRootSignature = rootSignature;									// the root signature that describes the input data this pso needs
@@ -1675,7 +1751,7 @@ namespace pathtracex {
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);		// a default rasterizer state.
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);					// a default blent state.
 		psoDesc.NumRenderTargets = 1;											// we are only binding one render target
-		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);	// a default depth stencil state
+		psoDesc.DepthStencilState = depthDesc; //CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);	// a default depth stencil state
 		psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
 		// create the pso
@@ -1965,12 +2041,9 @@ namespace pathtracex {
 		hr = device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsDescriptorHeap));
 		if (FAILED(hr))
 		{
+			LOG_ERROR("Could not create descriptor heap for Depth stencil, createBuffers()");
+			return false;
 		}
-
-		D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-		depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
-		depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
 
 		D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
 		depthOptimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
@@ -1981,14 +2054,42 @@ namespace pathtracex {
 		window->getSize(Width, Height);
 
 		CD3DX12_HEAP_PROPERTIES heapPropertiesDefault(D3D12_HEAP_TYPE_DEFAULT);
-		CD3DX12_RESOURCE_DESC depthStencilResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, Width, Height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-		device->CreateCommittedResource(
+		//CD3DX12_RESOURCE_DESC depthStencilResourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, Width, Height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+
+		D3D12_RESOURCE_DESC depthStencilResourceDesc{};
+		ZeroMemory(&depthStencilResourceDesc, sizeof(depthStencilResourceDesc));
+
+		depthStencilResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		depthStencilResourceDesc.Alignment = 0;
+		depthStencilResourceDesc.Width = Width;
+		depthStencilResourceDesc.Height = Height;
+		depthStencilResourceDesc.DepthOrArraySize = 1;
+		depthStencilResourceDesc.MipLevels = 1;
+		depthStencilResourceDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		depthStencilResourceDesc.SampleDesc.Count = 1;
+		depthStencilResourceDesc.SampleDesc.Quality = 0;
+		depthStencilResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		depthStencilResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+		hr = device->CreateCommittedResource(
 			&heapPropertiesDefault,
 			D3D12_HEAP_FLAG_NONE,
 			&depthStencilResourceDesc,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE,
 			&depthOptimizedClearValue,
 			IID_PPV_ARGS(&depthStencilBuffer));
+
+		if (FAILED(hr)) {
+			LOG_ERROR("Could not create depth buffer texture, createBuffers()");
+			return false;
+		}
+
+		D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+		depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
+		depthStencilDesc.Texture2D.MipSlice = 0;
+
 		dsDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
 
 		device->CreateDepthStencilView(depthStencilBuffer, &depthStencilDesc, dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
@@ -2263,7 +2364,7 @@ namespace pathtracex {
 	}
 
 	bool DXRenderer::createShaderResourceHeap(Scene& scene) {
-		UINT numResources = 6;
+		UINT numResources = 7;
 		
 		// create the descriptor heap for our 4 buffers
 		// 1: UAV for gBuffer for RT output
@@ -2272,6 +2373,7 @@ namespace pathtracex {
 		// 4: CBV for light sources
 		// 5: SRV for material data
 		// 6: UAV for noise
+		// 7: UAV for depth buffer
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC desc{};
 			ZeroMemory(&desc, sizeof(desc));
@@ -2354,6 +2456,15 @@ namespace pathtracex {
 			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
 			device->CreateUnorderedAccessView(noiseTextureRTX, nullptr, &uavDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
+
+		// Then add UAV for depth buffer
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+			device->CreateUnorderedAccessView(rtdepthbuffer, nullptr, &uavDesc, srvHandle);
 			//srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 
@@ -2408,11 +2519,11 @@ namespace pathtracex {
 			}
 		}
 
+		int width, height;
+		window->getSize(width, height);
+		
 		// create noise input texture
 		{
-			int width, height;
-			window->getSize(width, height);
-
 			D3D12_RESOURCE_DESC rdesc{};
 			ZeroMemory(&rdesc, sizeof(rdesc));
 			rdesc.DepthOrArraySize = 1;
@@ -2437,30 +2548,46 @@ namespace pathtracex {
 			);
 
 			if (FAILED(hr)) {
-				LOG_ERROR("Could not create noise texture destination, createRandomTexture()");
+				LOG_ERROR("Could not create noise texture destination, createRTBuffers()");
 				return false;
 			}
 
 			noiseTextureRTX->SetName(L"Noise texture using");
 		}
 
-		// create the noise constant buffer
+		// create depth texture
 		{
-			CD3DX12_RESOURCE_DESC dsc = CD3DX12_RESOURCE_DESC::Buffer(noiseConstBuffSize);
+			D3D12_RESOURCE_DESC rdesc{};
+			ZeroMemory(&rdesc, sizeof(rdesc));
+			rdesc.DepthOrArraySize = 1;
+			rdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			rdesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+			rdesc.Width = width;
+			rdesc.Height = height;
+			rdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			rdesc.MipLevels = 1;
+			rdesc.SampleDesc.Count = 1;
 
+			// this is for the raytracing
+			// every frame copy random texture to this resource
 			HRESULT hr = device->CreateCommittedResource(
-				&deafultUploadHeapProps,
+				&defaultHeapProps,
 				D3D12_HEAP_FLAG_NONE,
-				&dsc, D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr, IID_PPV_ARGS(&noiseCBuffer)
+				&rdesc,
+				D3D12_RESOURCE_STATE_COMMON,
+				nullptr,
+				IID_PPV_ARGS(&rtdepthbuffer)
 			);
 
-			noiseCBuffer->SetName(L"Noise constant buffer");
+			rtdepthstate = D3D12_RESOURCE_STATE_COMMON;
 
 			if (FAILED(hr)) {
-				LOG_ERROR("Could not create constant buffer for noise, createRTBuffers()");
+				LOG_ERROR("Could not create noise texture destination, createRTBuffers()");
 				return false;
 			}
+
+			rtdepthbuffer->SetName(L"DXR Depth buffer");
 		}
 
 		return true;
@@ -2600,9 +2727,10 @@ namespace pathtracex {
 		nv::NVRootSignatureGenerator rsg;
 		rsg.addHeapRangesParameter(
 			{ 
-				{0 /*u0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV /*output UAV*/, 0 /*1st heap slot*/},
-				{0 /*t0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV /*TLAS*/, 1, /*2nd heap slot*/},
-				{0 /*b0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_CBV /*Camera*/, 2 /*3rd heap slot*/}
+				{0 /*u0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV /*output UAV*/,	0 /*1st heap slot*/},
+				{0 /*t0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV /*TLAS*/,			1, /*2nd heap slot*/},
+				{0 /*b0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_CBV /*Camera*/,		2 /*3rd heap slot*/},
+				{1 /*u1*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV /*depth UAV*/,		6 /*7th heap slot*/}
 			}
 		);
 
@@ -2624,6 +2752,10 @@ namespace pathtracex {
 			rtoutputbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE,
 			D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		commandList->ResourceBarrier(1, &transition);
+
+		// transition depth buffer to UA
+		transitionResource(rtdepthbuffer, rtdepthstate, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		rtdepthstate = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 
 		// setup ray-dispatching
 		D3D12_DISPATCH_RAYS_DESC dsc{};
@@ -2648,6 +2780,16 @@ namespace pathtracex {
 		dsc.Height = height;
 		dsc.Depth = 1;
 
+		/*
+		// copy last frames depth buffer for TAA
+		{
+			transitionTAAFrame(prevFrameDepthBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+			transitionResource(rtdepthbuffer, rtdepthstate, D3D12_RESOURCE_STATE_COPY_SOURCE);
+			commandList->CopyResource(prevFrameDepthBuffer.texture, rtdepthbuffer);
+			transitionResource(rtdepthbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, rtdepthstate);
+		}
+		*/
+
 		// bind ray-tracing pipeline
 		commandList->DispatchRays(&dsc);
 
@@ -2666,6 +2808,7 @@ namespace pathtracex {
 		commandList->ResourceBarrier(1, &transition);
 
 		// then we can copy from the outputbuffer into the rendertarget
+		//commandList->CopyResource(renderTargets[frameIndex], rtoutputbuffer);
 		commandList->CopyResource(renderTargets[frameIndex], rtoutputbuffer);
 
 		// after copying we can transition back the rendertarget from a
@@ -2702,22 +2845,57 @@ namespace pathtracex {
 		{
 			int width, height;
 			window->getSize(width, height);
-			
-			const auto view = settings.camera.getViewMatrix();
-			const auto proj = settings.camera.getProjectionMatrix(width, height);
 
 			dx::XMVECTOR det;
-			CameraConstantBuffer temp{
-				view,
-				proj,
-				dx::XMMatrixInverse(&det, view),
-				dx::XMMatrixInverse(&det, proj)
-			};
+			cameraBuffer.nearPlane = settings.camera.nearPlane;
+			cameraBuffer.farPlane = settings.camera.farPlane;
+			cameraBuffer.useTAA = settings.useTAA;
+			
+			if (settings.useTAA) {
+				if (taaUsedLastFrame) {
+					// if TAA was used last frame, copy prev frames matrices
+					cameraBuffer.prevView = cameraBuffer.currView;
+					cameraBuffer.prevProj = cameraBuffer.currProj;
+					cameraBuffer.prevViewInv = cameraBuffer.currViewInv;
+					cameraBuffer.prevProjInv = cameraBuffer.currProjInv;
 
+					// update the current matrices
+					cameraBuffer.currView = settings.camera.getViewMatrix();
+					cameraBuffer.currViewInv = dx::XMMatrixInverse(&det, cameraBuffer.currView);
+					cameraBuffer.currProj = settings.camera.getJitteredProjectionMatrix(width, height);
+					cameraBuffer.currProjInv = dx::XMMatrixInverse(&det, cameraBuffer.currProj);
+				}
+				else {
+					// if TAA was not used last frame, set current matrices
+					cameraBuffer.currView = settings.camera.getViewMatrix();
+					cameraBuffer.currViewInv = dx::XMMatrixInverse(&det, cameraBuffer.currView);
+					cameraBuffer.currProj = settings.camera.getJitteredProjectionMatrix(width, height);
+					cameraBuffer.currProjInv = dx::XMMatrixInverse(&det, cameraBuffer.currProj);
+
+					// copy current to prev matrices
+					cameraBuffer.prevView = cameraBuffer.currView;
+					cameraBuffer.prevProj = cameraBuffer.currProj;
+					cameraBuffer.prevViewInv = cameraBuffer.currViewInv;
+					cameraBuffer.prevProjInv = cameraBuffer.currProjInv;
+				}
+			}
+			else {
+				cameraBuffer.currView = settings.camera.getViewMatrix();
+				cameraBuffer.currViewInv = dx::XMMatrixInverse(&det, cameraBuffer.currView);
+				cameraBuffer.currProj = settings.camera.getProjectionMatrix(width, height);
+				cameraBuffer.currProjInv = dx::XMMatrixInverse(&det, cameraBuffer.currProj);
+			}
+
+			// update cbuffer for DXR
 			uint8_t* data;
 			cameraConstantBuffer->Map(0, nullptr, (void**)&data);
-			memcpy(data, &temp, cameraConstantBufferSize);
+			memcpy(data, &cameraBuffer, cameraConstantBufferSize);
 			cameraConstantBuffer->Unmap(0, nullptr);
+
+			// update cbuffer for TAA
+			taaConstBuffer->Map(0, nullptr, (void**)&data);
+			memcpy(data, &cameraBuffer, cameraConstantBufferSize);
+			taaConstBuffer->Unmap(0, nullptr);
 		}
 
 		// update the light constant buffer

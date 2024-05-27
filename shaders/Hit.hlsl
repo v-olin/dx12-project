@@ -202,6 +202,7 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
 
 [shader("closesthit")] void ClosestHit(inout HitInfo payload, Attributes attrib) 
 {
+    float RAY_LENGTH = RayTCurrent();
     uint vertId = 3 * PrimitiveIndex();
     
     // The color of the hit pixel without doing lighting calculations
@@ -279,8 +280,8 @@ float3 calculateTransparantRayContribution(float3 normal, float3 viewDir)
     }
 
     float3 ao = ambientOcclusion(normal, worldOrigin, WorldRayDirection(), attrib.bary);
-    ao = ao * outColor;
-    payload.colorAndDistance = float4(ao.x, ao.y, ao.z, RayTCurrent());
+    ao = outColor;
+    payload.colorAndDistance = float4(ao.x, ao.y, ao.z, RAY_LENGTH);
     
     //uint2 testIdx = uint2(DispatchRaysIndex().x, DispatchRaysIndex().y);
     //float3 noise = noiseTex[testIdx].rgb;

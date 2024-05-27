@@ -13,7 +13,7 @@ namespace pathtracex {
 
 		float fov = 50.0f;
 		float nearPlane = 0.1f;
-		float farPlane = 1000.0f;
+		float farPlane = 20.0f;
 
 		virtual void onEvent(Event& e) override;
 		bool handleKeyDown(KeyPressedEvent& e);
