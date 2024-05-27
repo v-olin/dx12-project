@@ -172,14 +172,32 @@ namespace pathtracex {
             transform.getPosition(),
             transform.getPosition() + transform.getForward(),
             transform.getUp());
-
-        //return DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixMultiply(transform.transformMatrix, transform.rotationMatrix));
     }
 
     DirectX::XMMATRIX Camera::getProjectionMatrix(int width, int height) const
     {
         float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
         return DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), aspectRatio, nearPlane, farPlane);
+    }
+
+    DirectX::XMMATRIX Camera::getJitteredProjectionMatrix(int width, int height) const
+    {
+        float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+        auto projMat = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), aspectRatio, nearPlane, farPlane);
+
+        float xlow = (-1.0f / float(2 * width)), xhigh = (1.0f / float(2 * width));
+        float ylow = (-1.0f / float(2 * height)), yhigh = (1.0f / float(2 * height));
+        float jx = xlow + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (xhigh - xlow)));
+        float jy = ylow + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (yhigh - ylow)));
+
+        DirectX::XMMATRIX jitter{
+            1,0,0,0,
+            0,1,0,0,
+            0,0,1,0,
+            jx,jy,0,1
+        };
+
+        return DirectX::XMMatrixMultiply(projMat, jitter);
     }
 
 }

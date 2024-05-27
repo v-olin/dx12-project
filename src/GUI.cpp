@@ -185,13 +185,14 @@ namespace pathtracex {
 	void GUI::drawRenderingSettings(RenderSettings& renderSettings)
 	{
 		ImGui::Text("Rendering Settings");
+		ImGui::Checkbox("Use VSYNC", &renderSettings.useVSYNC);
 		ImGui::Checkbox("Use Multisampling", &renderSettings.useMultiSampling);
 		ImGui::Checkbox("Draw Bounding Box", &renderSettings.drawBoundingBox);
 		ImGui::Checkbox("Use Frustum Culling", &renderSettings.useFrustumCulling);
 		ImGui::Checkbox("Use Blooming Effect", &renderSettings.useBloomingEffect);
+		ImGui::Checkbox("Use TAA", &renderSettings.useTAA);
 		if (renderSettings.raytracingSupported) {
 			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);
-			ImGui::Checkbox("Use TAA", &renderSettings.useTAA);
 		}
 		else {
 			ImGui::BeginDisabled();
@@ -205,7 +206,7 @@ namespace pathtracex {
 		ImGui::Text("Camera Settings");
 		ImGui::SliderFloat("FOV", &renderSettings.camera.fov, 0, 120);
 		ImGui::SliderFloat("Near Plane", &renderSettings.camera.nearPlane, 0.1, 50);
-		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 5000);
+		ImGui::SliderFloat("Far Plane", &renderSettings.camera.farPlane, 0.1, 1000.0);
 		drawTransformSettings(renderSettings.camera.transform);
 
 		ImGui::Separator();

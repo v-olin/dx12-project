@@ -220,11 +220,21 @@ namespace pathtracex {
 		};
 
 		struct CameraConstantBuffer {
-			dx::XMMATRIX view;
-			dx::XMMATRIX proj;
-			dx::XMMATRIX viewInv;
-			dx::XMMATRIX projInv;
+			dx::XMMATRIX currView;
+			dx::XMMATRIX currProj;
+			dx::XMMATRIX currViewInv;
+			dx::XMMATRIX currProjInv;
+			dx::XMMATRIX prevView;
+			dx::XMMATRIX prevProj;
+			dx::XMMATRIX prevViewInv;
+			dx::XMMATRIX prevProjInv;
+			float nearPlane;
+			float farPlane;
+			bool useTAA;
+			bool pad1[3];
 		};
+
+		CameraConstantBuffer cameraBuffer;
 
 		unsigned int rtxFrameCount = 0;
 		
@@ -252,9 +262,13 @@ namespace pathtracex {
 		ID3D12StateObjectProperties* rtpipelinestateprops;
 
 		ID3D12Resource* rtoutputbuffer;
+		ID3D12Resource* rtdepthbuffer;
+		D3D12_RESOURCE_STATES rtdepthstate;
 		ID3D12DescriptorHeap* rtSrvUavHeap;
 		ID3D12DescriptorHeap* constHeap;
 		ID3D12Resource* sbtStorage;
+
+		ID3D12Resource* dxrDepthBuffer;
 
 		struct MeshData {
 			float4 material_color;
@@ -338,28 +352,46 @@ namespace pathtracex {
 
 		#pragma region TAA pass
 
+		struct TAAConstantBuffer {
+			dx::XMMATRIX currView;
+			dx::XMMATRIX currProj;
+			dx::XMMATRIX currViewInv;
+			dx::XMMATRIX currProjInv;
+			dx::XMMATRIX prevView;
+			dx::XMMATRIX prevProj;
+			dx::XMMATRIX prevViewInv;
+			dx::XMMATRIX prevProjInv;
+			float nearPlane;
+			float farPlane;
+			bool useTAA;
+			bool pad1[3];
+		};
+
+		const uint32_t taaConstBuffSize = ALIGN_256(sizeof(TAAConstantBuffer));
+		ID3D12Resource* taaConstBuffer;
+
 		struct TAAFrame {
-			ID3D12Resource* frame;
+			ID3D12Resource* texture;
 			D3D12_RESOURCE_STATES currState;
 		};
-		
-		const UINT numTAAFrames = 16;
-		UINT numSavedFrames = 0;
-		bool lastFrameTAAState = false;
-		TAAFrame savedFrames[16];
-		ID3D12Resource* taaOutput;
-		D3D12_RESOURCE_STATES taaOutputState;
+
+		TAAFrame taaOutputFrame;
+		TAAFrame historyBuffer;
+		TAAFrame currentFrame;
+		TAAFrame taadepthBuffer;
+		bool taaUsedLastFrame = false;
 		ID3D12RootSignature* taaPassRootSignature;
 		ID3D12PipelineState* taaPassPipelineState;
 		ID3D12DescriptorHeap* taaDescriptorHeap;
 		ID3DBlob* taaCSBlob;
 
 		bool createTAATextures();
+		bool createTAAConstBuffer();
 		bool createTAAComputePass();
 		void performTAAPass(RenderSettings& renderSettings);
 		void performBloomingEffect(RenderSettings& renderSettings);
-
-		std::vector<std::wstring> texNames{};
+		void transitionTAAFrame(TAAFrame& frame, D3D12_RESOURCE_STATES toState);
+		void transitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState);
 
 		#pragma endregion
 
