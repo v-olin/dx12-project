@@ -78,6 +78,8 @@ target_sources(PathTracerX PRIVATE
 	Noise.cpp
 	Culling.cpp
 	Culling.h
+	Pong.h
+	Pong.cpp
 )
 
 source_group("DX" FILES

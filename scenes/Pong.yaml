@@ -1,0 +1,68 @@
+Models:
+  - Name: Bottom plane
+    Filename: ""
+    TransformMatrix: [3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.5, 0, 0, -5, 0, 1]
+    PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Top plane
+    Filename: ""
+    TransformMatrix: [3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.5, 0, 0, 5, 0, 1]
+    PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Ball
+    Filename: ""
+    TransformMatrix: [0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 3.57031822e-05, 0, 0, 1]
+    PrimativeType: Sphere
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: AI
+    Filename: ""
+    TransformMatrix: [0.25, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, -8.99999905, 0.000125348568, 0, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: User
+    Filename: ""
+    TransformMatrix: [0.25, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 9, 0, 0, 1]
+    PrimativeType: Cube
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+Lights:
+  []

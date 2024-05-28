@@ -1,0 +1,264 @@
+#include "Pong.h"
+#include "Model.h"
+#include "Serializer.h"
+#include <math.h>
+
+#include "imgui.h"
+#include "backends/imgui_impl_dx12.h"
+#include "backends/imgui_impl_win32.h"
+
+namespace pathtracex {
+
+	void Pong::initGame() {
+		initScene();
+
+		renderSettings.useVSYNC = true;
+		renderSettings.camera.farPlane = 30.f;
+		renderSettings.camera.transform.rotate(float3(0, 1, 0), 90.f * 3.1415926535f / 180.0f);
+		renderSettings.camera.transform.setPosition(float3(0, 0.12f, -13.f));
+	}
+
+	void Pong::drawGui() {
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::ShowDemoWindow();
+
+		ImGui::Render();
+	}
+
+	void Pong::initScene() {
+		Serializer::deserializeScene("pong", scene);
+
+		for (auto model : scene.models) {
+			if (model->name.find(std::string{ "AI" }) != std::string::npos) {
+				this->aiModel = model;
+			}
+			else if (model->name.find(std::string{ "User" }) != std::string::npos) {
+				this->userModel = model;
+			}
+			else if (model->name.find(std::string{ "Ball" }) != std::string::npos) {
+				this->ballModel = model;
+			}
+		}
+	}
+
+	void Pong::everyFrame() {
+		std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+		currDelta = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdate);
+		lastUpdate = now;
+
+		if (!gameIsPaused && roundHasStarted) {
+			updatePlayerMovement();
+			updateAIMovement();
+			updateBallMovement();
+		}
+
+		drawGui();
+	}
+
+	void Pong::updatePlayerMovement() {
+
+		if (playerUp) {
+			float secDelta = float(currDelta.count()) / 1000.f;
+			Transform& transform = userModel->trans;
+			transform.translate(float3(0, secDelta * playerSpeed, 0));
+
+			// ensure it is inside box
+			float3 newPos = transform.getPosition();
+			if (newPos.y > 4.0f) {
+				transform.setPosition(float3(newPos.x, 4.0f, newPos.z));
+				playerUp = false;
+			}
+		}
+
+		if (playerDown) {
+			float secDelta = float(currDelta.count()) / 1000.f;
+			Transform& transform = userModel->trans;
+			transform.translate(float3(0, -secDelta * playerSpeed, 0));
+
+			// ensure it is inside box
+			float3 newPos = transform.getPosition();
+			if (newPos.y < -4.0f) {
+				transform.setPosition(float3(newPos.x, -4.0f, newPos.z));
+				playerDown = false;
+			}
+		}
+	}
+
+	void Pong::updateAIMovement() {
+		float aiHeight = aiModel->trans.getPosition().y;
+		float ballHeight = ballModel->trans.getPosition().y;
+
+		float diff = aiHeight - ballHeight;
+
+		if (abs(diff) < FLT_EPSILON * 5 || diff == 0.0f) {
+			return;
+		}
+
+		// if AI above ball, move it down
+		if (diff > 0) {
+			float secDelta = float(currDelta.count()) / 1000.f;
+			Transform& transform = aiModel->trans;
+			transform.translate(float3(0, -secDelta * playerSpeed, 0));
+
+			// ensure it is inside box
+			float3 newPos = transform.getPosition();
+			if (newPos.y > 4.0f) {
+				transform.setPosition(float3(newPos.x, 4.0f, newPos.z));
+
+			}
+		}
+		// if AI below ball, move it up
+		else {
+			float secDelta = float(currDelta.count()) / 1000.f;
+			Transform& transform = aiModel->trans;
+			transform.translate(float3(0, secDelta * playerSpeed, 0));
+
+			// ensure it is inside box
+			float3 newPos = transform.getPosition();
+			if (newPos.y < -4.0f) {
+				transform.setPosition(float3(newPos.x, -4.0f, newPos.z));
+			}
+		}
+	}
+
+	void Pong::updateBallMovement() {
+		float d = float(currDelta.count()) / 1000.f;
+		Transform& transform = ballModel->trans;
+		transform.translate(float3(ballDir.x, ballDir.y, 0.f) * d * ballSpeed);
+
+		float3 newPos = ballModel->trans.getPosition();
+
+		// ball collided with bottom plane
+		if (newPos.y < -4.5f) {
+			transform.setPosition(float3(newPos.x, -4.5f, newPos.z));
+			ballDir = float2(ballDir.x, ballDir.y * -1.0f);
+		}
+		// ball collided with top plane
+		else if (newPos.y > 4.5f) {
+			transform.setPosition(float3(newPos.x, 4.5f, newPos.z));
+			ballDir = float2(ballDir.x, ballDir.y * -1.0f);
+		}
+
+		const float ballRad = 0.5f;
+		const float halfBoxWidth = 0.25f;
+		const float halfBoxHeight = 1.0f;
+		float ballHeight = newPos.y;
+		// check collision with player
+		if (newPos.x > (9.0f - ballRad - halfBoxWidth) && !playerMissed) {
+			float playerHeight = userModel->trans.getPosition().y;
+
+			// player hits ball
+			if (ballHeight >= playerHeight - halfBoxHeight && ballHeight <= playerHeight + halfBoxHeight) {
+				transform.setPosition(float3(8.25f, newPos.y, newPos.z));
+				ballDir = float2(ballDir.x * -1.f, ballDir.y);
+			}
+			else {
+				playerMissed = true;
+			}
+		}
+		else if (newPos.x < (-9.0f + ballRad + halfBoxWidth) && !aiMissed) {
+			float aiHeight = aiModel->trans.getPosition().y;
+
+			if (ballHeight >= aiHeight - halfBoxHeight && ballHeight <= aiHeight + halfBoxHeight) {
+				transform.setPosition(float3(-8.25f, newPos.y, newPos.z));
+				ballDir = float2(ballDir.x * -1.0f, ballDir.y);
+			}
+			else {
+				aiMissed = true;
+			}
+		}
+
+		if (newPos.x > 10.0f && playerMissed) {
+			resetRound();
+			playerMissed = false;
+			++aiPoints;
+		}
+		else if (newPos.x < -10.0f && aiMissed) {
+			resetRound();
+			aiMissed = false;
+			++userPoints;
+		}
+	}
+
+	void Pong::resetRound() {
+		aiModel->trans.setPosition(float3(-9, 0, 0));
+		userModel->trans.setPosition(float3(9, 0, 0));
+		ballModel->trans.setPosition(float3(0, 0, 0));
+
+		static const float r = 1.0f / sqrt(2.0f);
+		static const float2 possibleDirs[4]{
+			float2(r,r),
+			float2(-r,r),
+			float2(-r,-r),
+			float2(r,-r)
+		};
+
+		ballDir = possibleDirs[rand() % 4];
+		roundHasStarted = false;
+		gameIsPaused = false;
+	}
+
+	void Pong::startRound() {
+		if (roundHasStarted) {
+			gameIsPaused = !gameIsPaused;
+		}
+		else
+			roundHasStarted = true;
+	}
+
+	void Pong::onEvent(Event& e) {
+		EventDispatcher dispatcher{ e };
+
+		if (e.getEventType() == EventType::KeyPressed) {
+			dispatcher.dispatch<KeyPressedEvent>(BIND_EVENT_FN(Pong::handleKeyPess));
+		}
+		else if (e.getEventType() == EventType::KeyReleased) {
+			dispatcher.dispatch<KeyReleasedEvent>(BIND_EVENT_FN(Pong::handleKeyRelease));
+		}
+	}
+
+	bool Pong::handleKeyPess(KeyPressedEvent& e) {
+		switch (e.getKeyCode()) {
+		case 'W':
+		case 'w':
+			playerUp = true;
+			return true;
+		case 'S':
+		case 's':
+			playerDown = true;
+			return true;
+		case 'P':
+		case 'p':
+			startRound();
+			return true;
+		case 'R':
+		case 'r':
+			resetRound();
+			return true;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
+	bool Pong::handleKeyRelease(KeyReleasedEvent& e) {
+		switch (e.getKeyCode()) {
+		case 'W':
+		case 'w':
+			playerUp = false;
+			return true;
+		case 'S':
+		case 's':
+			playerDown = false;
+			return true;
+		default:
+			break;
+		}
+
+		return false;
+	}
+}
