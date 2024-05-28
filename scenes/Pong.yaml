@@ -64,5 +64,18 @@ Models:
       Emission: [0, 0, 0]
       Transparency: 0
       IOR: 1
+  - Name: Ground plane
+    Filename: ""
+    TransformMatrix: [1.18054049e-06, -1.29735005, 0, 0, -4.37113883e-08, -3.97757422e-14, 1, 0, -3, -2.72988882e-06, -1.31134158e-07, 0, -1.06353248e-07, -9.67776884e-14, 2.5, 1]
+    PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
 Lights:
   []
