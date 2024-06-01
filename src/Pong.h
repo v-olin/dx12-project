@@ -6,6 +6,10 @@
 #include "KeyEvent.h"
 #include <chrono>
 
+#include "imgui.h"
+#include "backends/imgui_impl_dx12.h"
+#include "backends/imgui_impl_win32.h"
+
 namespace pathtracex {
 
 	class Pong : public IEventListener {
@@ -33,16 +37,24 @@ namespace pathtracex {
 		void resetRound();
 		void startRound();
 
+		void drawPoints();
+		void drawPlayerNames();
+
+		ImVec4 textColor{};
+		ImFont* textFont;
+		float textFontSize = 72.f;
+
 		bool playerUp = false;
 		bool playerDown = false;
 		bool playerMissed = false;
 		bool aiMissed = false;
 		bool roundHasStarted = false;
 		bool gameIsPaused = false;
-		int userPoints = 0;
-		int aiPoints = 0;
 		float playerSpeed = 10.f;
 		float ballSpeed = 8.0f;
+
+		int userPoints = 0;
+		int aiPoints = 0;
 
 		float2 ballDir = float2(0, 0);
 		std::chrono::time_point<std::chrono::steady_clock> lastUpdate =

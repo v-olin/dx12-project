@@ -44,7 +44,7 @@ namespace pathtracex {
 		DXRenderer& operator=(const DXRenderer&) = delete;
 	
 		bool init(Window* window); // initializes direct3d 12
-		bool initRaytracingPipeline(Scene& scene);
+		bool initRaytracingPipeline(RenderSettings& renderSettings, Scene& scene);
 
 		void initGraphicsAPI() override;
 		void setClearColor(const dx::XMFLOAT3& color) override;
@@ -241,9 +241,15 @@ namespace pathtracex {
 		ID3D12Resource* cameraConstantBuffer;
 		const uint32_t cameraConstantBufferSize = ALIGN_256(sizeof(CameraConstantBuffer));
 
+		struct DXRLight {
+			float4 position;
+			float4 color;
+			float intensity = 1.0f;
+		};
+
 		struct LightConstantBuffer {
-			PointLight lights[5];
-			int pointLightCount;
+			DXRLight lights[3];
+			int pointLightCount = 0;
 		};
 
 		ID3D12Resource* lightConstantBuffer;
@@ -290,6 +296,7 @@ namespace pathtracex {
 			float material_metalness;
 			float material_fresnel;
 			float material_transparency;
+			float material_ior;
 			bool hasMaterial;
 		};
 		ID3D12Resource* meshDataBuffer;
@@ -301,7 +308,7 @@ namespace pathtracex {
 		AccelerationStructureBuffers createBLASFromModel(std::shared_ptr<Model> model);
 		void createTLASFromBLAS(const std::vector<std::pair<ID3D12Resource*, DirectX::XMMATRIX>>& models, bool updateOnly = false);
 		bool createAccelerationStructures(Scene& scene);
-		bool createRaytracingPipeline();
+		bool createRaytracingPipeline(RenderSettings& renderSettings);
 		bool createRaytracingOutputBuffer();
 		bool createShaderResourceHeap(Scene& scene);
 		bool createRTBuffers();

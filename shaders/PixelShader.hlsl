@@ -20,6 +20,7 @@ struct VS_OUTPUT
     float4 viewSpacePos : VIEWSPACEPOS;
     float3 tangent :TANGENT;
 };
+
 struct PointLight
 {
     float4 position;

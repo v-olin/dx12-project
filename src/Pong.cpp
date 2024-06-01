@@ -3,10 +3,6 @@
 #include "Serializer.h"
 #include <math.h>
 
-#include "imgui.h"
-#include "backends/imgui_impl_dx12.h"
-#include "backends/imgui_impl_win32.h"
-
 namespace pathtracex {
 
 	void Pong::initGame() {
@@ -16,6 +12,11 @@ namespace pathtracex {
 		renderSettings.camera.farPlane = 30.f;
 		renderSettings.camera.transform.rotate(float3(0, 1, 0), 90.f * 3.1415926535f / 180.0f);
 		renderSettings.camera.transform.setPosition(float3(0, 0.12f, -13.f));
+		renderSettings.isPongGame = true;
+
+		ImGuiIO& io = ImGui::GetIO();
+		textColor = ImVec4(0.43f, 0.2f, 0.92f, 1.0f);
+		textFont = io.Fonts->AddFontFromFileTTF("../../assets/fonts/roboto.ttf", textFontSize);
 	}
 
 	void Pong::drawGui() {
@@ -23,9 +24,43 @@ namespace pathtracex {
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::ShowDemoWindow();
+		drawPoints();
+		drawPlayerNames();
 
 		ImGui::Render();
+	}
+
+	void Pong::drawPoints() {
+		int w = renderSettings.width;
+		int h = renderSettings.height;
+
+		int pw = 125;
+		int ph = 100;
+
+		ImGui::SetNextWindowPos(ImVec2((w - pw) / 2, 30));
+		ImGui::SetNextWindowSize(ImVec2(pw, ph));
+
+		ImGuiWindowFlags wflags = 0;
+		wflags |= ImGuiWindowFlags_NoTitleBar;
+		wflags |= ImGuiWindowFlags_NoMove;
+		wflags |= ImGuiWindowFlags_NoScrollbar;
+		wflags |= ImGuiWindowFlags_NoResize;
+		wflags |= ImGuiWindowFlags_NoBackground;
+
+		ImGui::Begin("Points", nullptr, wflags);
+
+		const ImVec4 tcolor = textColor;
+		ImGui::PushStyleColor(ImGuiCol_Text, tcolor);
+		ImGui::PushFont(textFont);
+		ImGui::Text("%d:%d", aiPoints, userPoints);
+		ImGui::PopStyleColor();
+		ImGui::PopFont();
+
+		ImGui::End();
+	}
+
+	void Pong::drawPlayerNames() {
+
 	}
 
 	void Pong::initScene() {
@@ -237,6 +272,10 @@ namespace pathtracex {
 		case 'R':
 		case 'r':
 			resetRound();
+			return true;
+		case 'M':
+		case 'm':
+			renderSettings.useRayTracing = !renderSettings.useRayTracing;
 			return true;
 		default:
 			break;

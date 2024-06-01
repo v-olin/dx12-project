@@ -18,8 +18,11 @@ namespace pathtracex
 		// Initialize renderer
 		int width, height;
 		window.getSize(width, height);
+
 		defaultRenderSettings.width = width;
 		defaultRenderSettings.height = height;
+		pongGame.renderSettings.width = width;
+		pongGame.renderSettings.height = height;
 
 		defaultRenderSettings.camera.transform.setPosition({ 1, 0, -4 });
 	}
@@ -43,6 +46,8 @@ namespace pathtracex
 
 		if (isPlayingGame) {
 			pongGame.initGame();
+			pongGame.renderSettings.raytracingSupported = renderer->raytracingIsSupported();
+			renderer->initRaytracingPipeline(pongGame.renderSettings, pongGame.scene);
 		}
 		else {
 			Serializer::deserializeScene(config.startupSceneName, scene);
@@ -52,7 +57,7 @@ namespace pathtracex
 		}
 
 		if (defaultRenderSettings.raytracingSupported) {
-			renderer->initRaytracingPipeline(scene);
+			renderer->initRaytracingPipeline(defaultRenderSettings, scene);
 		}
 
 		if (!isPlayingGame) {
@@ -61,9 +66,6 @@ namespace pathtracex
 		else {
 			registerEventListener(&pongGame);
 		}
-
-		defaultRenderSettings.camera.farPlane = 30.f;
-		defaultRenderSettings.camera.transform.rotate(float3(0, 1, 0), 90.f * 3.1415926535f / 180.0f);
 
 		while(running) {
 			const auto ecode = Window::processMessages();
