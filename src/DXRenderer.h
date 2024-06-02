@@ -130,6 +130,13 @@ namespace pathtracex {
 		ID3D12RootSignature* postProcessRootSignature;
 		ID3D10Blob* bloomCsShaderBlob;
 
+		// Motion blur stuff
+		ID3D12PipelineState* motionBlurPipelineStateObject; // pso containing a pipeline state for motion blur
+		ID3D12Resource* motionBlurTarget[2];
+		ID3D12DescriptorHeap* motionBlurHeap;
+		ID3D12RootSignature* motionBlurRootSignature;
+		ID3D10Blob* motionBlurCsShaderBlob;
+
 		#pragma endregion
 
 		#pragma region Constant buffers
@@ -232,6 +239,8 @@ namespace pathtracex {
 			float farPlane;
 			bool useTAA;
 			bool pad1[3];
+			bool useMotionBlur;
+			bool pad2[3];
 		};
 
 		CameraConstantBuffer cameraBuffer;
@@ -365,6 +374,8 @@ namespace pathtracex {
 			float farPlane;
 			bool useTAA;
 			bool pad1[3];
+			bool useMotionBlur;
+			bool pad2[3];
 		};
 
 		const uint32_t taaConstBuffSize = ALIGN_256(sizeof(TAAConstantBuffer));
@@ -390,6 +401,7 @@ namespace pathtracex {
 		bool createTAAComputePass();
 		void performTAAPass(RenderSettings& renderSettings);
 		void performBloomingEffect(RenderSettings& renderSettings);
+		void performMotionBlur(RenderSettings& renderSettings);
 		void transitionTAAFrame(TAAFrame& frame, D3D12_RESOURCE_STATES toState);
 		void transitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState);
 
@@ -414,6 +426,7 @@ namespace pathtracex {
 		bool createRasterPipeline();
 		bool createLinePipeline();
 		bool createPostProcessPipeline();
+		bool createMotionBlurPipeline();
 		bool createCommandList();
 		bool createFencesAndEvents();
 		bool createBuffers();

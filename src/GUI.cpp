@@ -190,6 +190,7 @@ namespace pathtracex {
 		ImGui::Checkbox("Draw Bounding Box", &renderSettings.drawBoundingBox);
 		ImGui::Checkbox("Use Frustum Culling", &renderSettings.useFrustumCulling);
 		ImGui::Checkbox("Use Blooming Effect", &renderSettings.useBloomingEffect);
+		ImGui::Checkbox("Use Motion Blur", &renderSettings.useMotionBlur);
 		ImGui::Checkbox("Use TAA", &renderSettings.useTAA);
 		if (renderSettings.raytracingSupported) {
 			ImGui::Checkbox("Use RayTracing", &renderSettings.useRayTracing);

@@ -161,6 +161,12 @@ namespace pathtracex {
 		if (!createTAAComputePass())
 			return false;
 
+		if (!createPostProcessPipeline())
+			return false;
+
+		if (!createMotionBlurPipeline())
+			return false;
+
 		return true;
 	}
 
@@ -244,9 +250,6 @@ namespace pathtracex {
 			return false;
 
 		if (!createLinePipeline())
-			return false;
-
-		if (!createPostProcessPipeline())
 			return false;
 
 		if (!checkRaytracingSupport())
@@ -797,9 +800,88 @@ namespace pathtracex {
 		}
 	}
 
+	void DXRenderer::performMotionBlur(RenderSettings& renderSettings) {
+		if (renderSettings.useMotionBlur) {
+			// Set the motion blur render target as copy destination
+			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+				motionBlurTarget[0], D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				D3D12_RESOURCE_STATE_COPY_DEST);
+			commandList->ResourceBarrier(1, &transition);
+
+			// Set the render target as a copy source
+			transition = CD3DX12_RESOURCE_BARRIER::Transition(
+				renderTargets[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET,
+				D3D12_RESOURCE_STATE_COPY_SOURCE);
+			commandList->ResourceBarrier(1, &transition);
+
+			// Copy the raytracing output buffer to the motion blur target
+			commandList->CopyResource(motionBlurTarget[0], renderTargets[frameIndex]);
+
+			// Transition the motion blur target to be UAV for the bloom effect
+			transition = CD3DX12_RESOURCE_BARRIER::Transition(
+				motionBlurTarget[0], D3D12_RESOURCE_STATE_COPY_DEST,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			commandList->ResourceBarrier(1, &transition);
+
+			// copy depth buffer to TAA buffer
+			{
+				transitionTAAFrame(taadepthBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+				transitionResource(rtdepthbuffer, rtdepthstate, D3D12_RESOURCE_STATE_COPY_SOURCE);
+				commandList->CopyResource(taadepthBuffer.texture, rtdepthbuffer);
+				transitionResource(rtdepthbuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, rtdepthstate);
+				transitionTAAFrame(taadepthBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			}
+
+			// Set the motion blur pipeline state
+			commandList->SetPipelineState(motionBlurPipelineStateObject);
+			commandList->SetComputeRootSignature(motionBlurRootSignature);
+			commandList->SetDescriptorHeaps(1, &motionBlurHeap);
+			commandList->SetComputeRootDescriptorTable(0, motionBlurHeap->GetGPUDescriptorHandleForHeapStart());
+			commandList->SetComputeRootConstantBufferView(1, taaConstBuffer->GetGPUVirtualAddress());
+
+			// Dispatch the motion blur effect
+			int width, height;
+			window->getSize(width, height);
+
+			float fwidth = static_cast<float>(width);
+			float fheight = static_cast<float>(height);
+
+			UINT xwidth = static_cast<UINT>(ceil(fwidth / 32.f));
+			UINT xheight = static_cast<UINT>(ceil(fheight / 32.f));
+
+			commandList->Dispatch(xwidth, xheight, 1);
+
+			// Transition the motion blur target to be a copy source
+			transition = CD3DX12_RESOURCE_BARRIER::Transition(
+				motionBlurTarget[1], D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				D3D12_RESOURCE_STATE_COPY_SOURCE);
+			commandList->ResourceBarrier(1, &transition);
+
+			// then transition render target to copy dest
+			transition = CD3DX12_RESOURCE_BARRIER::Transition(
+				renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_SOURCE,
+				D3D12_RESOURCE_STATE_COPY_DEST);
+			commandList->ResourceBarrier(1, &transition);
+
+			// then we can copy from the motion blur buffer into the rendertarget
+			commandList->CopyResource(renderTargets[frameIndex], motionBlurTarget[1]);
+
+			// transition render target to be render target
+			transition = CD3DX12_RESOURCE_BARRIER::Transition(
+				renderTargets[frameIndex], D3D12_RESOURCE_STATE_COPY_DEST,
+				D3D12_RESOURCE_STATE_RENDER_TARGET);
+			commandList->ResourceBarrier(1, &transition);
+
+			transition = CD3DX12_RESOURCE_BARRIER::Transition(
+				motionBlurTarget[1], D3D12_RESOURCE_STATE_COPY_SOURCE,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+		}
+	}
+
 	void DXRenderer::performBloomingEffect(RenderSettings& renderSettings) {
 		if (renderSettings.useBloomingEffect) {
-			// Set the post process render target as copy destination
+			// Set the bloom effect render target as copy destination
 			CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				postProcessTarget[0], D3D12_RESOURCE_STATE_COPY_SOURCE,
 				D3D12_RESOURCE_STATE_COPY_DEST);
@@ -814,7 +896,7 @@ namespace pathtracex {
 			// Copy the raytracing output buffer to the post process target
 			commandList->CopyResource(postProcessTarget[0], renderTargets[frameIndex]);
 
-			// Transition the post process target to be UAV for the bloom effect
+			// Transition the post motion blur to be UAV for the bloom effect
 			transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				postProcessTarget[0], D3D12_RESOURCE_STATE_COPY_DEST,
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -823,11 +905,10 @@ namespace pathtracex {
 			// Set the bloom effect pipeline state
 			commandList->SetPipelineState(postProcessPipelineStateObject);
 			commandList->SetComputeRootSignature(postProcessRootSignature);
-			ID3D12DescriptorHeap* heaps[1] = { postProcessHeap };
-			commandList->SetDescriptorHeaps(1, heaps);
+			commandList->SetDescriptorHeaps(1, &postProcessHeap);
 			commandList->SetComputeRootDescriptorTable(0, postProcessHeap->GetGPUDescriptorHandleForHeapStart());
 
-			// Dispatch the bloom effect
+			// Dispatch the bloom effect effect
 			int width, height;
 			window->getSize(width, height);
 
@@ -839,7 +920,7 @@ namespace pathtracex {
 
 			commandList->Dispatch(xwidth, xheight, 1);
 
-			// Transition the post process target to be a copy source
+			// Transition the bloom effect to be a copy source
 			transition = CD3DX12_RESOURCE_BARRIER::Transition(
 				postProcessTarget[0], D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 				D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -851,7 +932,7 @@ namespace pathtracex {
 				D3D12_RESOURCE_STATE_COPY_DEST);
 			commandList->ResourceBarrier(1, &transition);
 
-			// then we can copy from the post processing buffer into the rendertarget
+			// then we can copy from the bloom effect buffer into the rendertarget
 			commandList->CopyResource(renderTargets[frameIndex], postProcessTarget[0]);
 
 			// transition render target to be render target
@@ -1096,6 +1177,7 @@ namespace pathtracex {
 			performNoisePass();
 			performRaytracingPass();
 			performTAAPass(renderSettings);
+			performMotionBlur(renderSettings);
 			performBloomingEffect(renderSettings);
 
 			// set pipeline state to rasterization in order to draw GUI
@@ -1977,6 +2059,125 @@ namespace pathtracex {
 		return true;
 	}
 
+	bool DXRenderer::createMotionBlurPipeline()
+	{
+		LOG_TRACE("Creating DirectX12 motion blur pipeline");
+		// Create motion blur target
+		{
+			int width, height;
+			window->getSize(width, height);
+
+			D3D12_RESOURCE_DESC renderTargetDesc = {};
+			ZeroMemory(&renderTargetDesc, sizeof(renderTargetDesc));
+			renderTargetDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			renderTargetDesc.Width = width;
+			renderTargetDesc.Height = height;
+			renderTargetDesc.DepthOrArraySize = 1;
+			renderTargetDesc.MipLevels = 1;
+			renderTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Choose the appropriate format
+			renderTargetDesc.SampleDesc.Count = 1;
+			renderTargetDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			renderTargetDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; // Allow it to be used as a render target
+
+			HRESULT hr = device->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &renderTargetDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&motionBlurTarget[0]));
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create motion blur target, createPostProcessPipeline()");
+				return false;
+			}
+			HRESULT hr2 = device->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &renderTargetDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&motionBlurTarget[1]));
+			if (FAILED(hr2)) {
+				LOG_ERROR("Could not create motion blur target, createPostProcessPipeline()");
+				return false;
+			}
+		}
+
+		// Crate motion blur root signature
+		{
+			CD3DX12_ROOT_PARAMETER1 rootParameters[2] = {};
+
+			CD3DX12_DESCRIPTOR_RANGE1 target(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
+			rootParameters[0].InitAsDescriptorTable(1, &target);
+			rootParameters[1].InitAsConstantBufferView(0);
+
+			CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootdsc(2, rootParameters, 0, nullptr);
+
+			ID3DBlob* rootSignBlob;
+			ID3DBlob* errBlob;
+
+			HRESULT h = D3DX12SerializeVersionedRootSignature(&rootdsc, D3D_ROOT_SIGNATURE_VERSION_1_1, &rootSignBlob, &errBlob);
+			HRESULT hr = device->CreateRootSignature(0, rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize(), IID_PPV_ARGS(&motionBlurRootSignature));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create root signature for motion blur pipeline, createPostProcessPipeline()");
+				return false;
+			}
+		}
+
+		// Load motion blur compute shader
+		{
+
+			D3DReadFileToBlob(L"../../shaders/MotionBlur.so", &motionBlurCsShaderBlob);
+
+			struct PipelineStateStream
+			{
+				CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+				CD3DX12_PIPELINE_STATE_STREAM_CS CS;
+			} pipelineStateStream;
+
+			// Setting the root signature and the compute shader to the PSO
+			pipelineStateStream.pRootSignature = motionBlurRootSignature;
+			pipelineStateStream.CS = CD3DX12_SHADER_BYTECODE(motionBlurCsShaderBlob);
+
+			D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
+				sizeof(PipelineStateStream), &pipelineStateStream
+			};
+
+			HRESULT hr = device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&motionBlurPipelineStateObject));
+
+			if (FAILED(hr)) {
+				LOG_ERROR("Could not create motion blur pipeline state, createPostProcessPipeline()");
+				return false;
+			}
+		}
+
+		// create resource heap for compute shader
+		{
+			{
+				D3D12_DESCRIPTOR_HEAP_DESC desc{};
+				ZeroMemory(&desc, sizeof(desc));
+				desc.NumDescriptors = 4;
+				desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+				desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+				HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&motionBlurHeap));
+				if (FAILED(hr)) {
+					LOG_ERROR("Could not create descriptor heap for motion blur, createPostProcessPipeline()");
+					return false;
+				}
+			}
+
+			D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = motionBlurHeap->GetCPUDescriptorHandleForHeapStart();
+
+			// Create UAVs for motion blur
+
+			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			device->CreateUnorderedAccessView(motionBlurTarget[0], nullptr, &uavDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			device->CreateUnorderedAccessView(motionBlurTarget[1], nullptr, &uavDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			device->CreateUnorderedAccessView(taadepthBuffer.texture, nullptr, &uavDesc, srvHandle);
+			srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+			// Create CBV for motion blur
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
+			cbvDesc.BufferLocation = taaConstBuffer->GetGPUVirtualAddress();
+			cbvDesc.SizeInBytes = taaConstBuffSize;
+			device->CreateConstantBufferView(&cbvDesc, srvHandle);
+		}
+
+		return true;
+	}
 
 	bool DXRenderer::createCommandList()
 	{
@@ -2850,6 +3051,7 @@ namespace pathtracex {
 			cameraBuffer.nearPlane = settings.camera.nearPlane;
 			cameraBuffer.farPlane = settings.camera.farPlane;
 			cameraBuffer.useTAA = settings.useTAA;
+			cameraBuffer.useMotionBlur = settings.useMotionBlur;
 			
 			if (settings.useTAA) {
 				if (taaUsedLastFrame) {
@@ -2880,6 +3082,11 @@ namespace pathtracex {
 				}
 			}
 			else {
+				cameraBuffer.prevView = cameraBuffer.currView;
+				cameraBuffer.prevProj = cameraBuffer.currProj;
+				cameraBuffer.prevViewInv = cameraBuffer.currViewInv;
+				cameraBuffer.prevProjInv = cameraBuffer.currProjInv;
+
 				cameraBuffer.currView = settings.camera.getViewMatrix();
 				cameraBuffer.currViewInv = dx::XMMatrixInverse(&det, cameraBuffer.currView);
 				cameraBuffer.currProj = settings.camera.getProjectionMatrix(width, height);

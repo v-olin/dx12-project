@@ -20,6 +20,7 @@ cbuffer CameraBuffer : register(b0)
     float nearPlane;
     float farPlane;
     bool useTAA;
+    bool useMotionBlur;
 }
 
 float getDepthValue(float zCoord)
@@ -61,7 +62,7 @@ void RayGen() {
         
     gOutput[launchIndex] = float4(payload.colorAndDistance.rgb, 1.f);
     
-    if (useTAA)
+    if (useTAA || useMotionBlur)
     {
         if (payload.colorAndDistance.a >= ray.TMin)
         {

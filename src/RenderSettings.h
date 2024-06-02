@@ -10,6 +10,7 @@ namespace pathtracex {
 		bool drawBoundingBox = false;
 		bool useFrustumCulling = false;
 		bool useBloomingEffect = false;
+		bool useMotionBlur = false;
 		bool drawProcedualWorld = false;
 		bool useRayTracing = false;
 		bool raytracingSupported = false;
@@ -24,6 +25,7 @@ namespace pathtracex {
 			drawBoundingBox(false),
 			useFrustumCulling(false),
 			useBloomingEffect(false),
+			useMotionBlur(false),
 			useRayTracing(false),
 			rayBounces(10),
 			camera(camera) { }
@@ -35,6 +37,7 @@ namespace pathtracex {
 			this->drawBoundingBox = rs.drawBoundingBox;
 			this->useFrustumCulling = rs.useFrustumCulling;
 			this->useBloomingEffect = rs.useBloomingEffect;
+			this->useMotionBlur = rs.useMotionBlur;
 			this->useRayTracing = rs.useRayTracing;
 			this->rayBounces = rs.rayBounces;
 			this->camera = rs.camera;
