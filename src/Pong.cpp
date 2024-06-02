@@ -3,12 +3,15 @@
 #include "Serializer.h"
 #include <math.h>
 
+#define CLAMP(v,minv,maxv) (std::min(maxv, std::max(minv, v)))
+
 namespace pathtracex {
 
 	void Pong::initGame() {
 		initScene();
 
 		renderSettings.useVSYNC = true;
+		renderSettings.useRayTracing = true;
 		renderSettings.camera.farPlane = 30.f;
 		renderSettings.camera.transform.rotate(float3(0, 1, 0), 90.f * 3.1415926535f / 180.0f);
 		renderSettings.camera.transform.setPosition(float3(0, 0.12f, -13.f));
@@ -66,7 +69,7 @@ namespace pathtracex {
 	void Pong::initScene() {
 		Serializer::deserializeScene("pong", scene);
 
-		for (auto model : scene.models) {
+		for (auto& model : scene.models) {
 			if (model->name.find(std::string{ "AI" }) != std::string::npos) {
 				this->aiModel = model;
 			}
@@ -75,6 +78,15 @@ namespace pathtracex {
 			}
 			else if (model->name.find(std::string{ "Ball" }) != std::string::npos) {
 				this->ballModel = model;
+			}
+		}
+
+		for (auto& light : scene.lights) {
+			if (light->name.find(std::string{ "Blue" }) != std::string::npos) {
+				//this->blueLight = light;
+			}
+			else if (light->name.find(std::string{ "Yellow" }) != std::string::npos) {
+				this->yellowLight = light;
 			}
 		}
 	}
@@ -88,9 +100,11 @@ namespace pathtracex {
 			updatePlayerMovement();
 			updateAIMovement();
 			updateBallMovement();
+			updateLightMovement();
 		}
 
 		drawGui();
+		
 	}
 
 	void Pong::updatePlayerMovement() {
@@ -160,7 +174,7 @@ namespace pathtracex {
 	}
 
 	void Pong::updateBallMovement() {
-		float d = float(currDelta.count()) / 1000.f;
+		float d = float(currDelta.count()) / 100.f;
 		Transform& transform = ballModel->trans;
 		transform.translate(float3(ballDir.x, ballDir.y, 0.f) * d * ballSpeed);
 
@@ -170,10 +184,12 @@ namespace pathtracex {
 		if (newPos.y < -4.5f) {
 			transform.setPosition(float3(newPos.x, -4.5f, newPos.z));
 			ballDir = float2(ballDir.x, ballDir.y * -1.0f);
+			lightRotDir *= -1.0f;
 		}
 		// ball collided with top plane
 		else if (newPos.y > 4.5f) {
 			transform.setPosition(float3(newPos.x, 4.5f, newPos.z));
+			lightRotDir *= -1.0f;
 			ballDir = float2(ballDir.x, ballDir.y * -1.0f);
 		}
 
@@ -188,6 +204,7 @@ namespace pathtracex {
 			// player hits ball
 			if (ballHeight >= playerHeight - halfBoxHeight && ballHeight <= playerHeight + halfBoxHeight) {
 				transform.setPosition(float3(8.25f, newPos.y, newPos.z));
+				lightRotDir *= -1.0f;
 				ballDir = float2(ballDir.x * -1.f, ballDir.y);
 			}
 			else {
@@ -199,6 +216,7 @@ namespace pathtracex {
 
 			if (ballHeight >= aiHeight - halfBoxHeight && ballHeight <= aiHeight + halfBoxHeight) {
 				transform.setPosition(float3(-8.25f, newPos.y, newPos.z));
+				lightRotDir *= -1.0f;
 				ballDir = float2(ballDir.x * -1.0f, ballDir.y);
 			}
 			else {
@@ -215,6 +233,24 @@ namespace pathtracex {
 			resetRound();
 			aiMissed = false;
 			++userPoints;
+		}
+	}
+
+	void Pong::updateLightMovement() {
+		std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+		std::chrono::milliseconds lightDelta = std::chrono::duration_cast<std::chrono::milliseconds>(now - roundStart);
+
+		float d = float(lightDelta.count()) / 700.f;
+		
+		// rotate yellow/right light
+		{
+			Transform& trans = yellowLight->transform;
+			float cosp = cosf(d) * -2.0f;
+			float sinp = sinf(d) * -2.0f;
+
+			float3 pos = ballModel->trans.getPosition();
+			float xp = std::min(-4.7f, std::max(4.7f, pos.x + cosp));
+			trans.setPosition(float3(CLAMP(pos.x + cosp, -8.5f, 8.5f), CLAMP(pos.y + sinp, -4.7f, 4.7f), pos.z));
 		}
 	}
 
@@ -240,8 +276,9 @@ namespace pathtracex {
 		if (roundHasStarted) {
 			gameIsPaused = !gameIsPaused;
 		}
-		else
+		else {
 			roundHasStarted = true;
+		}
 	}
 
 	void Pong::onEvent(Event& e) {
@@ -253,10 +290,15 @@ namespace pathtracex {
 		else if (e.getEventType() == EventType::KeyReleased) {
 			dispatcher.dispatch<KeyReleasedEvent>(BIND_EVENT_FN(Pong::handleKeyRelease));
 		}
+		else if (e.getEventType() == EventType::MouseMoved) {
+			dispatcher.dispatch<MouseMovedEvent>(BIND_EVENT_FN(Pong::handleMouseMove));
+		}
 	}
 
 	bool Pong::handleKeyPess(KeyPressedEvent& e) {
-		switch (e.getKeyCode()) {
+		auto key = e.getKeyCode();
+		
+		switch (key) {
 		case 'W':
 		case 'w':
 			playerUp = true;
@@ -265,13 +307,13 @@ namespace pathtracex {
 		case 's':
 			playerDown = true;
 			return true;
-		case 'P':
-		case 'p':
-			startRound();
-			return true;
 		case 'R':
 		case 'r':
 			resetRound();
+			return true;
+		case 'P':
+		case 'p':
+			startRound();
 			return true;
 		case 'M':
 		case 'm':
@@ -300,4 +342,17 @@ namespace pathtracex {
 
 		return false;
 	}
+
+	bool Pong::handleMouseMove(MouseMovedEvent& e) {
+		return false;
+	}
+
+	bool Pong::mouseButtonPress(MouseButtonPressedEvent& e) {
+		return false;
+	}
+
+	bool Pong::mouseButtonRelease(MouseButtonReleasedEvent& e) {
+		return false;
+	}
+
 }

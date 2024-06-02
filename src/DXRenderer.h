@@ -248,8 +248,14 @@ namespace pathtracex {
 		};
 
 		struct LightConstantBuffer {
-			DXRLight lights[3];
-			int pointLightCount = 0;
+			//DXRLight lights[3];
+			float4 position0;
+			float4 position1;
+			float4 position2;
+			float4 colorIntense0;
+			float4 colorIntense1;
+			float4 colorIntense2;
+			//int pointLightCount = 0;
 		};
 
 		ID3D12Resource* lightConstantBuffer;

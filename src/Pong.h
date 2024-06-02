@@ -14,7 +14,11 @@ namespace pathtracex {
 
 	class Pong : public IEventListener {
 	public:
-		Pong() {}
+		Pong()
+			: aiModel(nullptr), userModel(nullptr)
+			, ballModel(nullptr)
+			, blueLight(nullptr), yellowLight(nullptr)
+		{}
 		~Pong() {}
 
 		void initGame();
@@ -24,6 +28,9 @@ namespace pathtracex {
 		virtual void onEvent(Event& e) override;
 		bool handleKeyPess(KeyPressedEvent& e);
 		bool handleKeyRelease(KeyReleasedEvent& e);
+		bool handleMouseMove(MouseMovedEvent& e);
+		bool mouseButtonPress(MouseButtonPressedEvent& e);
+		bool mouseButtonRelease(MouseButtonReleasedEvent& e);
 		
 		Scene scene;
 		Camera camera{};
@@ -34,6 +41,7 @@ namespace pathtracex {
 		void updatePlayerMovement();
 		void updateAIMovement();
 		void updateBallMovement();
+		void updateLightMovement();
 		void resetRound();
 		void startRound();
 
@@ -46,12 +54,21 @@ namespace pathtracex {
 
 		bool playerUp = false;
 		bool playerDown = false;
+
+		bool camUp = false;
+		bool camDown = false;
+		bool camLeft = false;
+		bool camRight = false;
+		bool camForward = false;
+		bool camBackward = false;
+
 		bool playerMissed = false;
 		bool aiMissed = false;
 		bool roundHasStarted = false;
 		bool gameIsPaused = false;
 		float playerSpeed = 10.f;
 		float ballSpeed = 8.0f;
+		float lightRotDir = 1.0;
 
 		int userPoints = 0;
 		int aiPoints = 0;
@@ -60,10 +77,16 @@ namespace pathtracex {
 		std::chrono::time_point<std::chrono::steady_clock> lastUpdate =
 			std::chrono::steady_clock::now();
 		std::chrono::milliseconds currDelta;
+		std::chrono::time_point<std::chrono::steady_clock> roundStart;
 
 		std::shared_ptr<Model> aiModel;
 		std::shared_ptr<Model> userModel;
 		std::shared_ptr<Model> ballModel;
+		std::shared_ptr<Light> yellowLight;
+		std::shared_ptr<Light> blueLight;
+		//Transform* yellowTrans;
+		//Transform* blueTrans;
+		DirectX::XMMATRIX defaultCamRotMat;
+		DirectX::XMMATRIX defaultCamPosMat;
 	};
-
 }

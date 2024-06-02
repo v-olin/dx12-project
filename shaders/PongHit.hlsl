@@ -67,8 +67,14 @@ StructuredBuffer<MeshData> meshdatas : register(t3);
 
 cbuffer LightBuffer : register(b1)
 {
-    PointLight lights[3];
-    int lightCount;
+    //PointLight lights[3];
+    float4 position0;
+    float4 position1;
+    float4 position2;
+    float4 colorIntense0;
+    float4 colorIntense1;
+    float4 colorIntense2;
+    //int lightCount;
 }
 
 float3 HitAttribute(float3 vertexAttribute[3], Attributes attr)
@@ -512,6 +518,38 @@ WiSample WiSampleMaterial(uint matIdx, float3 wo, float3 n)
     }
 }
 
+float3 GetLightPos(int index)
+{
+    if (index == 0)
+    {
+        return position0.xyz;
+    }
+    else if (index == 1)
+    {
+        return position1.xyz;
+    }
+    else
+    {
+        return position2.xyz;
+    }
+}
+
+float4 GetLightProps(int index)
+{
+    if (index == 0)
+    {
+        return colorIntense0;
+    }
+    else if (index == 1)
+    {
+        return colorIntense1;
+    }
+    else
+    {
+        return colorIntense2;
+    }
+}
+
 float3 DirectIllumination(Attributes attrib, float3 hitNormal)
 {
     float3 dillum = float3(0, 0, 0);
@@ -520,7 +558,9 @@ float3 DirectIllumination(Attributes attrib, float3 hitNormal)
     
     for (int i = 0; i < 3; ++i)
     {
-        float3 lightDiff = lights[i].position.xyz - hitPos;
+        float3 lightPos = GetLightPos(i);
+        float4 lightProp = GetLightProps(i);
+        float3 lightDiff = lightPos - hitPos;
         
         if (length(lightDiff) > 20 && i > 0)
         {
@@ -538,15 +578,15 @@ float3 DirectIllumination(Attributes attrib, float3 hitNormal)
         ShadowHitInfo shadowPayload;
         shadowPayload.isHit = false;
         
-        TraceRay(SceneBVH, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, 1, 0, 1, shadowRay, shadowPayload);
+        TraceRay(SceneBVH, RAY_FLAG_NONE, 0xFF, 1, 0, 1, shadowRay, shadowPayload);
         
         if (shadowPayload.isHit == false)
         {
-            float3 lightcol = lights[i].color.rgb;
+            float3 lightcol = lightProp.rgb;
             float dlight = length(lightDiff);
             float falloff = 1.0 / (dlight * dlight);
 
-            float3 Li = lights[i].intensity * falloff * lightcol;
+            float3 Li = lightProp.a * falloff * lightcol;
             float3 matF = SampleMaterial(attrib, wi, hitWo, hitNormal);
         
             dillum += matF * Li * max(0.0, dot(wi, hitNormal));

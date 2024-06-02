@@ -2913,6 +2913,7 @@ namespace pathtracex {
 		// update the light constant buffer
 		{
 			LightConstantBuffer temp;
+			/*
 			int count = scene.lights.size();
 			for (int i = 0; i < count && i < 3; i++) {
 				std::shared_ptr<Light> light = scene.lights.at(i);
@@ -2922,7 +2923,25 @@ namespace pathtracex {
 				temp.lights[i].position = float4(pos.x, pos.y, pos.z, 1.0f);
 				temp.lights[i].intensity = light->intensity;
 			}
-			temp.pointLightCount = count;
+			//temp.pointLightCount = count;
+			*/
+			std::shared_ptr<Light> l = scene.lights.at(0);
+			float3 p = l->transform.getPosition();
+			float3 c = l->color;
+			temp.position0 = float4(p.x, p.y, p.z, 0.0f);
+			temp.colorIntense0 = float4(c.x, c.y, c.z, l->intensity);
+
+			l = scene.lights.at(1);
+			p = l->transform.getPosition();
+			c = l->color;
+			temp.position1 = float4(p.x, p.y, p.z, 0.0f);
+			temp.colorIntense1 = float4(c.x, c.y, c.z, l->intensity);
+
+			l = scene.lights.at(2);
+			p = l->transform.getPosition();
+			c = l->color;
+			temp.position2 = float4(p.x, p.y, p.z, 0.0f);
+			temp.colorIntense2 = float4(c.x, c.y, c.z, l->intensity);
 
 			uint8_t* data;
 			HRESULT hr;

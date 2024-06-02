@@ -64,11 +64,11 @@ Lights:
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0.119999997, -17, 1]
     Color: [1, 1, 1]
     Intensity: 700
-  - Name: Light Left
+  - Name: BlueLight
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -2, 0, 0, 1]
     Color: [0.0245097876, 0.856545687, 1]
-    Intensity: 10
-  - Name: Light Right
+    Intensity: 0.001
+  - Name: YellowLight
     TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2, 0, 0, 1]
     Color: [0.9564569, 0.985294104, 0.00482985796]
     Intensity: 10
