@@ -8,6 +8,8 @@ struct ShadowHitInfo
 struct PointLight
 {
     float4 position;
+    float4 color;
+    float intensity;
 };
 
 struct MeshData

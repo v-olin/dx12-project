@@ -6,6 +6,7 @@
 #include "RenderSettings.h"
 #include "Event.h"
 #include "ProcedualWorldManager.h"
+#include "Pong.h"
 
 #include <memory>
 #include <optional>
@@ -55,6 +56,8 @@ namespace pathtracex {
 		std::optional<EventCallbackFn> callback;
 
 		AppConfig config;
+		Pong pongGame;
+		bool isPlayingGame = false;
 
 		Scene scene{};
 		GUI gui{scene};

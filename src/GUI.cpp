@@ -392,7 +392,8 @@ namespace pathtracex {
 
 	void GUI::drawSerializableVariables(Serializable* serializable)
 	{
-		for (auto seralizableVariable : serializable->getSerializableVariables())
+		auto variables = serializable->getSerializableVariables();
+		for (auto seralizableVariable : variables)
 		{
 			if (seralizableVariable.data == nullptr)
 			{
@@ -461,9 +462,9 @@ namespace pathtracex {
 				}
 
 			}
-			else {
-				return;
-			}
+			//else {
+			//	return;
+			//}
 
 			ImGui::SameLine();
 			drawHelpMarker(seralizableVariable.description.c_str());

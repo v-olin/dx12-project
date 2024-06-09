@@ -1,0 +1,74 @@
+Models:
+  - Name: Bottom plane
+    Filename: ""
+    TransformMatrix: [3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.5, 0, 0, -5, 0, 1]
+    PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Top plane
+    Filename: ""
+    TransformMatrix: [2.99379277, 0, 0, 0, 0, -0.99989593, -1.81973644e-06, 0, 0, 9.09826099e-07, -0.499924809, 0, 0, 5, 0, 1]
+    PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Ball
+    Filename: ""
+    TransformMatrix: [0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 3.57031822e-05, 0, 0, 1]
+    PrimativeType: Sphere
+    Material:
+      Name: Default Material
+      Color: [0.393598586, 0.95588237, 0.509362936]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: Ground plane
+    Filename: ""
+    TransformMatrix: [1.1744703e-06, -1.29067922, 0, 0, -4.37113883e-08, -3.97757422e-14, -1, 0, 3, 2.72988882e-06, -1.31134158e-07, 0, 0, 0.171974301, 2.5, 1]
+    PrimativeType: Plane
+    Material:
+      Name: Default Material
+      Color: [1, 1, 1]
+      Shininess: 0
+      Metalness: 0
+      Fresnel: 0
+      Emission: [0, 0, 0]
+      Transparency: 0
+      IOR: 1
+  - Name: AI
+    Filename: space-ship.obj
+    TransformMatrix: [-0.0999222472, -1.81851078e-07, 0, 0, -1.81977313e-07, 0.0999916121, -1.81977313e-07, 0, 3.31179989e-13, -1.81974443e-07, -0.0999900326, 0, -9, -0.300000012, 0, 1]
+    PrimativeType: None
+  - Name: User
+    Filename: space-ship.obj
+    TransformMatrix: [0.100000001, 1.81992547e-07, 0, 0, -1.81992547e-07, 0.100000001, 1.81992547e-07, 0, 3.3121284e-13, -1.81992547e-07, 0.100000001, 0, 9, -0.300000012, 0, 1]
+    PrimativeType: None
+Lights:
+  - Name: Main Light
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0.119999997, -17, 1]
+    Color: [1, 1, 1]
+    Intensity: 700
+  - Name: BlueLight
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -2, 0, 0, 1]
+    Color: [0.0245097876, 0.856545687, 1]
+    Intensity: 0.001
+  - Name: YellowLight
+    TransformMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2, 0, 0, 1]
+    Color: [0.9564569, 0.985294104, 0.00482985796]
+    Intensity: 10

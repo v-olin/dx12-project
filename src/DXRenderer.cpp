@@ -113,7 +113,7 @@ namespace pathtracex {
 		return true;
 	}
 
-	bool DXRenderer::initRaytracingPipeline(Scene& scene) {
+	bool DXRenderer::initRaytracingPipeline(RenderSettings& renderSettings, Scene& scene) {
 		// count meshes in scene to size the mesh data buffer
 		{
 			numMeshes = 0;
@@ -125,7 +125,7 @@ namespace pathtracex {
 		if (!createAccelerationStructures(scene))
 			return false;
 
-		if (!createRaytracingPipeline())
+		if (!createRaytracingPipeline(renderSettings))
 			return false;
 
 		if (!createRaytracingOutputBuffer())
@@ -2436,7 +2436,7 @@ namespace pathtracex {
 
 			tlasBuffers.pInstanceDesc = createASBuffers(
 				instanceDescsSize, D3D12_RESOURCE_FLAG_NONE,
-				D3D12_RESOURCE_STATE_GENERIC_READ, &deafultUploadHeapProps
+				D3D12_RESOURCE_STATE_GENERIC_READ, &deafultUploadHeapProps // this should be STATE_COMMON
 			);
 		}
 
@@ -2467,13 +2467,21 @@ namespace pathtracex {
 		return true;
 	}
 
-	bool DXRenderer::createRaytracingPipeline() {
+	bool DXRenderer::createRaytracingPipeline(RenderSettings& renderSettings) {
 		nv::NVRayTracingPipelineGenerator pipeline(device);
 
-		rayGenLib = compileShaderLibrary(L"../../shaders/RayGen.hlsl");
-		missLib = compileShaderLibrary(L"../../shaders/Miss.hlsl");
-		hitLib = compileShaderLibrary(L"../../shaders/Hit.hlsl");
-		shadowLib = compileShaderLibrary(L"../../shaders/ShadowRay.hlsl");
+		if (renderSettings.isPongGame || true) {
+			rayGenLib = compileShaderLibrary(L"../../shaders/PongRayGen.hlsl");
+			missLib = compileShaderLibrary(L"../../shaders/PongMiss.hlsl");
+			hitLib = compileShaderLibrary(L"../../shaders/PongHit.hlsl");
+			shadowLib = compileShaderLibrary(L"../../shaders/PongShadowRay.hlsl");
+		}
+		else {
+			rayGenLib = compileShaderLibrary(L"../../shaders/RayGen.hlsl");
+			missLib = compileShaderLibrary(L"../../shaders/Miss.hlsl");
+			hitLib = compileShaderLibrary(L"../../shaders/Hit.hlsl");
+			shadowLib = compileShaderLibrary(L"../../shaders/ShadowRay.hlsl");
+		}
 
 		pipeline.addLibrary(shadowLib, { L"ShadowClosestHit", L"ShadowMiss" });
 		shadowSign = createHitSignature();
@@ -2508,9 +2516,13 @@ namespace pathtracex {
 		pipeline.addRootSignatureAssociation(hitSign,
 			{ L"HitGroup", L"PlaneHitGroup" });
 
-		pipeline.setMaxPayloadSize(4 * sizeof(float));
+		if (renderSettings.isPongGame || true) 
+			pipeline.setMaxPayloadSize(4 * sizeof(float));
+		else
+			pipeline.setMaxPayloadSize(4 * sizeof(float));
+
 		pipeline.setMaxAttributeSize(2 * sizeof(float));
-		pipeline.setMaxRecursionDepth(10);
+		pipeline.setMaxRecursionDepth(2);
 
 		rtpipelinestate = pipeline.generate();
 
@@ -2929,7 +2941,7 @@ namespace pathtracex {
 		rsg.addHeapRangesParameter(
 			{ 
 				{0 /*u0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV /*output UAV*/,	0 /*1st heap slot*/},
-				{0 /*t0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV /*TLAS*/,			1, /*2nd heap slot*/},
+				{0 /*t0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV /*TLAS*/,			1,/*2nd heap slot*/},
 				{0 /*b0*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_CBV /*Camera*/,		2 /*3rd heap slot*/},
 				{1 /*u1*/, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV /*depth UAV*/,		6 /*7th heap slot*/}
 			}
@@ -3108,16 +3120,42 @@ namespace pathtracex {
 		// update the light constant buffer
 		{
 			LightConstantBuffer temp;
+			/*
 			int count = scene.lights.size();
-			for (int i = 0; i < count && i < 5; i++) {
-				const auto light = scene.lights.at(i);
-				const auto pos = light->transform.getPosition();
-				temp.lights[i] = {{pos.x, pos.y, pos.z, 0}};
+			for (int i = 0; i < count && i < 3; i++) {
+				std::shared_ptr<Light> light = scene.lights.at(i);
+				const float3 pos = light->transform.getPosition();
+				const float3 col = light->color;
+				temp.lights[i].color = float4(col.x, col.y, col.z, 0.0f);
+				temp.lights[i].position = float4(pos.x, pos.y, pos.z, 1.0f);
+				temp.lights[i].intensity = light->intensity;
 			}
-			temp.pointLightCount = count;
+			//temp.pointLightCount = count;
+			*/
+			std::shared_ptr<Light> l = scene.lights.at(0);
+			float3 p = l->transform.getPosition();
+			float3 c = l->color;
+			temp.position0 = float4(p.x, p.y, p.z, 0.0f);
+			temp.colorIntense0 = float4(c.x, c.y, c.z, l->intensity);
+
+			l = scene.lights.at(1);
+			p = l->transform.getPosition();
+			c = l->color;
+			temp.position1 = float4(p.x, p.y, p.z, 0.0f);
+			temp.colorIntense1 = float4(c.x, c.y, c.z, l->intensity);
+
+			l = scene.lights.at(2);
+			p = l->transform.getPosition();
+			c = l->color;
+			temp.position2 = float4(p.x, p.y, p.z, 0.0f);
+			temp.colorIntense2 = float4(c.x, c.y, c.z, l->intensity);
 
 			uint8_t* data;
-			lightConstantBuffer->Map(0, nullptr, (void**)&data);
+			HRESULT hr;
+			hr = lightConstantBuffer->Map(0, nullptr, (void**)&data);
+			if (FAILED(hr)) {
+				LOG_ERROR("Failed to map lightConstantBuffer, updateRTBuffers()");
+			}
 			memcpy(data, &temp, lightConstantBufferSize);
 			lightConstantBuffer->Unmap(0, nullptr);
 		}
@@ -3125,9 +3163,9 @@ namespace pathtracex {
 		// update the noise constant buffer
 		{
 			currentRTFrame = currentRTFrame + 1;
-			unsigned int randomNum = rand();
+			//unsigned int randomNum = rand();
 			NoiseConstBuffer temp{
-				randomNum
+				currentRTFrame
 			};
 
 			uint8_t* data;
@@ -3193,6 +3231,7 @@ namespace pathtracex {
 				curr->material_emmision = float4(mat.emission.x, mat.emission.y, mat.emission.z, 0);
 				curr->material_color = float4(mat.color.x, mat.color.y, mat.color.z, 1);
 				curr->material_transparency = mat.transparency;
+				curr->material_ior = mat.ior;
 
 				curr->hasMaterial = true;
 				curr->normalMatrix = DirectX::XMMatrixInverse(nullptr, model->trans.getModelMatrix());
