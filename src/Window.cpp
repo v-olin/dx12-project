@@ -1,4 +1,4 @@
-#include "Window.h""
+#include "Window.h"
 
 #include "StringUtil.h"
 #include "App.h"
@@ -92,7 +92,7 @@ namespace pathtracex {
 		wc.lpszClassName = _wndClassName;
 
 		// for custom icon
-		// TODO KÄL: lägg till cool icon
+		// TODO Kï¿½L: lï¿½gg till cool icon
 		wc.hIconSm = nullptr;
 
 		RegisterClassEx(&wc);
